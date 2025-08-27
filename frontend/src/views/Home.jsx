@@ -122,7 +122,7 @@ function Home() {
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  className={`group relative ${card} hover:shadow-md transition-all cursor-pointer hover:border-border/80`}
+                  className={`group relative ${card} hover:shadow-md transition-all cursor-pointer hover:border-border/80 border border-border rounded-lg p-4`}
                   onClick={() => navigate(`/project/${project.id}`)}
                 >
                   <div className="flex items-start justify-between mb-3">
