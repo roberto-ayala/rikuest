@@ -2,12 +2,12 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"rikuest/internal/database"
 	"rikuest/internal/handlers"
 
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,7 +30,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	r.Use(static.Serve("/", static.LocalFile("./frontend/dist", true)))
 
 	api := r.Group("/api")
 	{
@@ -41,6 +40,12 @@ func main() {
 		api.PUT("/project/:id", handler.UpdateProject)
 		api.DELETE("/project/:id", handler.DeleteProject)
 		api.GET("/project/:id/requests", handler.GetRequests)
+		api.GET("/project/:id/folders", handler.GetFolders)
+
+		// Folders routes
+		api.POST("/folders", handler.CreateFolder)
+		api.PUT("/folder/:id", handler.UpdateFolder)
+		api.DELETE("/folder/:id", handler.DeleteFolder)
 
 		// Requests routes
 		api.POST("/requests", handler.CreateRequest)
@@ -49,10 +54,20 @@ func main() {
 		api.DELETE("/request/:id", handler.DeleteRequest)
 		api.POST("/request/:id/execute", handler.ExecuteRequest)
 		api.GET("/request/:id/history", handler.GetRequestHistory)
+		api.POST("/request/move", handler.MoveRequest)
 	}
 
+	// Serve static files for non-API routes
+	r.Static("/assets", "./frontend/dist/assets")
+	r.StaticFile("/vite.svg", "./frontend/dist/vite.svg")
+	
 	r.NoRoute(func(c *gin.Context) {
-		c.File("./frontend/dist/index.html")
+		// Only serve index.html for non-API routes
+		if !strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.File("./frontend/dist/index.html")
+		} else {
+			c.JSON(404, gin.H{"error": "API endpoint not found"})
+		}
 	})
 
 	log.Println("Server starting on :8080")

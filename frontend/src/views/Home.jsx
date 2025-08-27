@@ -5,9 +5,11 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { useProjectStore } from '../stores/projectStore';
+import { useUISize } from '../hooks/useUISize';
 
 function Home() {
   const navigate = useNavigate();
+  const { text, spacing, button, input, card } = useUISize();
   const { projects, loading, fetchProjects, createProject, deleteProject } = useProjectStore();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -81,13 +83,13 @@ function Home() {
             </div>
             
             <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-foreground">Welcome to Rikuest</h1>
-              <p className="text-muted-foreground">
+              <h1 className={`${text('2xl')} font-semibold text-foreground`}>Welcome to Rikuest</h1>
+              <p className={`${text('base')} text-muted-foreground`}>
                 Get started by creating your first project to organize your API requests
               </p>
             </div>
 
-            <Button onClick={() => setShowCreateDialog(true)} className="mt-6">
+            <Button onClick={() => setShowCreateDialog(true)} className={`mt-6 ${button}`}>
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Project
             </Button>
@@ -97,11 +99,11 @@ function Home() {
 
       {/* Projects Grid */}
       {(projects.length > 0 || loading) && (
-        <div className="p-6">
+        <div className={spacing(6)}>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
-              <p className="text-muted-foreground">Manage your API request collections</p>
+              <h1 className={`${text('2xl')} font-semibold text-foreground`}>Projects</h1>
+              <p className={`${text('base')} text-muted-foreground`}>Manage your API request collections</p>
             </div>
           </div>
 
@@ -120,7 +122,7 @@ function Home() {
               {projects.map((project) => (
                 <div
                   key={project.id}
-                  className="group relative bg-card border border-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer hover:border-border/80"
+                  className={`group relative ${card} hover:shadow-md transition-all cursor-pointer hover:border-border/80`}
                   onClick={() => navigate(`/project/${project.id}`)}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -140,13 +142,13 @@ function Home() {
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">
+                    <h3 className={`${text('base')} font-medium text-foreground group-hover:text-primary transition-colors`}>
                       {project.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className={`${text('sm')} text-muted-foreground line-clamp-2`}>
                       {project.description || 'No description provided'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className={`${text('xs')} text-muted-foreground`}>
                       Created {formatDate(project.created_at)}
                     </p>
                   </div>

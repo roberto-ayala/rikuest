@@ -61,6 +61,9 @@ func buildRawRequest(request *models.Request) string {
 	rawRequest.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", request.Method, requestPath))
 	rawRequest.WriteString(fmt.Sprintf("Host: %s\r\n", host))
 	
+	// Add custom User-Agent header
+	rawRequest.WriteString("User-Agent: Rikuest/1.0 (HTTP API Client)\r\n")
+	
 	// Add headers
 	for key, value := range request.Headers {
 		rawRequest.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
@@ -349,6 +352,9 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
+	// Set custom User-Agent header
+	req.Header.Set("User-Agent", "Rikuest/1.0 (HTTP API Client)")
+	
 	// Set headers from the request
 	for key, value := range request.Headers {
 		req.Header.Set(key, value)
@@ -431,4 +437,99 @@ func (h *Handler) GetRequestHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, history)
+}
+
+// Folder handlers
+func (h *Handler) CreateFolder(c *gin.Context) {
+	var folder models.Folder
+	if err := c.ShouldBindJSON(&folder); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.db.CreateFolder(&folder); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, folder)
+}
+
+func (h *Handler) GetFolders(c *gin.Context) {
+	projectID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	folders, err := h.db.GetFolders(projectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure we return an empty array instead of null
+	if folders == nil {
+		folders = []models.Folder{}
+	}
+
+	c.JSON(http.StatusOK, folders)
+}
+
+func (h *Handler) UpdateFolder(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid folder ID"})
+		return
+	}
+
+	var folder models.Folder
+	if err := c.ShouldBindJSON(&folder); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	folder.ID = id
+	if err := h.db.UpdateFolder(&folder); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, folder)
+}
+
+func (h *Handler) DeleteFolder(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid folder ID"})
+		return
+	}
+
+	if err := h.db.DeleteFolder(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Folder deleted successfully"})
+}
+
+type MoveRequestPayload struct {
+	RequestID int  `json:"request_id"`
+	FolderID  *int `json:"folder_id"`
+	Position  int  `json:"position"`
+}
+
+func (h *Handler) MoveRequest(c *gin.Context) {
+	var payload MoveRequestPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.db.MoveRequest(payload.RequestID, payload.FolderID, payload.Position); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Request moved successfully"})
 }

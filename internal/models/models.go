@@ -28,9 +28,20 @@ type BasicAuth struct {
 	Password string `json:"password"`
 }
 
+type Folder struct {
+	ID        int       `json:"id" db:"id"`
+	ProjectID int       `json:"project_id" db:"project_id"`
+	Name      string    `json:"name" db:"name"`
+	ParentID  *int      `json:"parent_id" db:"parent_id"`
+	Position  int       `json:"position" db:"position"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
 type Request struct {
 	ID          int                    `json:"id" db:"id"`
 	ProjectID   int                    `json:"project_id" db:"project_id"`
+	FolderID    *int                   `json:"folder_id" db:"folder_id"`
 	Name        string                 `json:"name" db:"name"`
 	Method      string                 `json:"method" db:"method"`
 	URL         string                 `json:"url" db:"url"`
@@ -42,6 +53,7 @@ type Request struct {
 	BasicAuth   BasicAuth              `json:"basic_auth" db:"basic_auth"`
 	BodyType    string                 `json:"body_type" db:"body_type"`
 	FormData    []FormData             `json:"form_data" db:"form_data"`
+	Position    int                    `json:"position" db:"position"`
 	Response    *RequestResponse       `json:"response,omitempty"`
 	CreatedAt   time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at" db:"updated_at"`

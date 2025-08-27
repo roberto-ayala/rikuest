@@ -182,6 +182,7 @@ function RequestBuilder() {
       const newRequestData = {
         id: currentRequest.id,
         project_id: currentRequest.project_id,
+        folder_id: currentRequest.folder_id || null,
         name: currentRequest.name || '',
         method: currentRequest.method || 'GET',
         url: currentRequest.url || '',

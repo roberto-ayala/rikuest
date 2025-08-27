@@ -5,8 +5,10 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
+import { useFolderStore } from '../stores/folderStore';
 import { useUISize } from '../hooks/useUISize';
 import RequestBuilder from '../components/RequestBuilder';
+import FolderTree from '../components/FolderTree';
 
 function Project() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ function Project() {
   
   const { currentProject, fetchProject } = useProjectStore();
   const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest } = useRequestStore();
+  const { fetchFolders } = useFolderStore();
   
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -146,6 +149,12 @@ function Project() {
   const handleSelectRequest = (request) => {
     setCurrentRequest(request);
   };
+  
+  const handleRequestMoved = () => {
+    // Refresh requests after a move operation
+    fetchRequests(projectId);
+    fetchFolders(projectId);
+  };
 
   const handleCreateRequest = async () => {
     if (!newRequest.name.trim()) return;
@@ -228,30 +237,11 @@ function Project() {
             </div>
           </div>
           
-          <Button onClick={() => setShowRequestDialog(true)} className={`w-full mt-3 ${button}`}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Request
-          </Button>
         </div>
 
-        {/* Requests List */}
+        {/* Folder Tree */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            <div className="flex items-center justify-between px-2 py-1 mb-2">
-              <span className={`${text('sm')} font-medium text-muted-foreground`}>Requests</span>
-              <span className={`${text('xs')} text-muted-foreground`}>{requests.length}</span>
-            </div>
-
-            {loading && (
-              <div className="space-y-1">
-                {[...Array(5)].map((_, n) => (
-                  <div key={n} className="animate-pulse">
-                    <div className="h-12 bg-muted rounded"></div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {!loading && requests.length === 0 && (
               <div className="text-center py-8">
                 <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -262,46 +252,12 @@ function Project() {
               </div>
             )}
 
-            {!loading && requests.length > 0 && (
-              <div className="space-y-1">
-                {requests.map((request) => (
-                  <div
-                    key={request.id}
-                    className={`group flex items-center ${spacing(2)} rounded hover:bg-muted cursor-pointer transition-colors ${
-                      currentRequest && currentRequest.id === request.id ? 'bg-muted' : ''
-                    }`}
-                    onClick={() => handleSelectRequest(request)}
-                  >
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <div
-                        className={`px-2 py-1 rounded ${text('xs')} font-medium text-white ${getMethodColor(request.method)}`}
-                      >
-                        {request.method}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`${text('sm')} font-medium text-foreground truncate`}>
-                          {request.name}
-                        </div>
-                        <div className={`${text('xs')} text-muted-foreground truncate`}>
-                          {request.url}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      className={`opacity-0 group-hover:opacity-100 ${button}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShowRequestMenu(request, e);
-                      }}
-                    >
-                      <MoreVertical className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <FolderTree 
+              projectId={projectId}
+              currentRequest={currentRequest}
+              onSelectRequest={handleSelectRequest}
+              onRequestMoved={handleRequestMoved}
+            />
           </div>
         </div>
       </div>

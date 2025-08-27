@@ -47,9 +47,21 @@ func (db *DB) createTables() error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS folders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			parent_id INTEGER,
+			position INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+			FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
+		)`,
 		`CREATE TABLE IF NOT EXISTS requests (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			project_id INTEGER NOT NULL,
+			folder_id INTEGER,
 			name TEXT NOT NULL,
 			method TEXT NOT NULL DEFAULT 'GET',
 			url TEXT NOT NULL,
@@ -61,9 +73,11 @@ func (db *DB) createTables() error {
 			basic_auth TEXT DEFAULT '{}',
 			body_type TEXT DEFAULT 'none',
 			form_data TEXT DEFAULT '[]',
+			position INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+			FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS request_history (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,6 +106,8 @@ func (db *DB) migrateRequestsTable() error {
 		`ALTER TABLE requests ADD COLUMN basic_auth TEXT DEFAULT '{}'`,
 		`ALTER TABLE requests ADD COLUMN body_type TEXT DEFAULT 'none'`,
 		`ALTER TABLE requests ADD COLUMN form_data TEXT DEFAULT '[]'`,
+		`ALTER TABLE requests ADD COLUMN folder_id INTEGER`,
+		`ALTER TABLE requests ADD COLUMN position INTEGER DEFAULT 0`,
 	}
 
 	for _, migration := range migrations {
@@ -105,13 +121,16 @@ func (db *DB) migrateRequestsTable() error {
 }
 
 func isColumnExistsError(err error) bool {
+	errStr := fmt.Sprintf("%s", err)
 	return err != nil && (
-		fmt.Sprintf("%s", err) == "duplicate column name: query_params" ||
-		fmt.Sprintf("%s", err) == "duplicate column name: auth_type" ||
-		fmt.Sprintf("%s", err) == "duplicate column name: bearer_token" ||
-		fmt.Sprintf("%s", err) == "duplicate column name: basic_auth" ||
-		fmt.Sprintf("%s", err) == "duplicate column name: body_type" ||
-		fmt.Sprintf("%s", err) == "duplicate column name: form_data")
+		errStr == "duplicate column name: query_params" ||
+		errStr == "duplicate column name: auth_type" ||
+		errStr == "duplicate column name: bearer_token" ||
+		errStr == "duplicate column name: basic_auth" ||
+		errStr == "duplicate column name: body_type" ||
+		errStr == "duplicate column name: form_data" ||
+		errStr == "duplicate column name: folder_id" ||
+		errStr == "duplicate column name: position")
 }
 
 func (db *DB) CreateProject(project *models.Project) error {
@@ -173,22 +192,33 @@ func (db *DB) CreateRequest(request *models.Request) error {
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
 	
-	query := `INSERT INTO requests (project_id, name, method, url, headers, body, 
-			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data) 
-			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
-	err := db.QueryRow(query, request.ProjectID, request.Name, request.Method, 
+	// Get the next position for this folder (or root level)
+	var maxPosition int
+	if request.FolderID == nil {
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL", 
+			request.ProjectID).Scan(&maxPosition)
+	} else {
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?", 
+			request.ProjectID, request.FolderID).Scan(&maxPosition)
+	}
+	request.Position = maxPosition + 1
+	
+	query := `INSERT INTO requests (project_id, folder_id, name, method, url, headers, body, 
+			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data, position) 
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
+	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method, 
 		request.URL, string(headersJSON), request.Body, string(queryParamsJSON),
 		request.AuthType, request.BearerToken, string(basicAuthJSON), 
-		request.BodyType, string(formDataJSON)).Scan(
+		request.BodyType, string(formDataJSON), request.Position).Scan(
 		&request.ID, &request.CreatedAt, &request.UpdatedAt,
 	)
 	return err
 }
 
 func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
-	query := `SELECT id, project_id, name, method, url, headers, body, query_params, 
-			  auth_type, bearer_token, basic_auth, body_type, form_data, created_at, updated_at 
-			  FROM requests WHERE project_id = ? ORDER BY created_at DESC`
+	query := `SELECT id, project_id, folder_id, name, method, url, headers, body, query_params, 
+			  auth_type, bearer_token, basic_auth, body_type, form_data, position, created_at, updated_at 
+			  FROM requests WHERE project_id = ? ORDER BY position ASC, created_at DESC`
 	rows, err := db.Query(query, projectID)
 	if err != nil {
 		return nil, err
@@ -199,13 +229,15 @@ func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
 	for rows.Next() {
 		var request models.Request
 		var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
-		err := rows.Scan(&request.ID, &request.ProjectID, &request.Name, &request.Method,
+		var folderID *int
+		err := rows.Scan(&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
 			&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
 			&request.AuthType, &request.BearerToken, &basicAuthJSON, 
-			&request.BodyType, &formDataJSON, &request.CreatedAt, &request.UpdatedAt)
+			&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
+		request.FolderID = folderID
 		json.Unmarshal([]byte(headersJSON), &request.Headers)
 		json.Unmarshal([]byte(queryParamsJSON), &request.QueryParams)
 		json.Unmarshal([]byte(basicAuthJSON), &request.BasicAuth)
@@ -217,20 +249,22 @@ func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
 }
 
 func (db *DB) GetRequest(id int) (*models.Request, error) {
-	query := `SELECT id, project_id, name, method, url, headers, body, query_params, 
-			  auth_type, bearer_token, basic_auth, body_type, form_data, created_at, updated_at 
+	query := `SELECT id, project_id, folder_id, name, method, url, headers, body, query_params, 
+			  auth_type, bearer_token, basic_auth, body_type, form_data, position, created_at, updated_at 
 			  FROM requests WHERE id = ?`
 	var request models.Request
 	var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
+	var folderID *int
 	err := db.QueryRow(query, id).Scan(
-		&request.ID, &request.ProjectID, &request.Name, &request.Method,
+		&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
 		&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
 		&request.AuthType, &request.BearerToken, &basicAuthJSON, 
-		&request.BodyType, &formDataJSON, &request.CreatedAt, &request.UpdatedAt,
+		&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	request.FolderID = folderID
 	json.Unmarshal([]byte(headersJSON), &request.Headers)
 	json.Unmarshal([]byte(queryParamsJSON), &request.QueryParams)
 	json.Unmarshal([]byte(basicAuthJSON), &request.BasicAuth)
@@ -246,11 +280,11 @@ func (db *DB) UpdateRequest(request *models.Request) error {
 	
 	query := `UPDATE requests SET name = ?, method = ?, url = ?, headers = ?, body = ?, 
 			  query_params = ?, auth_type = ?, bearer_token = ?, basic_auth = ?, 
-			  body_type = ?, form_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+			  body_type = ?, form_data = ?, folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := db.Exec(query, request.Name, request.Method, request.URL, 
 		string(headersJSON), request.Body, string(queryParamsJSON), 
 		request.AuthType, request.BearerToken, string(basicAuthJSON), 
-		request.BodyType, string(formDataJSON), request.ID)
+		request.BodyType, string(formDataJSON), request.FolderID, request.Position, request.ID)
 	return err
 }
 
@@ -289,4 +323,75 @@ func (db *DB) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 	}
 
 	return history, nil
+}
+
+// Folder operations
+func (db *DB) CreateFolder(folder *models.Folder) error {
+	// Get the next position for this parent folder (or root level)
+	var maxPosition int
+	if folder.ParentID == nil {
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL", 
+			folder.ProjectID).Scan(&maxPosition)
+	} else {
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?", 
+			folder.ProjectID, folder.ParentID).Scan(&maxPosition)
+	}
+	folder.Position = maxPosition + 1
+
+	query := `INSERT INTO folders (project_id, name, parent_id, position) 
+			  VALUES (?, ?, ?, ?) RETURNING id, created_at, updated_at`
+	err := db.QueryRow(query, folder.ProjectID, folder.Name, folder.ParentID, folder.Position).Scan(
+		&folder.ID, &folder.CreatedAt, &folder.UpdatedAt,
+	)
+	return err
+}
+
+func (db *DB) GetFolders(projectID int) ([]models.Folder, error) {
+	query := `SELECT id, project_id, name, parent_id, position, created_at, updated_at 
+			  FROM folders WHERE project_id = ? ORDER BY position ASC`
+	rows, err := db.Query(query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var folders []models.Folder
+	for rows.Next() {
+		var folder models.Folder
+		var parentID *int
+		err := rows.Scan(&folder.ID, &folder.ProjectID, &folder.Name, &parentID, 
+			&folder.Position, &folder.CreatedAt, &folder.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		folder.ParentID = parentID
+		folders = append(folders, folder)
+	}
+
+	return folders, nil
+}
+
+func (db *DB) UpdateFolder(folder *models.Folder) error {
+	query := `UPDATE folders SET name = ?, parent_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(query, folder.Name, folder.ParentID, folder.Position, folder.ID)
+	return err
+}
+
+func (db *DB) DeleteFolder(id int) error {
+	// First, move all requests in this folder to root level
+	_, err := db.Exec("UPDATE requests SET folder_id = NULL WHERE folder_id = ?", id)
+	if err != nil {
+		return err
+	}
+	
+	// Then delete the folder
+	query := `DELETE FROM folders WHERE id = ?`
+	_, err = db.Exec(query, id)
+	return err
+}
+
+func (db *DB) MoveRequest(requestID int, folderID *int, position int) error {
+	query := `UPDATE requests SET folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(query, folderID, position, requestID)
+	return err
 }

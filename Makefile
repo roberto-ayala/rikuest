@@ -13,7 +13,7 @@ backend:
 
 # Development mode
 dev:
-	go run ./cmd/server/main.go
+	gow run ./cmd/server/main.go
 
 # Clean build artifacts
 clean:

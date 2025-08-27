@@ -6,14 +6,14 @@ export const useUIStore = create(
     (set) => ({
       uiSize: 'md',
       theme: 'light',
-      primaryColor: 'petroleum',
+      primaryColor: 'slate',
       setUISize: (size) => set({ uiSize: size }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setPrimaryColor: (color) => set({ primaryColor: color }),
       
       // Color configurations
-      getColorConfig: (colorName = 'petroleum') => {
+      getColorConfig: (colorName = 'slate') => {
         const colors = {
           blue: {
             name: 'Blue',
@@ -66,7 +66,7 @@ export const useUIStore = create(
             dark: { primary: '215 28% 27%', foreground: '210 40% 98%' }
           }
         };
-        return colors[colorName] || colors.petroleum;
+        return colors[colorName] || colors.slate;
       },
       
       // UI size configurations

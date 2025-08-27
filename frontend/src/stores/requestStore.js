@@ -100,5 +100,39 @@ export const useRequestStore = create((set, get) => ({
       currentRequest: null, 
       currentResponse: null 
     });
+  },
+
+  // Helper function to organize requests by folder
+  getRequestsByFolder: () => {
+    const { requests } = get();
+    
+    // Ensure requests is an array
+    if (!Array.isArray(requests)) {
+      return { root: [], folders: {} };
+    }
+    
+    const requestsByFolder = {
+      root: [], // Requests without folder
+      folders: {} // Requests grouped by folder ID
+    };
+    
+    requests.forEach(request => {
+      if (request.folder_id === null || request.folder_id === undefined) {
+        requestsByFolder.root.push(request);
+      } else {
+        if (!requestsByFolder.folders[request.folder_id]) {
+          requestsByFolder.folders[request.folder_id] = [];
+        }
+        requestsByFolder.folders[request.folder_id].push(request);
+      }
+    });
+    
+    // Sort by position within each group
+    requestsByFolder.root.sort((a, b) => (a.position || 0) - (b.position || 0));
+    Object.keys(requestsByFolder.folders).forEach(folderId => {
+      requestsByFolder.folders[folderId].sort((a, b) => (a.position || 0) - (b.position || 0));
+    });
+    
+    return requestsByFolder;
   }
 }));
