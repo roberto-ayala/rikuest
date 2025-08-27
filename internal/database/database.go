@@ -1,0 +1,292 @@
+package database
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"rikuest/internal/models"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+type DB struct {
+	*sql.DB
+}
+
+func NewDB(dataSourceName string) (*DB, error) {
+	db, err := sql.Open("sqlite3", dataSourceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	database := &DB{db}
+	if err := database.createTables(); err != nil {
+		return nil, fmt.Errorf("failed to create tables: %w", err)
+	}
+
+	// Run migrations for new columns
+	if err := database.migrateRequestsTable(); err != nil {
+		return nil, fmt.Errorf("failed to migrate requests table: %w", err)
+	}
+
+	return database, nil
+}
+
+func (db *DB) createTables() error {
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS projects (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			description TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS requests (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			method TEXT NOT NULL DEFAULT 'GET',
+			url TEXT NOT NULL,
+			headers TEXT DEFAULT '{}',
+			body TEXT DEFAULT '',
+			query_params TEXT DEFAULT '[]',
+			auth_type TEXT DEFAULT 'none',
+			bearer_token TEXT DEFAULT '',
+			basic_auth TEXT DEFAULT '{}',
+			body_type TEXT DEFAULT 'none',
+			form_data TEXT DEFAULT '[]',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS request_history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			request_id INTEGER NOT NULL,
+			response TEXT NOT NULL,
+			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+		)`,
+	}
+
+	for _, query := range queries {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to execute query: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (db *DB) migrateRequestsTable() error {
+	// Add new columns if they don't exist
+	migrations := []string{
+		`ALTER TABLE requests ADD COLUMN query_params TEXT DEFAULT '[]'`,
+		`ALTER TABLE requests ADD COLUMN auth_type TEXT DEFAULT 'none'`,
+		`ALTER TABLE requests ADD COLUMN bearer_token TEXT DEFAULT ''`,
+		`ALTER TABLE requests ADD COLUMN basic_auth TEXT DEFAULT '{}'`,
+		`ALTER TABLE requests ADD COLUMN body_type TEXT DEFAULT 'none'`,
+		`ALTER TABLE requests ADD COLUMN form_data TEXT DEFAULT '[]'`,
+	}
+
+	for _, migration := range migrations {
+		_, err := db.Exec(migration)
+		if err != nil && !isColumnExistsError(err) {
+			return fmt.Errorf("migration failed: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func isColumnExistsError(err error) bool {
+	return err != nil && (
+		fmt.Sprintf("%s", err) == "duplicate column name: query_params" ||
+		fmt.Sprintf("%s", err) == "duplicate column name: auth_type" ||
+		fmt.Sprintf("%s", err) == "duplicate column name: bearer_token" ||
+		fmt.Sprintf("%s", err) == "duplicate column name: basic_auth" ||
+		fmt.Sprintf("%s", err) == "duplicate column name: body_type" ||
+		fmt.Sprintf("%s", err) == "duplicate column name: form_data")
+}
+
+func (db *DB) CreateProject(project *models.Project) error {
+	query := `INSERT INTO projects (name, description) VALUES (?, ?) RETURNING id, created_at, updated_at`
+	err := db.QueryRow(query, project.Name, project.Description).Scan(
+		&project.ID, &project.CreatedAt, &project.UpdatedAt,
+	)
+	return err
+}
+
+func (db *DB) GetProjects() ([]models.Project, error) {
+	query := `SELECT id, name, description, created_at, updated_at FROM projects ORDER BY created_at DESC`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var projects []models.Project
+	for rows.Next() {
+		var project models.Project
+		err := rows.Scan(&project.ID, &project.Name, &project.Description, &project.CreatedAt, &project.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		projects = append(projects, project)
+	}
+
+	return projects, nil
+}
+
+func (db *DB) GetProject(id int) (*models.Project, error) {
+	query := `SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?`
+	var project models.Project
+	err := db.QueryRow(query, id).Scan(
+		&project.ID, &project.Name, &project.Description, &project.CreatedAt, &project.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &project, nil
+}
+
+func (db *DB) UpdateProject(project *models.Project) error {
+	query := `UPDATE projects SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(query, project.Name, project.Description, project.ID)
+	return err
+}
+
+func (db *DB) DeleteProject(id int) error {
+	query := `DELETE FROM projects WHERE id = ?`
+	_, err := db.Exec(query, id)
+	return err
+}
+
+func (db *DB) CreateRequest(request *models.Request) error {
+	headersJSON, _ := json.Marshal(request.Headers)
+	queryParamsJSON, _ := json.Marshal(request.QueryParams)
+	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
+	formDataJSON, _ := json.Marshal(request.FormData)
+	
+	query := `INSERT INTO requests (project_id, name, method, url, headers, body, 
+			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data) 
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
+	err := db.QueryRow(query, request.ProjectID, request.Name, request.Method, 
+		request.URL, string(headersJSON), request.Body, string(queryParamsJSON),
+		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+		request.BodyType, string(formDataJSON)).Scan(
+		&request.ID, &request.CreatedAt, &request.UpdatedAt,
+	)
+	return err
+}
+
+func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
+	query := `SELECT id, project_id, name, method, url, headers, body, query_params, 
+			  auth_type, bearer_token, basic_auth, body_type, form_data, created_at, updated_at 
+			  FROM requests WHERE project_id = ? ORDER BY created_at DESC`
+	rows, err := db.Query(query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []models.Request
+	for rows.Next() {
+		var request models.Request
+		var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
+		err := rows.Scan(&request.ID, &request.ProjectID, &request.Name, &request.Method,
+			&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
+			&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+			&request.BodyType, &formDataJSON, &request.CreatedAt, &request.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		json.Unmarshal([]byte(headersJSON), &request.Headers)
+		json.Unmarshal([]byte(queryParamsJSON), &request.QueryParams)
+		json.Unmarshal([]byte(basicAuthJSON), &request.BasicAuth)
+		json.Unmarshal([]byte(formDataJSON), &request.FormData)
+		requests = append(requests, request)
+	}
+
+	return requests, nil
+}
+
+func (db *DB) GetRequest(id int) (*models.Request, error) {
+	query := `SELECT id, project_id, name, method, url, headers, body, query_params, 
+			  auth_type, bearer_token, basic_auth, body_type, form_data, created_at, updated_at 
+			  FROM requests WHERE id = ?`
+	var request models.Request
+	var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
+	err := db.QueryRow(query, id).Scan(
+		&request.ID, &request.ProjectID, &request.Name, &request.Method,
+		&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
+		&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+		&request.BodyType, &formDataJSON, &request.CreatedAt, &request.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal([]byte(headersJSON), &request.Headers)
+	json.Unmarshal([]byte(queryParamsJSON), &request.QueryParams)
+	json.Unmarshal([]byte(basicAuthJSON), &request.BasicAuth)
+	json.Unmarshal([]byte(formDataJSON), &request.FormData)
+	return &request, nil
+}
+
+func (db *DB) UpdateRequest(request *models.Request) error {
+	headersJSON, _ := json.Marshal(request.Headers)
+	queryParamsJSON, _ := json.Marshal(request.QueryParams)
+	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
+	formDataJSON, _ := json.Marshal(request.FormData)
+	
+	query := `UPDATE requests SET name = ?, method = ?, url = ?, headers = ?, body = ?, 
+			  query_params = ?, auth_type = ?, bearer_token = ?, basic_auth = ?, 
+			  body_type = ?, form_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(query, request.Name, request.Method, request.URL, 
+		string(headersJSON), request.Body, string(queryParamsJSON), 
+		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+		request.BodyType, string(formDataJSON), request.ID)
+	return err
+}
+
+func (db *DB) DeleteRequest(id int) error {
+	query := `DELETE FROM requests WHERE id = ?`
+	_, err := db.Exec(query, id)
+	return err
+}
+
+func (db *DB) SaveRequestHistory(history *models.RequestHistory) error {
+	responseJSON, _ := json.Marshal(history.Response)
+	query := `INSERT INTO request_history (request_id, response, executed_at) VALUES (?, ?, ?)`
+	_, err := db.Exec(query, history.RequestID, string(responseJSON), time.Now())
+	return err
+}
+
+func (db *DB) GetRequestHistory(requestID int) ([]models.RequestHistory, error) {
+	query := `SELECT id, request_id, response, executed_at FROM request_history 
+			  WHERE request_id = ? ORDER BY executed_at DESC LIMIT 10`
+	rows, err := db.Query(query, requestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []models.RequestHistory
+	for rows.Next() {
+		var h models.RequestHistory
+		var responseJSON string
+		err := rows.Scan(&h.ID, &h.RequestID, &responseJSON, &h.ExecutedAt)
+		if err != nil {
+			return nil, err
+		}
+		json.Unmarshal([]byte(responseJSON), &h.Response)
+		history = append(history, h)
+	}
+
+	return history, nil
+}

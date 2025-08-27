@@ -1,0 +1,133 @@
+import React, { useState } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Plus, Zap, Settings } from 'lucide-react';
+import { Button } from './components/ui/Button';
+import { Input } from './components/ui/Input';
+import { Textarea } from './components/ui/Textarea';
+import { useProjectStore } from './stores/projectStore';
+import { useUISize } from './hooks/useUISize';
+import ThemeSelector from './components/ThemeSelector';
+import SettingsModal from './components/SettingsModal';
+import Home from './views/Home';
+import Project from './views/Project';
+
+function App() {
+  const navigate = useNavigate();
+  const createProject = useProjectStore(state => state.createProject);
+  const { text, spacing, button, input } = useUISize();
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newProject, setNewProject] = useState({
+    name: '',
+    description: ''
+  });
+
+  const handleCreateProject = async () => {
+    if (!newProject.name.trim()) return;
+    
+    try {
+      const project = await createProject(newProject);
+      setShowNewProjectDialog(false);
+      setNewProject({ name: '', description: '' });
+      navigate(`/project/${project.id}`);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    }
+  };
+
+  const handleCancelNewProject = () => {
+    setShowNewProjectDialog(false);
+    setNewProject({ name: '', description: '' });
+  };
+
+  return (
+    <div className="h-screen bg-background text-foreground flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className={`flex h-14 items-center ${spacing(4)}`}>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Zap className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
+            </div>
+          </div>
+          
+          <div className="ml-auto flex items-center space-x-2">
+            <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+            <ThemeSelector />
+            <Button 
+              variant="ghost"
+              onClick={() => setShowSettingsModal(true)} 
+              className={`${button} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+              title="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden w-full min-h-0">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/project/:id" element={<Project />} />
+        </Routes>
+      </div>
+
+      {/* New Project Dialog */}
+      {showNewProjectDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className={`bg-card ${spacing(6)} rounded-lg shadow-lg border border-border w-full max-w-md`}>
+            <h2 className={`${text('lg')} font-semibold mb-4`}>Create New Project</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={`${text('sm')} font-medium mb-2 block`}>Project Name</label>
+                <Input
+                  value={newProject.name}
+                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                  placeholder="Enter project name"
+                  className={`w-full ${input}`}
+                />
+              </div>
+              
+              <div>
+                <label className={`${text('sm')} font-medium mb-2 block`}>Description</label>
+                <Textarea
+                  value={newProject.description}
+                  onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                  placeholder="Project description (optional)"
+                  className={`w-full ${input}`}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="ghost" onClick={handleCancelNewProject} className={button}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateProject} disabled={!newProject.name.trim()} className={button}>
+                Create Project
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)} 
+      />
+    </div>
+  );
+}
+
+export default App;
