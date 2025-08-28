@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useUISize } from '../hooks/useUISize';
 import './JsonEditor.css';
@@ -35,6 +35,97 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     return Math.max(180, baseHeight * scaleFactor);
   };
 
+  // Get app background color from CSS variables
+  const getAppBackgroundColor = useCallback(() => {
+    if (typeof window === 'undefined') return isDark ? '#0f0f23' : '#ffffff';
+    
+    const root = getComputedStyle(document.documentElement);
+    let bgColor = root.getPropertyValue('--background').trim();
+    
+    if (bgColor) {
+      // Handle HSL format: "220 14% 96%" or "hsl(220, 14%, 96%)"
+      if (bgColor.includes(' ')) {
+        // Remove any hsl() wrapper if present
+        bgColor = bgColor.replace(/^hsl\(|\)$/g, '');
+        const values = bgColor.split(/[\s,]+/).map(v => v.replace('%', ''));
+        
+        if (values.length >= 3) {
+          const h = parseFloat(values[0]);
+          const s = parseFloat(values[1]);
+          const l = parseFloat(values[2]);
+          return hslToHex(h, s, l);
+        }
+      }
+      
+      // Handle hex colors directly
+      if (bgColor.startsWith('#')) {
+        return bgColor;
+      }
+      
+      // Handle rgb format
+      if (bgColor.startsWith('rgb')) {
+        const match = bgColor.match(/\d+/g);
+        if (match && match.length >= 3) {
+          const r = parseInt(match[0]);
+          const g = parseInt(match[1]);
+          const b = parseInt(match[2]);
+          return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+      }
+    }
+    
+    // Fallback colors
+    return isDark ? '#0f0f23' : '#ffffff';
+  }, [isDark]);
+
+  // Helper to convert HSL to hex
+  const hslToHex = (h, s, l) => {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
+    }
+    
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  };
+
+  // Setup custom theme with app background
+  const setupAppTheme = useCallback((monaco) => {
+    const themeName = isDark ? 'app-dark' : 'app-light';
+    const baseTheme = isDark ? 'vs-dark' : 'vs';
+    const backgroundColor = getAppBackgroundColor();
+    
+    monaco.editor.defineTheme(themeName, {
+      base: baseTheme,
+      inherit: true,
+      rules: [], // Keep all default syntax highlighting
+      colors: {
+        'editor.background': backgroundColor,
+      }
+    });
+    
+    return themeName;
+  }, [isDark, getAppBackgroundColor]);
+
   // Listen for theme changes
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
@@ -50,6 +141,15 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     return () => observer.disconnect();
   }, []);
 
+  // Update theme when dark mode changes
+  useEffect(() => {
+    if (editorRef.current && window.monaco) {
+      const monaco = window.monaco;
+      const themeName = setupAppTheme(monaco);
+      monaco.editor.setTheme(themeName);
+    }
+  }, [isDark, setupAppTheme]);
+
   // Update editor font size when UI size changes
   useEffect(() => {
     if (editorRef.current) {
@@ -60,16 +160,9 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     }
   }, [config.text.sm]); // Re-run when text size configuration changes
 
-  // Update editor theme when app theme changes
-  useEffect(() => {
-    if (editorRef.current) {
-      // Update the editor theme
-      const monaco = window.monaco;
-      if (monaco) {
-        setupCustomThemes(monaco);
-        monaco.editor.setTheme(isDark ? 'app-dark' : 'app-light');
-      }
-    }
+  // Get Monaco theme based on app theme
+  const getMonacoTheme = useCallback(() => {
+    return isDark ? 'app-dark' : 'app-light';
   }, [isDark]);
 
   const handleEditorChange = (newValue) => {
@@ -89,118 +182,11 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     onChange({ target: { value: newValue || '' } });
   };
 
-  const setupCustomThemes = (monaco) => {
-    // Helper to convert HSL to hex
-    const hslToHex = (h, s, l) => {
-      s /= 100;
-      l /= 100;
-      const c = (1 - Math.abs(2 * l - 1)) * s;
-      const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-      const m = l - c / 2;
-      let r = 0, g = 0, b = 0;
-      
-      if (0 <= h && h < 60) {
-        r = c; g = x; b = 0;
-      } else if (60 <= h && h < 120) {
-        r = x; g = c; b = 0;
-      } else if (120 <= h && h < 180) {
-        r = 0; g = c; b = x;
-      } else if (180 <= h && h < 240) {
-        r = 0; g = x; b = c;
-      } else if (240 <= h && h < 300) {
-        r = x; g = 0; b = c;
-      } else if (300 <= h && h < 360) {
-        r = c; g = 0; b = x;
-      }
-      
-      r = Math.round((r + m) * 255);
-      g = Math.round((g + m) * 255);
-      b = Math.round((b + m) * 255);
-      
-      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    };
-
-    // Custom dark theme that matches the app's exact CSS variables
-    monaco.editor.defineTheme('app-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: '', foreground: hslToHex(210, 40, 98).slice(1) }, // --foreground
-        { token: 'string', foreground: '22d3ee' }, // cyan for strings (complementary to primary)
-        { token: 'number', foreground: '34d399' }, // emerald for numbers
-        { token: 'keyword', foreground: hslToHex(195, 85, 52).slice(1) }, // --primary color
-        { token: 'delimiter.bracket', foreground: '84cc16' }, // lime for brackets
-        { token: 'delimiter.square', foreground: '84cc16' }, // lime for square brackets  
-        { token: 'delimiter.curly', foreground: '84cc16' }, // lime for curly brackets
-        { token: 'comment', foreground: hslToHex(215, 20.2, 65.1).slice(1) }, // --muted-foreground
-      ],
-      colors: {
-        'editor.background': hslToHex(222.2, 84, 4.9), // --background
-        'editor.foreground': hslToHex(210, 40, 98), // --foreground
-        'editorLineNumber.foreground': hslToHex(215, 20.2, 65.1), // --muted-foreground
-        'editorLineNumber.activeForeground': hslToHex(210, 40, 98), // --foreground
-        'editor.selectionBackground': hslToHex(195, 85, 52) + '44', // --primary with opacity
-        'editor.inactiveSelectionBackground': hslToHex(195, 85, 52) + '22',
-        'editorCursor.foreground': hslToHex(195, 85, 52), // --primary
-        'editor.lineHighlightBackground': hslToHex(217.2, 32.6, 17.5), // --muted
-        'editorWidget.background': hslToHex(217.2, 32.6, 17.5), // --muted
-        'editorWidget.border': hslToHex(217.2, 32.6, 17.5), // --border
-        'editorSuggestWidget.background': hslToHex(217.2, 32.6, 17.5), // --muted
-        'editorSuggestWidget.border': hslToHex(217.2, 32.6, 17.5), // --border
-        'editorSuggestWidget.selectedBackground': hslToHex(217.2, 32.6, 22), // slightly lighter
-        'editorHoverWidget.background': hslToHex(217.2, 32.6, 17.5), // --muted
-        'editorHoverWidget.border': hslToHex(217.2, 32.6, 17.5), // --border
-        'scrollbar.shadow': '#00000033',
-        'scrollbarSlider.background': hslToHex(215, 20.2, 65.1) + '44', // --muted-foreground
-        'scrollbarSlider.hoverBackground': hslToHex(215, 20.2, 65.1) + '66',
-        'scrollbarSlider.activeBackground': hslToHex(215, 20.2, 65.1) + '88',
-      }
-    });
-
-    // Custom light theme that matches the app's exact CSS variables
-    monaco.editor.defineTheme('app-light', {
-      base: 'vs',
-      inherit: true,
-      rules: [
-        { token: '', foreground: hslToHex(222.2, 84, 4.9).slice(1) }, // --foreground (light theme)
-        { token: 'string', foreground: '0891b2' }, // cyan for strings
-        { token: 'number', foreground: '059669' }, // emerald for numbers
-        { token: 'keyword', foreground: hslToHex(195, 85, 41).slice(1) }, // --primary color (darker for light theme)
-        { token: 'delimiter.bracket', foreground: '65a30d' }, // lime for brackets
-        { token: 'delimiter.square', foreground: '65a30d' }, // lime for square brackets
-        { token: 'delimiter.curly', foreground: '65a30d' }, // lime for curly brackets  
-        { token: 'comment', foreground: hslToHex(215.4, 16.3, 46.9).slice(1) }, // --muted-foreground (light theme)
-      ],
-      colors: {
-        'editor.background': hslToHex(0, 0, 100), // --background (light theme)
-        'editor.foreground': hslToHex(222.2, 84, 4.9), // --foreground (light theme)  
-        'editorLineNumber.foreground': hslToHex(215.4, 16.3, 46.9), // --muted-foreground
-        'editorLineNumber.activeForeground': hslToHex(222.2, 84, 4.9), // --foreground
-        'editor.selectionBackground': hslToHex(195, 85, 41) + '33', // --primary with opacity
-        'editor.inactiveSelectionBackground': hslToHex(195, 85, 41) + '22',
-        'editorCursor.foreground': hslToHex(195, 85, 41), // --primary
-        'editor.lineHighlightBackground': hslToHex(210, 40, 96), // --muted (light theme)
-        'editorWidget.background': hslToHex(0, 0, 100), // --background
-        'editorWidget.border': hslToHex(214.3, 31.8, 91.4), // --border (light theme)
-        'editorSuggestWidget.background': hslToHex(0, 0, 100), // --background
-        'editorSuggestWidget.border': hslToHex(214.3, 31.8, 91.4), // --border
-        'editorSuggestWidget.selectedBackground': hslToHex(210, 40, 98), // --secondary
-        'editorHoverWidget.background': hslToHex(0, 0, 100), // --background
-        'editorHoverWidget.border': hslToHex(214.3, 31.8, 91.4), // --border
-        'scrollbar.shadow': '#00000011',
-        'scrollbarSlider.background': hslToHex(215.4, 16.3, 46.9) + '22', // --muted-foreground
-        'scrollbarSlider.hoverBackground': hslToHex(215.4, 16.3, 46.9) + '44',
-        'scrollbarSlider.activeBackground': hslToHex(215.4, 16.3, 46.9) + '66',
-      }
-    });
-  };
-
-
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
     
-    // Setup custom themes
-    setupCustomThemes(monaco);
+    // Setup custom theme
+    setupAppTheme(monaco);
     
     // Configure editor options with dynamic sizing
     editor.updateOptions({
@@ -243,11 +229,11 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const editorHeight = getEditorHeight();
 
   return (
-    <div className="json-editor relative" style={{ minHeight: `${editorHeight}px` }}>
+    <div className="json-editor relative" style={{ height: '100%' }}>
       <Editor
-        height={`${editorHeight}px`}
+        height="100%"
         language="json"
-        theme={isDark ? 'app-dark' : 'app-light'}
+        theme={getMonacoTheme()}
         value={value}
         onChange={handleEditorChange}
         onMount={handleEditorDidMount}

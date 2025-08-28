@@ -78,8 +78,12 @@ export const useRequestStore = create((set, get) => ({
     set({ executing: true });
     try {
       const response = await axios.post(`/api/request/${id}/execute`);
-      set({ currentResponse: response.data });
-      return response.data;
+      const responseWithTimestamp = {
+        ...response.data,
+        executed_at: new Date().toISOString()
+      };
+      set({ currentResponse: responseWithTimestamp });
+      return responseWithTimestamp;
     } catch (error) {
       console.error('Failed to execute request:', error);
       throw error;
@@ -100,6 +104,10 @@ export const useRequestStore = create((set, get) => ({
       currentRequest: null, 
       currentResponse: null 
     });
+  },
+
+  setCurrentResponse: (response) => {
+    set({ currentResponse: response });
   },
 
   // Helper function to organize requests by folder

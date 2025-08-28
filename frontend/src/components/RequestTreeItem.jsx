@@ -5,7 +5,7 @@ import { FileText, MoreVertical } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 
-function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBeingDragged }) {
+function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBeingDragged, onShowMenu }) {
   const { text, spacing, button } = useUISize();
   
   const {
@@ -49,16 +49,18 @@ function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBein
         </div>
       </div>
       
-      <Button
-        variant="ghost"
-        className={`opacity-0 group-hover:opacity-100 ${button} h-6 w-6 p-0`}
-        onClick={(e) => {
-          e.stopPropagation();
-          // TODO: Show request context menu
-        }}
-      >
-        <MoreVertical className="h-3 w-3" />
-      </Button>
+      {onShowMenu && (
+        <Button
+          variant="ghost"
+          className={`opacity-0 group-hover:opacity-100 ${button} h-6 w-6 p-0`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onShowMenu(request, e);
+          }}
+        >
+          <MoreVertical className="h-3 w-3" />
+        </Button>
+      )}
     </div>
   );
 }

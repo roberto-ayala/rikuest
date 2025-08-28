@@ -1,19 +1,104 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Send, Plus, Trash2, Loader2, BarChart3, Clock } from 'lucide-react';
+import { Send, Plus, Trash2, Loader2, BarChart3, Clock, History, X, Timer, HardDrive, Calendar } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/Textarea';
 import JsonEditor from './JsonEditor';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
+import { useUIStore } from '../stores/uiStore';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow, twilight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { 
+  tomorrow, 
+  twilight, 
+  prism, 
+  dark,
+  funky,
+  okaidia,
+  coy,
+  solarizedlight,
+  atomDark,
+  base16AteliersulphurpoolLight,
+  cb,
+  duotoneDark,
+  duotoneLight,
+  ghcolors,
+  hopscotch,
+  pojoaque,
+  vs,
+  xonokai,
+  coldarkCold,
+  coldarkDark,
+  a11yDark,
+  dracula,
+  materialDark,
+  materialLight,
+  materialOceanic,
+  vscDarkPlus,
+  synthwave84,
+  nightOwl,
+  nord,
+  lucario,
+  oneLight,
+  oneDark
+} from 'react-syntax-highlighter/dist/esm/styles/prism';
 import axios from 'axios';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest } = useRequestStore();
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
+  const { responseTheme, responseThemeLight, responseThemeDark, defaultResponseThemeLight, defaultResponseThemeDark } = useUIStore();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  
+  // Theme mapping object
+  const themeMap = {
+    tomorrow,
+    twilight,
+    prism,
+    dark,
+    funky,
+    okaidia,
+    coy,
+    solarizedlight,
+    atomDark,
+    base16AteliersulphurpoolLight,
+    cb,
+    duotoneDark,
+    duotoneLight,
+    ghcolors,
+    hopscotch,
+    pojoaque,
+    vs,
+    xonokai,
+    coldarkCold,
+    coldarkDark,
+    a11yDark,
+    dracula,
+    materialDark,
+    materialLight,
+    materialOceanic,
+    vscDarkPlus,
+    synthwave84,
+    nightOwl,
+    nord,
+    lucario,
+    oneLight,
+    oneDark
+  };
+  
+  // Function to get the actual theme object
+  const getResponseTheme = () => {
+    if (responseTheme === 'auto') {
+      const defaultThemeId = isDark ? defaultResponseThemeDark : defaultResponseThemeLight;
+      return themeMap[defaultThemeId] || (isDark ? twilight : tomorrow);
+    } else if (responseTheme === 'custom') {
+      const themeId = isDark ? responseThemeDark : responseThemeLight;
+      return themeMap[themeId] || (isDark ? twilight : tomorrow);
+    }
+    // This shouldn't happen with current implementation, but fallback
+    return themeMap[responseTheme] || (isDark ? twilight : tomorrow);
+  };
+
   
   // Listen for theme changes
   useEffect(() => {
@@ -52,6 +137,8 @@ function RequestBuilder() {
   const [activeRequestTab, setActiveRequestTab] = useState('params');
   const [activeResponseTab, setActiveResponseTab] = useState('body');
   const [history, setHistory] = useState([]);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  const [loadingHistoryItem, setLoadingHistoryItem] = useState(false);
   const tabsContainerRef = React.useRef(null);
 
   // Panel resizing with percentage-based persistence
@@ -315,15 +402,15 @@ function RequestBuilder() {
 
   const getMethodColor = (method) => {
     const colors = {
-      'GET': 'text-blue-600 bg-blue-50 border-blue-200',
-      'POST': 'text-green-600 bg-green-50 border-green-200',
-      'PUT': 'text-orange-600 bg-orange-50 border-orange-200',
-      'DELETE': 'text-red-600 bg-red-50 border-red-200',
-      'PATCH': 'text-purple-600 bg-purple-50 border-purple-200',
-      'HEAD': 'text-gray-600 bg-gray-50 border-gray-200',
-      'OPTIONS': 'text-gray-600 bg-gray-50 border-gray-200'
+      'GET': 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
+      'POST': 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800',
+      'PUT': 'text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800',
+      'DELETE': 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800',
+      'PATCH': 'text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800',
+      'HEAD': 'text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800',
+      'OPTIONS': 'text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800'
     };
-    return colors[method] || 'text-gray-600 bg-gray-50 border-gray-200';
+    return colors[method] || 'text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800';
   };
 
   const getStatusColor = (status) => {
@@ -333,11 +420,12 @@ function RequestBuilder() {
     return 'text-gray-600 bg-gray-50';
   };
 
-  const formatSize = (bytes) => {
+  const formatSize = useCallback((bytes) => {
+    if (!bytes) return '0 B';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  }, []);
 
   const formatJson = (jsonString) => {
     try {
@@ -530,7 +618,7 @@ function RequestBuilder() {
   };
 
   // Load history
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!requestData.id) return;
     
     try {
@@ -538,6 +626,52 @@ function RequestBuilder() {
       setHistory(response.data || []);
     } catch (error) {
       console.error('Failed to load history:', error);
+    }
+  }, [requestData.id]);
+
+  // Memoized utility functions for history items
+  const getHistoryStatusColor = useCallback((status) => {
+    if (status >= 200 && status < 300) return 'text-emerald-600 dark:text-emerald-400';
+    if (status >= 300 && status < 400) return 'text-blue-600 dark:text-blue-400';
+    if (status >= 400 && status < 500) return 'text-orange-600 dark:text-orange-400';
+    return 'text-red-600 dark:text-red-400';
+  }, []);
+
+
+  // Load history automatically when request changes
+  useEffect(() => {
+    if (requestData.id) {
+      loadHistory();
+    } else {
+      setHistory([]);
+    }
+  }, [requestData.id, loadHistory]);
+
+  // Handle history item selection
+  const handleHistoryItemSelect = async (historyItem) => {
+    setLoadingHistoryItem(true);
+    
+    // Close drawer immediately to show loader
+    setIsHistoryDrawerOpen(false);
+    
+    // Switch to response view
+    setActiveResponseTab('body');
+    
+    try {
+      // Small delay to ensure loading state is visible
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // The history item contains a "response" object with the actual response data
+      const response = {
+        ...historyItem.response,
+        executed_at: historyItem.executed_at // Add the execution timestamp
+      };
+      
+      // Update the current response with the history item's response
+      const { setCurrentResponse } = useRequestStore.getState();
+      setCurrentResponse(response);
+    } finally {
+      setLoadingHistoryItem(false);
     }
   };
 
@@ -560,8 +694,7 @@ function RequestBuilder() {
   const responseTabs = [
     { id: 'body', label: 'Body' },
     { id: 'headers', label: 'Headers' },
-    { id: 'raw', label: 'Raw Request' },
-    { id: 'history', label: 'History' }
+    { id: 'raw', label: 'Raw Request' }
   ];
 
   const bodyTypes = [
@@ -585,7 +718,7 @@ function RequestBuilder() {
           <select
             value={requestData.method}
             onChange={(e) => updateRequestData({ method: e.target.value })}
-            className={`${select} font-medium border border-input rounded-md bg-background min-w-[90px] ${getMethodColor(requestData.method)}`}
+            className={`${select} font-medium min-w-[90px] ${getMethodColor(requestData.method)}`}
           >
             <option value="GET">GET</option>
             <option value="POST">POST</option>
@@ -622,12 +755,24 @@ function RequestBuilder() {
           </Button>
         </div>
         
-        <Input
-          value={requestData.name}
-          onChange={(e) => updateRequestData({ name: e.target.value })}
-          placeholder="Request name"
-          className={`${text('lg')} font-medium bg-transparent border-none p-0 h-auto focus-visible:ring-0`}
-        />
+        <div className="flex items-center justify-between flex-1">
+          <Input
+            value={requestData.name}
+            onChange={(e) => updateRequestData({ name: e.target.value })}
+            placeholder="Request name"
+            className={`${text('lg')} font-medium bg-transparent border-none p-0 h-auto focus-visible:ring-0 shadow-none flex-1 mr-3`}
+          />
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsHistoryDrawerOpen(true)}
+            className="h-8 w-8 p-0 hover:bg-muted flex-shrink-0"
+            title="Request History"
+          >
+            <History className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div 
@@ -770,8 +915,8 @@ function RequestBuilder() {
 
             {/* Body Tab */}
             {activeRequestTab === 'body' && (
-              <div className="h-full overflow-y-auto">
-                <div className={`space-y-4 ${spacing(4)}`}>
+              <div className="h-full flex flex-col">
+                <div className={`flex-shrink-0 ${spacing(4)}`}>
                   <div className="flex space-x-2">
                     {bodyTypes.map((type) => (
                       <button
@@ -787,6 +932,8 @@ function RequestBuilder() {
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className={`flex-1 min-h-0 ${spacing(4)} pt-4`}>
 
                   {requestData.body_type === 'form' && (
                     <div className="space-y-3">
@@ -830,11 +977,13 @@ function RequestBuilder() {
                   )}
 
                   {requestData.body_type === 'json' && (
-                    <JsonEditor
-                      value={requestData.body}
-                      onChange={(e) => updateRequestData({ body: e.target.value })}
-                      placeholder="Enter JSON body"
-                    />
+                    <div className="h-full">
+                      <JsonEditor
+                        value={requestData.body}
+                        onChange={(e) => updateRequestData({ body: e.target.value })}
+                        placeholder="Enter JSON body"
+                      />
+                    </div>
                   )}
 
                   {requestData.body_type === 'text' && (
@@ -856,7 +1005,7 @@ function RequestBuilder() {
                   <select
                     value={requestData.auth_type}
                     onChange={(e) => updateRequestData({ auth_type: e.target.value })}
-                    className={`w-full ${select} border border-input rounded-md`}
+                    className={`w-full ${select}`}
                   >
                     <option value="none">No Auth</option>
                     <option value="bearer">Bearer Token</option>
@@ -921,7 +1070,19 @@ function RequestBuilder() {
 
         {/* Response Area */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
-          {!currentResponse ? (
+          {loadingHistoryItem ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto animate-pulse">
+                  <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className={`${text('lg')} font-medium text-foreground`}>Loading History Item</h3>
+                  <p className={`${text('sm')} text-muted-foreground`}>Loading response from history...</p>
+                </div>
+              </div>
+            </div>
+          ) : !currentResponse ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
@@ -942,8 +1103,20 @@ function RequestBuilder() {
                     <div className={`px-3 py-1 rounded text-sm font-medium ${getStatusColor(currentResponse.status)}`}>
                       {currentResponse.status_text}
                     </div>
-                    <span className={`${text('sm')} text-muted-foreground`}>{currentResponse.duration}ms</span>
-                    <span className={`${text('sm')} text-muted-foreground`}>{formatSize(currentResponse.size)}</span>
+                    <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>
+                      <Timer className="h-3 w-3" />
+                      {currentResponse.duration}ms
+                    </span>
+                    <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>
+                      <HardDrive className="h-3 w-3" />
+                      {formatSize(currentResponse.size)}
+                    </span>
+                    {currentResponse.executed_at && (
+                      <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>
+                        <Calendar className="h-3 w-3" />
+                        {new Date(currentResponse.executed_at).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -986,14 +1159,14 @@ function RequestBuilder() {
                       return (
                         <SyntaxHighlighter
                           language={language}
-                          style={isDark ? twilight : tomorrow}
+                          style={getResponseTheme()}
                           customStyle={{
                             margin: 0,
                             borderRadius: '0.5rem',
                             fontSize: config.text.sm.includes('text-xs') ? '0.75rem' : 
                                      config.text.sm.includes('text-sm') ? '0.875rem' :
                                      config.text.sm.includes('text-base') ? '1rem' : '1.125rem',
-                            backgroundColor: 'var(--muted)',
+                            backgroundColor: 'hsl(var(--background))',
                             padding: '1rem'
                           }}
                           showLineNumbers={content.split('\n').length > 10}
@@ -1023,9 +1196,24 @@ function RequestBuilder() {
                 {activeResponseTab === 'raw' && (
                   <div className="h-full overflow-y-auto p-4">
                     {currentResponse.raw_request ? (
-                      <pre className={`${text('sm')} bg-muted/30 p-4 rounded-lg overflow-x-auto font-mono whitespace-pre-wrap break-words`}>
+                      <SyntaxHighlighter
+                        language="http"
+                        style={getResponseTheme()}
+                        customStyle={{
+                          margin: 0,
+                          borderRadius: '0.5rem',
+                          fontSize: config.text.sm.includes('text-xs') ? '0.75rem' : 
+                                   config.text.sm.includes('text-sm') ? '0.875rem' :
+                                   config.text.sm.includes('text-base') ? '1rem' : '1.125rem',
+                          backgroundColor: 'hsl(var(--background))',
+                          padding: '1rem'
+                        }}
+                        showLineNumbers={false}
+                        wrapLines={true}
+                        wrapLongLines={true}
+                      >
                         {currentResponse.raw_request}
-                      </pre>
+                      </SyntaxHighlighter>
                     ) : (
                       <div className="text-center py-8">
                         <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -1038,42 +1226,80 @@ function RequestBuilder() {
                   </div>
                 )}
 
-                {activeResponseTab === 'history' && (
-                  <div className="h-full overflow-y-auto p-4">
-                    {history.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                        <p className={`${text('sm')} text-muted-foreground`}>No request history</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {history.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className={`px-2 py-1 rounded ${text('xs')} font-medium ${getStatusColor(item.response.status)}`}>
-                                {item.response.status}
-                              </div>
-                              <span className={`${text('xs')} text-muted-foreground`}>
-                                {new Date(item.executed_at).toLocaleString()}
-                              </span>
-                            </div>
-                            <div className={`${text('xs')} text-muted-foreground`}>
-                              {item.response.duration}ms • {formatSize(item.response.size)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* History Drawer */}
+      {isHistoryDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-background/80"
+            onClick={() => setIsHistoryDrawerOpen(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="relative ml-auto w-96 h-full bg-card border-l border-border shadow-lg flex flex-col">
+            {/* Header */}
+            <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-muted-foreground" />
+                <h3 className={`${text('lg')} font-semibold text-foreground`}>Request History</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsHistoryDrawerOpen(false)}
+                className="h-8 w-8 p-0 hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Content */}
+            <div className={`flex-1 overflow-y-auto ${spacing(4)}`}>
+              {history.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                  <p className={`${text('sm')} text-muted-foreground mb-2`}>No request history</p>
+                  <p className={`${text('xs')} text-muted-foreground`}>Execute this request to see its history</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleHistoryItemSelect(item)}
+                      className="w-full p-3 text-left border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`${text('xs')} text-muted-foreground`}>
+                          {new Date(item.executed_at).toLocaleString()}
+                        </span>
+                        <span className={`${text('sm')} font-medium ${getHistoryStatusColor(item.response.status)}`}>
+                          {item.response.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className={`${text('xs')} text-muted-foreground flex items-center gap-2`}>
+                          <BarChart3 className="h-3 w-3" />
+                          <span>{item.response.duration}ms</span>
+                        </div>
+                        <div className={`${text('xs')} text-muted-foreground`}>
+                          {formatSize(item.response.size)}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

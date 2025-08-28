@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, MoreVertical, Copy, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useProjectStore } from '../stores/projectStore';
@@ -188,16 +188,46 @@ function Project() {
     setShowMenu(true);
   };
 
-  const handleDuplicateRequest = () => {
-    setShowMenu(false);
-    // Implement duplicate functionality
+  const handleDuplicateRequest = async () => {
+    if (!selectedRequest) return;
+    
+    try {
+      const duplicatedRequest = {
+        project_id: selectedRequest.project_id,
+        folder_id: selectedRequest.folder_id,
+        name: `${selectedRequest.name} (Copy)`,
+        method: selectedRequest.method,
+        url: selectedRequest.url,
+        headers: selectedRequest.headers,
+        query_params: selectedRequest.query_params || [],
+        auth_type: selectedRequest.auth_type || 'none',
+        bearer_token: selectedRequest.bearer_token || '',
+        basic_auth: selectedRequest.basic_auth || { username: '', password: '' },
+        body_type: selectedRequest.body_type || 'none',
+        body: selectedRequest.body || '',
+        form_data: selectedRequest.form_data || [],
+        position: selectedRequest.position + 1
+      };
+      
+      const newRequest = await createRequest(duplicatedRequest);
+      setCurrentRequest(newRequest);
+      setShowMenu(false);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Failed to duplicate request:', error);
+    }
   };
 
   const handleDeleteRequest = async () => {
     if (!selectedRequest) return;
     
-    if (window.confirm('Are you sure you want to delete this request?')) {
+    if (window.confirm(`Are you sure you want to delete "${selectedRequest.name}"?`)) {
       try {
+        // If deleting the current request, clear it
+        if (currentRequest && currentRequest.id === selectedRequest.id) {
+          setCurrentRequest(null);
+        }
+        
         await deleteRequest(selectedRequest.id);
         setShowMenu(false);
         setSelectedRequest(null);
@@ -257,6 +287,7 @@ function Project() {
               currentRequest={currentRequest}
               onSelectRequest={handleSelectRequest}
               onRequestMoved={handleRequestMoved}
+              onShowRequestMenu={handleShowRequestMenu}
             />
           </div>
         </div>
@@ -316,7 +347,7 @@ function Project() {
                   <select
                     value={newRequest.method}
                     onChange={(e) => setNewRequest({...newRequest, method: e.target.value})}
-                    className={`${select} w-full rounded-md border border-input bg-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                    className={`${select} w-full shadow-sm`}
                   >
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -360,15 +391,17 @@ function Project() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
               onClick={handleDuplicateRequest}
             >
+              <Copy className="h-4 w-4" />
               Duplicate
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2"
               onClick={handleDeleteRequest}
             >
+              <Trash2 className="h-4 w-4" />
               Delete
             </button>
           </div>

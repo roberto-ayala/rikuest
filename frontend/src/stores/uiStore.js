@@ -7,10 +7,60 @@ export const useUIStore = create(
       uiSize: 'md',
       theme: 'light',
       primaryColor: 'slate',
+      responseTheme: 'auto', // auto, or theme name
+      responseThemeLight: 'tomorrow', // default light theme
+      responseThemeDark: 'twilight', // default dark theme
+      defaultResponseThemeLight: 'tomorrow', // user-defined default light theme
+      defaultResponseThemeDark: 'twilight', // user-defined default dark theme
       setUISize: (size) => set({ uiSize: size }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setPrimaryColor: (color) => set({ primaryColor: color }),
+      setResponseTheme: (responseTheme) => set({ responseTheme }),
+      setResponseThemeLight: (responseThemeLight) => set({ responseThemeLight }),
+      setResponseThemeDark: (responseThemeDark) => set({ responseThemeDark }),
+      setDefaultResponseThemeLight: (defaultResponseThemeLight) => set({ defaultResponseThemeLight }),
+      setDefaultResponseThemeDark: (defaultResponseThemeDark) => set({ defaultResponseThemeDark }),
+      
+      // Response syntax highlighting themes
+      getAvailableResponseThemes: () => ({
+        light: [
+          { id: 'tomorrow', name: 'Tomorrow' },
+          { id: 'prism', name: 'Prism' },
+          { id: 'coy', name: 'Coy' },
+          { id: 'solarizedlight', name: 'Solarized Light' },
+          { id: 'base16AteliersulphurpoolLight', name: 'Base16 Light' },
+          { id: 'cb', name: 'CB' },
+          { id: 'duotoneLight', name: 'Duotone Light' },
+          { id: 'ghcolors', name: 'GitHub Colors' },
+          { id: 'pojoaque', name: 'Pojoaque' },
+          { id: 'vs', name: 'Visual Studio' },
+          { id: 'coldarkCold', name: 'Coldark Cold' },
+          { id: 'materialLight', name: 'Material Light' },
+          { id: 'oneLight', name: 'One Light' }
+        ],
+        dark: [
+          { id: 'twilight', name: 'Twilight' },
+          { id: 'dark', name: 'Dark' },
+          { id: 'funky', name: 'Funky' },
+          { id: 'okaidia', name: 'Okaidia' },
+          { id: 'atomDark', name: 'Atom Dark' },
+          { id: 'duotoneDark', name: 'Duotone Dark' },
+          { id: 'hopscotch', name: 'Hopscotch' },
+          { id: 'xonokai', name: 'Xonokai' },
+          { id: 'coldarkDark', name: 'Coldark Dark' },
+          { id: 'a11yDark', name: 'A11y Dark' },
+          { id: 'dracula', name: 'Dracula' },
+          { id: 'materialDark', name: 'Material Dark' },
+          { id: 'materialOceanic', name: 'Material Oceanic' },
+          { id: 'vscDarkPlus', name: 'VS Code Dark+' },
+          { id: 'synthwave84', name: 'Synthwave 84' },
+          { id: 'nightOwl', name: 'Night Owl' },
+          { id: 'nord', name: 'Nord' },
+          { id: 'lucario', name: 'Lucario' },
+          { id: 'oneDark', name: 'One Dark' }
+        ]
+      }),
       
       // Color configurations
       getColorConfig: (colorName = 'slate') => {
@@ -91,7 +141,7 @@ export const useUIStore = create(
             components: {
               button: 'h-7 px-2 text-xs',
               input: 'h-7 px-2 text-xs',
-              select: 'h-7 px-2 text-xs',
+              select: 'h-7 px-2 text-xs bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-2 py-1 text-xs',
               card: 'p-2',
               sidebar: 'w-64'
@@ -116,7 +166,7 @@ export const useUIStore = create(
             components: {
               button: 'h-8 px-2.5 text-sm',
               input: 'h-8 px-2.5 text-sm',
-              select: 'h-8 px-2.5 text-sm',
+              select: 'h-8 px-2.5 text-sm bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-3 py-1.5 text-sm',
               card: 'p-3',
               sidebar: 'w-72'
@@ -141,7 +191,7 @@ export const useUIStore = create(
             components: {
               button: 'h-9 px-3 text-sm',
               input: 'h-9 px-3 text-sm',
-              select: 'h-9 px-3 text-sm',
+              select: 'h-9 px-3 text-sm bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-4 py-2 text-sm',
               card: 'p-4',
               sidebar: 'w-80'
@@ -166,7 +216,7 @@ export const useUIStore = create(
             components: {
               button: 'h-10 px-4 text-base',
               input: 'h-10 px-4 text-base',
-              select: 'h-10 px-4 text-base',
+              select: 'h-10 px-4 text-base bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-5 py-2.5 text-base',
               card: 'p-5',
               sidebar: 'w-96'

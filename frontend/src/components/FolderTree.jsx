@@ -23,7 +23,9 @@ import {
   Plus, 
   MoreVertical,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -72,7 +74,7 @@ function RootDropZone() {
   );
 }
 
-function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved }) {
+function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
   const { text, spacing, button, input } = useUISize();
   
   // Load expanded folders from localStorage
@@ -444,6 +446,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                           onSelect={onSelectRequest}
                           getMethodColor={getMethodColor}
                           isBeingDragged={activeId === `request-${request.id}`}
+                          onShowMenu={onShowRequestMenu}
                         />
                         
                         {/* Drop zone between requests */}
@@ -472,6 +475,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                   onSelect={onSelectRequest}
                   getMethodColor={getMethodColor}
                   isBeingDragged={activeId === `request-${request.id}`}
+                  onShowMenu={onShowRequestMenu}
                 />
                 
                 {/* Drop zone between root requests */}
@@ -566,28 +570,31 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
               onClick={() => {
                 setShowNewRequestDialog(true);
                 setShowFolderMenu(false);
               }}
             >
+              <FileText className="h-4 w-4" />
               New Request
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
               onClick={() => {
                 setShowRenameFolderDialog(true);
                 setRenameFolderName(selectedFolder.name); // Pre-fill with current name
                 setShowFolderMenu(false);
               }}
             >
+              <Edit3 className="h-4 w-4" />
               Rename
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors"
+              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2"
               onClick={handleDeleteFolder}
             >
+              <Trash2 className="h-4 w-4" />
               Delete
             </button>
           </div>
