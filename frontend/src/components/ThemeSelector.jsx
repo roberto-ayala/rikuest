@@ -1,9 +1,11 @@
 import React from 'react';
 import { Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { useUISize } from '../hooks/useUISize';
 
 function ThemeSelector() {
   const { theme, setTheme, getSizeConfig, uiSize } = useUIStore();
+  const { themeButton, icon } = useUISize();
   const config = getSizeConfig(uiSize);
 
   const themes = [
@@ -21,9 +23,9 @@ function ThemeSelector() {
 
   return (
     <div className="relative group">
-      <button className={`flex items-center space-x-1 ${config.components.button} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md transition-colors`}>
-        <CurrentIcon className="h-4 w-4" />
-        <ChevronDown className="h-3 w-3" />
+      <button className={`flex items-center space-x-1 ${themeButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md transition-colors`}>
+        <CurrentIcon className={icon} />
+        <ChevronDown className={icon} />
       </button>
       
       <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[120px]">
@@ -41,7 +43,7 @@ function ThemeSelector() {
                     : 'hover:bg-muted'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={icon} />
                 <span>{themeOption.label}</span>
               </button>
             );

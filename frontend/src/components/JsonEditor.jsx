@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useUISize } from '../hooks/useUISize';
+import { useUIStore } from '../stores/uiStore';
 import './JsonEditor.css';
 
 const JsonEditor = ({ value, onChange, placeholder, className }) => {
@@ -8,6 +9,9 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const [isValidJson, setIsValidJson] = useState(true);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   const { config } = useUISize();
+  
+  // Subscribe to background color changes
+  const { theme, backgroundColorLight, backgroundColorDark } = useUIStore();
 
   // Get font size based on UI size configuration
   const getFontSize = () => {
@@ -35,10 +39,34 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     return Math.max(180, baseHeight * scaleFactor);
   };
 
-  // Get app background color from CSS variables
+  // Get app background color from CSS variables with fallback
   const getAppBackgroundColor = useCallback(() => {
     if (typeof window === 'undefined') return isDark ? '#0f0f23' : '#ffffff';
     
+    // First try to get the current background color selection
+    const { 
+      theme, 
+      backgroundColorLight, 
+      backgroundColorDark, 
+      getBackgroundColors 
+    } = useUIStore.getState();
+    
+    // Determine effective theme
+    let effectiveTheme = theme;
+    if (theme === 'system') {
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    
+    // Get background colors and find current selection
+    const backgroundColors = getBackgroundColors();
+    const currentBgId = effectiveTheme === 'dark' ? backgroundColorDark : backgroundColorLight;
+    const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
+    
+    if (currentBgConfig) {
+      return currentBgConfig.preview;
+    }
+    
+    // Fallback to CSS variable if no background selection
     const root = getComputedStyle(document.documentElement);
     let bgColor = root.getPropertyValue('--background').trim();
     
@@ -141,14 +169,14 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Update theme when dark mode changes
+  // Update theme when dark mode changes or background colors change
   useEffect(() => {
     if (editorRef.current && window.monaco) {
       const monaco = window.monaco;
       const themeName = setupAppTheme(monaco);
       monaco.editor.setTheme(themeName);
     }
-  }, [isDark, setupAppTheme]);
+  }, [isDark, setupAppTheme, theme, backgroundColorLight, backgroundColorDark]);
 
   // Update editor font size when UI size changes
   useEffect(() => {

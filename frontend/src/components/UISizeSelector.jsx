@@ -1,9 +1,11 @@
 import React from 'react';
 import { Settings, ChevronDown } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { useUISize } from '../hooks/useUISize';
 
 function UISizeSelector({ modal = false }) {
   const { uiSize, setUISize, getSizeConfig } = useUIStore();
+  const { icon } = useUISize();
   const config = getSizeConfig(uiSize);
 
   const sizes = [
@@ -66,9 +68,9 @@ function UISizeSelector({ modal = false }) {
   return (
     <div className="relative group">
       <button className={`flex items-center space-x-2 ${config.components.button} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-md transition-colors`}>
-        <Settings className="h-4 w-4" />
+        <Settings className={icon} />
         <span className="hidden sm:inline">{sizes.find(s => s.value === uiSize)?.label}</span>
-        <ChevronDown className="h-3 w-3" />
+        <ChevronDown className={icon} />
       </button>
       
       <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[120px]">

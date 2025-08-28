@@ -5,7 +5,9 @@ import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Textarea } from './components/ui/Textarea';
 import { useProjectStore } from './stores/projectStore';
+import { useUIStore } from './stores/uiStore';
 import { useUISize } from './hooks/useUISize';
+import { useBackgroundColor } from './hooks/useBackgroundColor';
 import ThemeSelector from './components/ThemeSelector';
 import SettingsModal from './components/SettingsModal';
 import Home from './views/Home';
@@ -14,7 +16,11 @@ import Project from './views/Project';
 function App() {
   const navigate = useNavigate();
   const createProject = useProjectStore(state => state.createProject);
-  const { text, spacing, button, input } = useUISize();
+  const layout = useUIStore(state => state.layout);
+  const { text, spacing, button, input, icon, iconButton } = useUISize();
+  
+  // Apply background colors
+  useBackgroundColor();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -41,44 +47,90 @@ function App() {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className={`flex h-14 items-center ${spacing(4)}`}>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Zap className="h-4 w-4 text-primary-foreground" />
+    <div className="h-screen text-foreground flex flex-col">
+      {layout === 'default' ? (
+        <>
+          {/* Default Layout - Full Header */}
+          <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+            <div className={`flex h-14 items-center ${spacing(4)}`}>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <Zap className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
+                </div>
               </div>
-              <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
+              
+              <div className="ml-auto flex items-center space-x-2">
+                <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+                <ThemeSelector />
+                <Button 
+                  variant="ghost"
+                  onClick={() => setShowSettingsModal(true)} 
+                  className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+                  title="Settings"
+                >
+                  <Settings className={icon} />
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="ml-auto flex items-center space-x-2">
-            <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
-            <ThemeSelector />
-            <Button 
-              variant="ghost"
-              onClick={() => setShowSettingsModal(true)} 
-              className={`${button} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-              title="Settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden w-full min-h-0">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/project/:id" element={<Project />} />
-        </Routes>
-      </div>
+          {/* Main Content */}
+          <div className="flex-1 flex overflow-hidden w-full min-h-0">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/project/:id" element={<Project />} />
+            </Routes>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Compact Layout - No header for project view, compact header for home */}
+          <Routes>
+            <Route path="/" element={
+              <>
+                <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+                  <div className={`flex h-14 items-center ${spacing(4)}`}>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                          <Zap className="h-4 w-4 text-primary-foreground" />
+                        </div>
+                        <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-auto flex items-center space-x-2">
+                      <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Project
+                      </Button>
+                      <ThemeSelector />
+                      <Button 
+                        variant="ghost"
+                        onClick={() => setShowSettingsModal(true)} 
+                        className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+                        title="Settings"
+                      >
+                        <Settings className={icon} />
+                      </Button>
+                    </div>
+                  </div>
+                </header>
+                <div className="flex-1 flex overflow-hidden w-full min-h-0">
+                  <Home />
+                </div>
+              </>
+            } />
+            <Route path="/project/:id" element={<Project layout={layout} onNewProject={() => setShowNewProjectDialog(true)} onSettings={() => setShowSettingsModal(true)} />} />
+          </Routes>
+        </>
+      )}
 
       {/* New Project Dialog */}
       {showNewProjectDialog && (

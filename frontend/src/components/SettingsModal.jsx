@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { X, Palette, Type, Monitor, Settings } from 'lucide-react';
+import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 import ColorSelector from './ColorSelector';
 import UISizeSelector from './UISizeSelector';
+import LayoutSelector from './LayoutSelector';
+import BackgroundColorSelector from './BackgroundColorSelector';
 import ResponseThemeSelector from './ResponseThemeSelector';
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const { text, spacing, button } = useUISize();
+  const { text, spacing, button, iconMd, iconButton, icon } = useUISize();
   const [activeSection, setActiveSection] = useState('interface');
 
   const sections = [
-    { id: 'interface', name: 'Interface', icon: Type, description: 'Size and layout' },
+    { id: 'interface', name: 'Interface', icon: Type, description: 'Size and spacing' },
+    { id: 'layout', name: 'Layout', icon: Layout, description: 'App layout style' },
     { id: 'colors', name: 'Colors', icon: Palette, description: 'Theme and colors' },
+    { id: 'background', name: 'Background', icon: Paintbrush, description: 'Background colors' },
     { id: 'response', name: 'Response', icon: Monitor, description: 'Response display' },
   ];
 
@@ -29,6 +33,30 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 Choose the size of text, buttons, and other interface elements throughout the application.
               </p>
               <UISizeSelector modal={true} />
+            </div>
+          </div>
+        );
+      case 'layout':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>App Layout</h3>
+              <p className={`${text('sm')} text-muted-foreground mb-6`}>
+                Choose how the app interface is organized. The compact layout puts the header in the sidebar for more content space.
+              </p>
+              <LayoutSelector modal={true} />
+            </div>
+          </div>
+        );
+      case 'background':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>Background Colors</h3>
+              <p className={`${text('sm')} text-muted-foreground mb-6`}>
+                Customize the background color for light and dark themes. Choose from carefully selected palettes that maintain readability and accessibility.
+              </p>
+              <BackgroundColorSelector modal={true} />
             </div>
           </div>
         );
@@ -67,16 +95,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
         {/* Header - Fixed */}
         <div className={`flex items-center justify-between flex-shrink-0 border-b border-border ${spacing(4)}`}>
           <div className="flex items-center gap-3">
-            <Settings className="h-6 w-6 text-primary" />
+            <Settings className={`${iconMd} text-primary`} />
             <h2 className={`${text('xl')} font-semibold text-foreground`}>Settings</h2>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0 hover:bg-muted flex-shrink-0"
+            className={`${iconButton} hover:bg-muted flex-shrink-0`}
           >
-            <X className="h-4 w-4" />
+            <X className={icon} />
           </Button>
         </div>
 

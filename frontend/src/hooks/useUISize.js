@@ -22,6 +22,14 @@ export function useUISize() {
     select: config.components.select,
     tab: config.components.tab,
     card: config.components.card,
-    sidebar: config.components.sidebar
+    sidebar: config.components.sidebar,
+    icon: config.components.icon,
+    iconMd: config.components.iconMd,
+    iconButton: config.components.iconButton,
+    themeButton: config.components.themeButton,
+    sidebarMinWidth: config.components.sidebarMinWidth,
+    methodBadge: config.components.methodBadge,
+    itemSpacing: config.components.itemSpacing,
+    menuItem: config.components.menuItem
   };
 }

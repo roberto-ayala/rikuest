@@ -7,20 +7,50 @@ export const useUIStore = create(
       uiSize: 'md',
       theme: 'light',
       primaryColor: 'slate',
+      layout: 'default', // 'default' or 'compact'
+      backgroundColorLight: 'default',
+      backgroundColorDark: 'default',
       responseTheme: 'auto', // auto, or theme name
       responseThemeLight: 'tomorrow', // default light theme
       responseThemeDark: 'twilight', // default dark theme
       defaultResponseThemeLight: 'tomorrow', // user-defined default light theme
       defaultResponseThemeDark: 'twilight', // user-defined default dark theme
       setUISize: (size) => set({ uiSize: size }),
+      setLayout: (layout) => set({ layout }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setPrimaryColor: (color) => set({ primaryColor: color }),
+      setBackgroundColorLight: (color) => set({ backgroundColorLight: color }),
+      setBackgroundColorDark: (color) => set({ backgroundColorDark: color }),
       setResponseTheme: (responseTheme) => set({ responseTheme }),
       setResponseThemeLight: (responseThemeLight) => set({ responseThemeLight }),
       setResponseThemeDark: (responseThemeDark) => set({ responseThemeDark }),
       setDefaultResponseThemeLight: (defaultResponseThemeLight) => set({ defaultResponseThemeLight }),
       setDefaultResponseThemeDark: (defaultResponseThemeDark) => set({ defaultResponseThemeDark }),
+      
+      // Background color palettes
+      getBackgroundColors: () => ({
+        light: [
+          { id: 'default', name: 'Default', class: 'bg-white', preview: '#ffffff' },
+          { id: 'warm', name: 'Warm', class: 'bg-orange-50', preview: '#fff7ed' },
+          { id: 'cool', name: 'Cool', class: 'bg-blue-50', preview: '#eff6ff' },
+          { id: 'neutral', name: 'Neutral', class: 'bg-gray-50', preview: '#f9fafb' },
+          { id: 'sage', name: 'Sage', class: 'bg-green-50', preview: '#f0fdf4' },
+          { id: 'lavender', name: 'Lavender', class: 'bg-purple-50', preview: '#faf5ff' },
+          { id: 'rose', name: 'Rose', class: 'bg-pink-50', preview: '#fdf2f8' },
+          { id: 'amber', name: 'Amber', class: 'bg-amber-50', preview: '#fffbeb' }
+        ],
+        dark: [
+          { id: 'default', name: 'Default', class: 'bg-slate-950', preview: '#020617' },
+          { id: 'charcoal', name: 'Charcoal', class: 'bg-gray-900', preview: '#111827' },
+          { id: 'midnight', name: 'Midnight', class: 'bg-blue-950', preview: '#172554' },
+          { id: 'forest', name: 'Forest', class: 'bg-green-950', preview: '#14532d' },
+          { id: 'plum', name: 'Plum', class: 'bg-purple-950', preview: '#581c87' },
+          { id: 'wine', name: 'Wine', class: 'bg-red-950', preview: '#7f1d1d' },
+          { id: 'coffee', name: 'Coffee', class: 'bg-amber-950', preview: '#451a03' },
+          { id: 'obsidian', name: 'Obsidian', class: 'bg-zinc-950', preview: '#09090b' }
+        ]
+      }),
       
       // Response syntax highlighting themes
       getAvailableResponseThemes: () => ({
@@ -144,7 +174,15 @@ export const useUIStore = create(
               select: 'h-7 px-2 text-xs bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-2 py-1 text-xs',
               card: 'p-2',
-              sidebar: 'w-64'
+              sidebar: 'w-64',
+              sidebarMinWidth: 220,
+              icon: 'h-3 w-3',
+              iconMd: 'h-3.5 w-3.5',
+              iconButton: 'h-6 w-6 p-0',
+              themeButton: 'h-6 px-1.5 py-0',
+              methodBadge: 'px-1.5 py-0.5',
+              itemSpacing: 'space-x-1.5',
+              menuItem: 'px-2 py-1.5 text-xs'
             }
           },
           sm: {
@@ -169,7 +207,15 @@ export const useUIStore = create(
               select: 'h-8 px-2.5 text-sm bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-3 py-1.5 text-sm',
               card: 'p-3',
-              sidebar: 'w-72'
+              sidebar: 'w-72',
+              sidebarMinWidth: 240,
+              icon: 'h-3.5 w-3.5',
+              iconMd: 'h-4 w-4',
+              iconButton: 'h-7 w-7 p-0',
+              themeButton: 'h-7 px-2 py-0',
+              methodBadge: 'px-2 py-1',
+              itemSpacing: 'space-x-2',
+              menuItem: 'px-2.5 py-2 text-sm'
             }
           },
           md: {
@@ -194,7 +240,15 @@ export const useUIStore = create(
               select: 'h-9 px-3 text-sm bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-4 py-2 text-sm',
               card: 'p-4',
-              sidebar: 'w-80'
+              sidebar: 'w-80',
+              sidebarMinWidth: 260,
+              icon: 'h-4 w-4',
+              iconMd: 'h-4 w-4',
+              iconButton: 'h-8 w-8 p-0',
+              themeButton: 'h-8 px-2.5 py-0',
+              methodBadge: 'px-2.5 py-1',
+              itemSpacing: 'space-x-2',
+              menuItem: 'px-3 py-2 text-sm'
             }
           },
           lg: {
@@ -219,7 +273,15 @@ export const useUIStore = create(
               select: 'h-10 px-4 text-base bg-background text-foreground border border-input rounded transition-colors hover:border-input/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               tab: 'px-5 py-2.5 text-base',
               card: 'p-5',
-              sidebar: 'w-96'
+              sidebar: 'w-96',
+              sidebarMinWidth: 280,
+              icon: 'h-4 w-4',
+              iconMd: 'h-5 w-5',
+              iconButton: 'h-9 w-9 p-0',
+              themeButton: 'h-9 px-3 py-0',
+              methodBadge: 'px-3 py-1.5',
+              itemSpacing: 'space-x-3',
+              menuItem: 'px-4 py-2.5 text-base'
             }
           }
         };

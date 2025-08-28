@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, MoreVertical, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, MoreVertical, Copy, Trash2, Zap, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
 import { useFolderStore } from '../stores/folderStore';
+import { useUIStore } from '../stores/uiStore';
 import { useUISize } from '../hooks/useUISize';
+import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
 
-function Project() {
+function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const projectId = parseInt(id);
-  const { text, spacing, button, input, select, sidebar, card } = useUISize();
+  const uiLayout = useUIStore(state => state.layout);
+  const currentLayout = layout || uiLayout;
+  const { text, spacing, button, input, select, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
   
   const { currentProject, fetchProject } = useProjectStore();
   const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest } = useRequestStore();
@@ -56,16 +60,22 @@ function Project() {
         
         // Apply constraints (10% to 40%)
         const constrainedPercentage = Math.min(Math.max(percentage, 10), 40);
-        const newWidth = (constrainedPercentage / 100) * containerWidth;
+        const calculatedWidth = (constrainedPercentage / 100) * containerWidth;
+        
+        // Ensure minimum width is respected
+        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
+        const newWidth = Math.max(calculatedWidth, minWidth);
         
         setSidebarWidth(newWidth);
       } else {
-        // Default to 25% if no saved value
+        // Default to 25% if no saved value, but respect minimum width
         const containerWidth = containerRef.current.getBoundingClientRect().width;
-        setSidebarWidth(containerWidth * 0.25);
+        const defaultWidth = containerWidth * 0.25;
+        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
+        setSidebarWidth(Math.max(defaultWidth, minWidth));
       }
     }
-  }, []);
+  }, [sidebarMinWidth]);
 
   // Handle resizing
   const handleMouseDown = (e) => {
@@ -82,8 +92,9 @@ function Project() {
     const containerWidth = containerRect.width;
     const mouseX = e.clientX - containerRect.left;
     
-    // Calculate percentage constraints (10% to 40%)
-    const minWidth = containerWidth * 0.1;
+    // Calculate minimum width: max between sidebarMinWidth and 10% of container
+    const percentageMinWidth = containerWidth * 0.1;
+    const minWidth = Math.max(sidebarMinWidth, percentageMinWidth);
     const maxWidth = containerWidth * 0.4;
     
     // Clamp the width between min and max
@@ -91,7 +102,7 @@ function Project() {
     
     setSidebarWidth(newWidth);
     saveWidthPercentage(newWidth);
-  }, [isResizing, saveWidthPercentage]);
+  }, [isResizing, saveWidthPercentage, sidebarMinWidth]);
 
   const handleMouseUp = React.useCallback(() => {
     setIsResizing(false);
@@ -247,16 +258,56 @@ function Project() {
         className="flex-shrink-0 bg-background flex flex-col"
         style={{ width: sidebarWidth + 'px' }}
       >
+        {currentLayout === 'compact' && (
+          /* Compact Header - Same width as sidebar */
+          <div className={`${spacing(4)} border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50`}>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/')}
+                className={iconButton}
+              >
+                <ArrowLeft className={icon} />
+              </Button>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <Zap className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className={`font-semibold ${text('base')} truncate`}>Rikuest</h1>
+              </div>
+              <Button 
+                onClick={onNewProject}
+                variant="ghost"
+                className={iconButton}
+                title="New Project"
+              >
+                <Plus className={icon} />
+              </Button>
+              <ThemeSelector />
+              <Button 
+                variant="ghost"
+                onClick={onSettings}
+                className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+                title="Settings"
+              >
+                <Settings className={icon} />
+              </Button>
+            </div>
+          </div>
+        )}
+        
         {/* Project Header */}
         <div className={`${spacing(4)} border-b border-border`}>
           <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className={button}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+            {currentLayout === 'default' && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/')}
+                className={button}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <div className="flex-1 min-w-0">
               <h1 className={`${text('lg')} font-semibold text-foreground truncate`}>
                 {currentProject?.name}
@@ -391,17 +442,17 @@ function Project() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={handleDuplicateRequest}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className={iconMd} />
               Duplicate
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteRequest}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className={iconMd} />
               Delete
             </button>
           </div>

@@ -6,7 +6,7 @@ import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 
 function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBeingDragged, onShowMenu }) {
-  const { text, spacing, button } = useUISize();
+  const { text, spacing, button, icon, iconButton, methodBadge, itemSpacing } = useUISize();
   
   const {
     attributes,
@@ -33,9 +33,9 @@ function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBein
       {...attributes}
       {...listeners}
     >
-      <div className="flex items-center space-x-2 flex-1 min-w-0">
+      <div className={`flex items-center ${itemSpacing} flex-1 min-w-0`}>
         <div
-          className={`px-2 py-1 rounded ${text('xs')} font-medium text-white ${getMethodColor(request.method)}`}
+          className={`${methodBadge} rounded ${text('xs')} font-medium text-white ${getMethodColor(request.method)}`}
         >
           {request.method}
         </div>
@@ -52,13 +52,13 @@ function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBein
       {onShowMenu && (
         <Button
           variant="ghost"
-          className={`opacity-0 group-hover:opacity-100 ${button} h-6 w-6 p-0`}
+          className={`opacity-0 group-hover:opacity-100 ${iconButton}`}
           onClick={(e) => {
             e.stopPropagation();
             onShowMenu(request, e);
           }}
         >
-          <MoreVertical className="h-3 w-3" />
+          <MoreVertical className={icon} />
         </Button>
       )}
     </div>

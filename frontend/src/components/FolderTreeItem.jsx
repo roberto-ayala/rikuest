@@ -12,7 +12,7 @@ import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 
 function FolderTreeItem({ folder, isExpanded, onToggle, onShowMenu }) {
-  const { text, spacing, button } = useUISize();
+  const { text, spacing, button, icon, iconMd, itemSpacing } = useUISize();
   
   const {
     attributes,
@@ -48,17 +48,17 @@ function FolderTreeItem({ folder, isExpanded, onToggle, onShowMenu }) {
         className={`${button} h-6 w-6 p-0 hover:bg-muted/50`}
       >
         {isExpanded ? (
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className={icon} />
         ) : (
-          <ChevronRight className="h-3 w-3" />
+          <ChevronRight className={icon} />
         )}
       </Button>
       
-      <div className="flex items-center space-x-2 flex-1 min-w-0">
+      <div className={`flex items-center ${itemSpacing} flex-1 min-w-0`}>
         {isExpanded ? (
-          <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <FolderOpen className={`${iconMd} text-primary flex-shrink-0`} />
         ) : (
-          <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <Folder className={`${iconMd} text-primary flex-shrink-0`} />
         )}
         
         <span className={`${text('sm')} font-medium text-foreground truncate`}>
@@ -76,7 +76,7 @@ function FolderTreeItem({ folder, isExpanded, onToggle, onShowMenu }) {
           }
         }}
       >
-        <MoreVertical className="h-3 w-3" />
+        <MoreVertical className={icon} />
       </Button>
     </div>
   );

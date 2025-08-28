@@ -75,7 +75,7 @@ function RootDropZone() {
 }
 
 function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
-  const { text, spacing, button, input } = useUISize();
+  const { text, spacing, button, input, icon, iconMd, menuItem, itemSpacing } = useUISize();
   
   // Load expanded folders from localStorage
   const loadExpandedFolders = () => {
@@ -402,7 +402,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
           className={`${button} h-6 w-6 p-0`}
           title="Create New"
         >
-          <Plus className="h-3 w-3" />
+          <Plus className={icon} />
         </Button>
       </div>
       
@@ -498,14 +498,14 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             <div className="bg-card border border-border rounded shadow-lg p-2">
               {getItemById(activeId)?.type === 'request' ? (
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <FileText className={`${iconMd} text-muted-foreground`} />
                   <span className={`${text('sm')} font-medium`}>
                     {getItemById(activeId)?.name}
                   </span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
-                  <Folder className="h-4 w-4 text-muted-foreground" />
+                  <Folder className={`${iconMd} text-primary`} />
                   <span className={`${text('sm')} font-medium`}>
                     {getItemById(activeId)?.name}
                   </span>
@@ -570,31 +570,31 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowNewRequestDialog(true);
                 setShowFolderMenu(false);
               }}
             >
-              <FileText className="h-4 w-4" />
+              <FileText className={iconMd} />
               New Request
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center gap-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowRenameFolderDialog(true);
                 setRenameFolderName(selectedFolder.name); // Pre-fill with current name
                 setShowFolderMenu(false);
               }}
             >
-              <Edit3 className="h-4 w-4" />
+              <Edit3 className={iconMd} />
               Rename
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteFolder}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className={iconMd} />
               Delete
             </button>
           </div>
@@ -708,24 +708,24 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center space-x-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
               onClick={() => {
                 setShowCreateMenu(false);
                 setShowNewFolderDialog(true);
               }}
             >
-              <Folder className="h-4 w-4" />
+              <Folder className={`${iconMd} text-primary`} />
               <span>New Folder</span>
             </button>
             <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors flex items-center space-x-2"
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
               onClick={() => {
                 setShowCreateMenu(false);
                 setSelectedFolder(null); // Reset folder context for root level request
                 setShowNewRequestDialog(true);
               }}
             >
-              <FileText className="h-4 w-4" />
+              <FileText className={iconMd} />
               <span>New Request</span>
             </button>
           </div>

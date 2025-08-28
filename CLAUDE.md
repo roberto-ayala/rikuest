@@ -69,10 +69,13 @@ This is a REST API client application (similar to Postman/Insomnia) with a Go ba
 
 ## Development Workflow
 
+**IMPORTANT: DO NOT START OR RESTART SERVICES**
+The development services (frontend and backend) are already running and automatically reload on code changes. Never use `make dev`, `npm run dev`, or any other command to start services. Changes are applied automatically through hot reload.
+
 ### Frontend Development
-1. Start backend: `make dev` (runs on :8080)
-2. Start frontend: `cd frontend && npm run dev` (proxies API calls to backend)
-3. Frontend serves on different port, API calls proxy to backend
+1. Backend is already running on :8080
+2. Frontend is already running with hot reload enabled (proxies API calls to backend)
+3. All code changes are automatically applied - no restart needed
 
 ### Production Build
 1. `make build` creates single binary with embedded frontend
