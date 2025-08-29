@@ -42,7 +42,7 @@ import {
   oneLight,
   oneDark
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import apiService from '../lib/apiService.js';
+import { adapterFactory } from '../adapters/adapterFactory.js';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest } = useRequestStore();
@@ -622,8 +622,9 @@ function RequestBuilder() {
     if (!requestData.id) return;
     
     try {
-      const response = await apiService.get(`/api/request/${requestData.id}/history`);
-      setHistory(response.data || []);
+      const adapter = await adapterFactory.getAdapter();
+      const history = await adapter.getRequestHistory(requestData.id);
+      setHistory(history || []);
     } catch (error) {
       console.error('Failed to load history:', error);
     }

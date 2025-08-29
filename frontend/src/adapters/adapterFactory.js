@@ -6,7 +6,6 @@ class AdapterFactory {
     this.adapter = null;
     this.initialized = false;
     
-    // Don't access window.go in constructor - wait for actual usage
     console.log('AdapterFactory constructor called - waiting for first usage');
   }
 
@@ -22,29 +21,11 @@ class AdapterFactory {
       return;
     }
 
-    // If we detect Wails context, wait a bit for runtime to be ready
-    if (window.__WAILS_CONTEXT__) {
-      console.log('Wails context detected, waiting for runtime to be ready...');
-      
-      // Wait up to 3 seconds for Go bindings to be available
-      let attempts = 0;
-      while (attempts < 30 && !window.go?.main?.App) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-      
-      if (!window.go?.main?.App) {
-        console.warn('Wails Go bindings not available after 3 seconds, falling back to HTTP');
-      }
-    }
-
-    const isWails = window.__WAILS_CONTEXT__ && window.go?.main?.App;
+    // Try to detect Wails by checking if Go bindings are actually available
+    const isWails = await this.detectWailsEnvironment();
     
     console.log('Adapter Factory initializing...', {
-      wailsContext: !!window.__WAILS_CONTEXT__,
-      goBindings: !!window.go?.main?.App,
-      selectedAdapter: isWails ? 'WailsAdapter' : 'APIAdapter',
-      waitAttempts: window.__WAILS_CONTEXT__ ? attempts : 0
+      selectedAdapter: isWails ? 'WailsAdapter' : 'APIAdapter'
     });
 
     if (isWails) {
@@ -58,6 +39,36 @@ class AdapterFactory {
     }
 
     this.initialized = true;
+  }
+
+  async detectWailsEnvironment() {
+    // Check if we're in a browser environment first
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    // Wait a bit for potential Wails runtime to initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if Go bindings are available
+    if (!window.go?.main?.App) {
+      return false;
+    }
+
+    // Try to call a simple method to verify the bindings actually work
+    try {
+      // Use a simple method that should always be available
+      const testMethod = window.go.main.App.GetProjects;
+      if (typeof testMethod === 'function') {
+        console.log('Wails Go bindings detected and verified');
+        return true;
+      }
+    } catch (error) {
+      console.log('Wails Go bindings detected but not functional:', error);
+      return false;
+    }
+
+    return false;
   }
 }
 

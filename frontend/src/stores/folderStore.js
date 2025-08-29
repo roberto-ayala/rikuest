@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import apiService from '../lib/apiService.js';
+import { adapterFactory } from '../adapters/adapterFactory.js';
 
 export const useFolderStore = create((set, get) => ({
   folders: [],
@@ -10,13 +10,14 @@ export const useFolderStore = create((set, get) => ({
     console.log('folderStore: fetchFolders called for projectId:', projectId);
     set({ loading: true, error: null });
     try {
-      const response = await apiService.get(`/api/project/${projectId}/folders`);
-      console.log('folderStore: received folders response:', response.data);
-      set({ folders: response.data || [], loading: false });
+      const adapter = await adapterFactory.getAdapter();
+      const folders = await adapter.getFolders(projectId);
+      console.log('folderStore: received folders response:', folders);
+      set({ folders: folders || [], loading: false });
     } catch (error) {
       console.error('folderStore: Failed to fetch folders:', error);
       set({ 
-        error: error.response?.data?.error || 'Failed to fetch folders', 
+        error: error.message || 'Failed to fetch folders', 
         loading: false 
       });
     }
@@ -26,8 +27,8 @@ export const useFolderStore = create((set, get) => ({
     console.log('folderStore: createFolder called with data:', folderData);
     set({ loading: true, error: null });
     try {
-      const response = await apiService.post('/api/folders', folderData);
-      const newFolder = response.data;
+      const adapter = await adapterFactory.getAdapter();
+      const newFolder = await adapter.createFolder(folderData);
       console.log('folderStore: created new folder:', newFolder);
       
       set((state) => ({
@@ -39,7 +40,7 @@ export const useFolderStore = create((set, get) => ({
     } catch (error) {
       console.error('folderStore: Failed to create folder:', error);
       set({ 
-        error: error.response?.data?.error || 'Failed to create folder', 
+        error: error.message || 'Failed to create folder', 
         loading: false 
       });
       throw error;
@@ -49,8 +50,8 @@ export const useFolderStore = create((set, get) => ({
   updateFolder: async (folderId, folderData) => {
     set({ loading: true, error: null });
     try {
-      const response = await apiService.put(`/api/folder/${folderId}`, folderData);
-      const updatedFolder = response.data;
+      const adapter = await adapterFactory.getAdapter();
+      const updatedFolder = await adapter.updateFolder(folderId, folderData);
       
       set((state) => ({
         folders: state.folders.map(folder => 
@@ -63,7 +64,7 @@ export const useFolderStore = create((set, get) => ({
     } catch (error) {
       console.error('Failed to update folder:', error);
       set({ 
-        error: error.response?.data?.error || 'Failed to update folder', 
+        error: error.message || 'Failed to update folder', 
         loading: false 
       });
       throw error;
@@ -73,7 +74,8 @@ export const useFolderStore = create((set, get) => ({
   deleteFolder: async (folderId) => {
     set({ loading: true, error: null });
     try {
-      await apiService.delete(`/api/folder/${folderId}`);
+      const adapter = await adapterFactory.getAdapter();
+      await adapter.deleteFolder(folderId);
       
       set((state) => ({
         folders: state.folders.filter(folder => folder.id !== folderId),
@@ -82,7 +84,7 @@ export const useFolderStore = create((set, get) => ({
     } catch (error) {
       console.error('Failed to delete folder:', error);
       set({ 
-        error: error.response?.data?.error || 'Failed to delete folder', 
+        error: error.message || 'Failed to delete folder', 
         loading: false 
       });
       throw error;
@@ -91,11 +93,8 @@ export const useFolderStore = create((set, get) => ({
   
   moveRequest: async (requestId, folderId, position) => {
     try {
-      await apiService.post('/api/request/move', {
-        request_id: requestId,
-        folder_id: folderId,
-        position: position
-      });
+      const adapter = await adapterFactory.getAdapter();
+      await adapter.moveRequest(requestId, folderId, position);
     } catch (error) {
       console.error('Failed to move request:', error);
       throw error;

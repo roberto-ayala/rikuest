@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import apiService from '../lib/apiService.js';
+import { adapterFactory } from '../adapters/adapterFactory.js';
 
 export const useRequestStore = create((set, get) => ({
   requests: [],
@@ -11,8 +11,9 @@ export const useRequestStore = create((set, get) => ({
   fetchRequests: async (projectId) => {
     set({ loading: true });
     try {
-      const response = await apiService.get(`/api/project/${projectId}/requests`);
-      set({ requests: response.data || [] });
+      const adapter = await adapterFactory.getAdapter();
+      const requests = await adapter.getRequests(projectId);
+      set({ requests: requests || [] });
     } catch (error) {
       console.error('Failed to fetch requests:', error);
       set({ requests: [] });
@@ -22,8 +23,8 @@ export const useRequestStore = create((set, get) => ({
   },
 
   createRequest: async (request) => {
-    const response = await apiService.post('/api/requests', request);
-    const newRequest = response.data;
+    const adapter = await adapterFactory.getAdapter();
+    const newRequest = await adapter.createRequest(request);
     set((state) => ({
       requests: [newRequest, ...state.requests]
     }));
@@ -31,8 +32,8 @@ export const useRequestStore = create((set, get) => ({
   },
 
   updateRequest: async (id, request) => {
-    const response = await apiService.put(`/api/request/${id}`, request);
-    const updatedRequest = response.data;
+    const adapter = await adapterFactory.getAdapter();
+    const updatedRequest = await adapter.updateRequest(id, request);
     set((state) => ({
       requests: state.requests.map(r => r.id === id ? updatedRequest : r),
       currentRequest: state.currentRequest && state.currentRequest.id === id ? updatedRequest : state.currentRequest
@@ -42,8 +43,8 @@ export const useRequestStore = create((set, get) => ({
 
   // Optimistic save - saves to server and updates local data after success
   saveRequestOptimistic: async (id, request) => {
-    const response = await apiService.put(`/api/request/${id}`, request);
-    const updatedRequest = response.data;
+    const adapter = await adapterFactory.getAdapter();
+    const updatedRequest = await adapter.updateRequest(id, request);
     
     // Update local data silently (for data consistency when switching requests)
     set((state) => ({
@@ -55,7 +56,8 @@ export const useRequestStore = create((set, get) => ({
   },
 
   deleteRequest: async (id) => {
-    await apiService.delete(`/api/request/${id}`);
+    const adapter = await adapterFactory.getAdapter();
+    await adapter.deleteRequest(id);
     set((state) => ({
       requests: state.requests.filter(r => r.id !== id),
       currentRequest: state.currentRequest && state.currentRequest.id === id ? null : state.currentRequest,
@@ -65,9 +67,10 @@ export const useRequestStore = create((set, get) => ({
 
   fetchRequest: async (id) => {
     try {
-      const response = await apiService.get(`/api/request/${id}`);
-      set({ currentRequest: response.data });
-      return response.data;
+      const adapter = await adapterFactory.getAdapter();
+      const request = await adapter.getRequest(id);
+      set({ currentRequest: request });
+      return request;
     } catch (error) {
       console.error('Failed to fetch request:', error);
       throw error;
@@ -77,9 +80,10 @@ export const useRequestStore = create((set, get) => ({
   executeRequest: async (id) => {
     set({ executing: true });
     try {
-      const response = await apiService.post(`/api/request/${id}/execute`);
+      const adapter = await adapterFactory.getAdapter();
+      const response = await adapter.executeRequest(id);
       const responseWithTimestamp = {
-        ...response.data,
+        ...response,
         executed_at: new Date().toISOString()
       };
       set({ currentResponse: responseWithTimestamp });
