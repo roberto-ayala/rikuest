@@ -1,0 +1,41 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Rikuest",
+  "outputfilename": "rikuest",
+  "frontend": {
+    "dir": "./frontend",
+    "install": "npm install",
+    "build": "npm run build",
+    "dev": "npm run dev",
+    "package": {
+      "manager": "npm"
+    }
+  },
+  "backend": {
+    "dir": "./",
+    "go": {
+      "main": "./main.go",
+      "ldflags": ""
+    }
+  },
+  "author": {
+    "name": "Rikuest",
+    "email": "contact@rikuest.com"
+  },
+  "info": {
+    "productName": "Rikuest",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2024",
+    "comments": "A REST API client built with Wails"
+  },
+  "nsisType": "multiple",
+  "obfuscated": false,
+  "garbleargs": "",
+  "upx": false,
+  "upxflags": "",
+  "windres": "",
+  "companyName": "Rikuest",
+  "fileDescription": "REST API Client",
+  "productName": "Rikuest",
+  "fileVersion": "1.0.0"
+}

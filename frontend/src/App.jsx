@@ -17,7 +17,7 @@ function App() {
   const navigate = useNavigate();
   const createProject = useProjectStore(state => state.createProject);
   const layout = useUIStore(state => state.layout);
-  const { text, spacing, button, input, icon, iconButton } = useUISize();
+  const { text, spacing, button, input, icon, iconButton, headerButton } = useUISize();
   
   // Apply background colors
   useBackgroundColor();
@@ -63,7 +63,7 @@ function App() {
               </div>
               
               <div className="ml-auto flex items-center space-x-2">
-                <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
+                <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
                   <Plus className="h-4 w-4 mr-2" />
                   New Project
                 </Button>
@@ -106,7 +106,7 @@ function App() {
                     </div>
                     
                     <div className="ml-auto flex items-center space-x-2">
-                      <Button onClick={() => setShowNewProjectDialog(true)} className={button}>
+                      <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
                         <Plus className="h-4 w-4 mr-2" />
                         New Project
                       </Button>

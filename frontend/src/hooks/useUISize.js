@@ -27,6 +27,7 @@ export function useUISize() {
     iconMd: config.components.iconMd,
     iconButton: config.components.iconButton,
     themeButton: config.components.themeButton,
+    headerButton: config.components.headerButton,
     sidebarMinWidth: config.components.sidebarMinWidth,
     methodBadge: config.components.methodBadge,
     itemSpacing: config.components.itemSpacing,

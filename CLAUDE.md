@@ -22,6 +22,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `make run` - Run the built binary
 - `./bin/rikuest` - Run the application after building
 
+### Native Desktop Application (Wails)
+- `make install-wails` - Install Wails CLI (run once)
+- `make wails-dev` - Start native app in development mode with hot-reload
+- `make wails-build` - Build native app for current platform
+- `make wails-build-prod` - Build native app for Windows, macOS, and Linux
+- `make wails-deps` - Install Wails dependencies and update Go modules
+- `make wails-clean` - Clean all build artifacts including Wails
+- `make wails-package` - Build and list native applications for all platforms
+
 ## Architecture Overview
 
 ### Technology Stack

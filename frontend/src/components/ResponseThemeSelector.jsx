@@ -42,9 +42,9 @@ const ResponseThemeSelector = ({ modal = false }) => {
   
   const getCurrentDefaultTheme = (mode) => {
     if (mode === 'light') {
-      return availableThemes.light.find(t => t.id === defaultResponseThemeLight)?.name || 'Tomorrow';
+      return availableThemes.light.find(t => t.id === defaultResponseThemeLight)?.name || 'One Light';
     } else {
-      return availableThemes.dark.find(t => t.id === defaultResponseThemeDark)?.name || 'Twilight';
+      return availableThemes.dark.find(t => t.id === defaultResponseThemeDark)?.name || 'One Dark';
     }
   };
 

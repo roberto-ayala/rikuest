@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import { adapterFactory } from '../adapters/adapterFactory.js';
 
 export const useProjectStore = create((set, get) => ({
   projects: [],
@@ -9,8 +9,9 @@ export const useProjectStore = create((set, get) => ({
   fetchProjects: async () => {
     set({ loading: true });
     try {
-      const response = await axios.get('/api/projects');
-      set({ projects: response.data || [] });
+      const adapter = await adapterFactory.getAdapter();
+      const projects = await adapter.getProjects();
+      set({ projects: projects || [] });
     } catch (error) {
       console.error('Failed to fetch projects:', error);
       set({ projects: [] });
@@ -20,8 +21,8 @@ export const useProjectStore = create((set, get) => ({
   },
 
   createProject: async (project) => {
-    const response = await axios.post('/api/projects', project);
-    const newProject = response.data;
+    const adapter = await adapterFactory.getAdapter();
+    const newProject = await adapter.createProject(project);
     set((state) => ({
       projects: [newProject, ...state.projects]
     }));
@@ -29,8 +30,8 @@ export const useProjectStore = create((set, get) => ({
   },
 
   updateProject: async (id, project) => {
-    const response = await axios.put(`/api/project/${id}`, project);
-    const updatedProject = response.data;
+    const adapter = await adapterFactory.getAdapter();
+    const updatedProject = await adapter.updateProject(id, project);
     set((state) => ({
       projects: state.projects.map(p => p.id === id ? updatedProject : p)
     }));
@@ -38,7 +39,8 @@ export const useProjectStore = create((set, get) => ({
   },
 
   deleteProject: async (id) => {
-    await axios.delete(`/api/project/${id}`);
+    const adapter = await adapterFactory.getAdapter();
+    await adapter.deleteProject(id);
     set((state) => ({
       projects: state.projects.filter(p => p.id !== id)
     }));
@@ -46,9 +48,10 @@ export const useProjectStore = create((set, get) => ({
 
   fetchProject: async (id) => {
     try {
-      const response = await axios.get(`/api/project/${id}`);
-      set({ currentProject: response.data });
-      return response.data;
+      const adapter = await adapterFactory.getAdapter();
+      const project = await adapter.getProject(id);
+      set({ currentProject: project });
+      return project;
     } catch (error) {
       console.error('Failed to fetch project:', error);
       throw error;

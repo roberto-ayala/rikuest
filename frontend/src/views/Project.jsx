@@ -323,16 +323,6 @@ function Project({ layout, onNewProject, onSettings }) {
         {/* Folder Tree */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            {!loading && requests.length === 0 && (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <p className={`${text('sm')} text-muted-foreground`}>No requests yet</p>
-                <p className={`${text('xs')} text-muted-foreground`}>Create your first request to get started</p>
-              </div>
-            )}
-
             <FolderTree 
               projectId={projectId}
               currentRequest={currentRequest}
@@ -364,11 +354,24 @@ function Project({ layout, onNewProject, onSettings }) {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <Send className="h-8 w-8 text-muted-foreground" />
+                {!loading && requests.length === 0 ? (
+                  <FileText className="h-8 w-8 text-muted-foreground" />
+                ) : (
+                  <Send className="h-8 w-8 text-muted-foreground" />
+                )}
               </div>
               <div>
-                <h3 className="text-lg font-medium text-foreground">Select a request</h3>
-                <p className="text-sm text-muted-foreground">Choose a request from the sidebar or create a new one</p>
+                {!loading && requests.length === 0 ? (
+                  <>
+                    <h3 className={`${text('lg')} font-medium text-foreground`}>No requests yet</h3>
+                    <p className={`${text('sm')} text-muted-foreground`}>Create your first request to get started</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className={`${text('lg')} font-medium text-foreground`}>Select a request</h3>
+                    <p className={`${text('sm')} text-muted-foreground`}>Choose a request from the sidebar or create a new one</p>
+                  </>
+                )}
               </div>
             </div>
           </div>

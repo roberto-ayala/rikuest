@@ -1,6 +1,18 @@
-.PHONY: build dev clean frontend backend
+.PHONY: build dev clean frontend backend wails-build wails-dev wails-init wails-deps install-wails web-dev web-build
 
-# Build everything
+# ===== WEB MODE (HTTP REST API) =====
+
+# Development mode - Web with HTTP REST API
+web-dev: dev
+
+# Traditional development mode with HTTP REST API
+dev:
+	gow run ./cmd/server/main.go
+
+# Build web app (traditional HTTP REST API + frontend)
+web-build: build
+
+# Build everything (traditional web app)
 build: frontend backend
 
 # Build frontend
@@ -11,9 +23,19 @@ frontend:
 backend:
 	go build -o bin/rikuest ./cmd/server
 
-# Development mode
-dev:
-	gow run ./cmd/server/main.go
+# ===== NATIVE MODE (Wails with Go bindings) =====
+
+# Development mode - Native app with Wails bindings
+wails-dev: wails-deps
+	wails dev
+
+# Build native app with Wails bindings
+wails-build: wails-deps
+	wails build
+
+# Build native app for production (multiple platforms)
+wails-build-prod: wails-deps
+	wails build -clean -platform windows/amd64,darwin/amd64,darwin/arm64,linux/amd64
 
 # Clean build artifacts
 clean:
@@ -29,3 +51,36 @@ deps:
 # Run the built binary
 run:
 	./bin/rikuest
+
+# Development mode with Wails (native app with hot reload)
+wails-dev:
+	wails dev
+
+# Initialize Wails project (run once)
+wails-init:
+	wails init -n rikuest -t vanilla -d .
+
+# Install Wails CLI
+install-wails:
+	go install github.com/wails-io/wails/v2/cmd/wails@latest
+
+# Install Wails dependencies and ensure Go modules are updated
+wails-deps:
+	go mod tidy
+	cd frontend && npm install
+
+# Generate Wails bindings (TypeScript definitions for frontend)
+wails-generate:
+	wails generate module
+
+# Clean all build artifacts including Wails
+wails-clean: clean
+	rm -rf build/bin/
+	rm -rf build/darwin/
+	rm -rf build/windows/
+	rm -rf build/linux/
+
+# Package native app for distribution
+wails-package: wails-build-prod
+	@echo "Native applications built for multiple platforms:"
+	@ls -la build/bin/ || echo "No binaries found in build/bin/"

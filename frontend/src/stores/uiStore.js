@@ -5,16 +5,16 @@ export const useUIStore = create(
   persist(
     (set) => ({
       uiSize: 'md',
-      theme: 'light',
+      theme: 'system',
       primaryColor: 'slate',
       layout: 'default', // 'default' or 'compact'
       backgroundColorLight: 'default',
       backgroundColorDark: 'default',
       responseTheme: 'auto', // auto, or theme name
-      responseThemeLight: 'tomorrow', // default light theme
-      responseThemeDark: 'twilight', // default dark theme
-      defaultResponseThemeLight: 'tomorrow', // user-defined default light theme
-      defaultResponseThemeDark: 'twilight', // user-defined default dark theme
+      responseThemeLight: 'oneLight', // default light theme
+      responseThemeDark: 'oneDark', // default dark theme
+      defaultResponseThemeLight: 'oneLight', // user-defined default light theme
+      defaultResponseThemeDark: 'oneDark', // user-defined default dark theme
       setUISize: (size) => set({ uiSize: size }),
       setLayout: (layout) => set({ layout }),
       setTheme: (theme) => set({ theme }),
@@ -180,6 +180,7 @@ export const useUIStore = create(
               iconMd: 'h-3.5 w-3.5',
               iconButton: 'h-6 w-6 p-0',
               themeButton: 'h-6 px-1.5 py-0',
+              headerButton: 'h-6 px-2 py-0',
               methodBadge: 'px-1.5 py-0.5',
               itemSpacing: 'space-x-1.5',
               menuItem: 'px-2 py-1.5 text-xs'
@@ -213,6 +214,7 @@ export const useUIStore = create(
               iconMd: 'h-4 w-4',
               iconButton: 'h-7 w-7 p-0',
               themeButton: 'h-7 px-2 py-0',
+              headerButton: 'h-7 px-2.5 py-0',
               methodBadge: 'px-2 py-1',
               itemSpacing: 'space-x-2',
               menuItem: 'px-2.5 py-2 text-sm'
@@ -246,6 +248,7 @@ export const useUIStore = create(
               iconMd: 'h-4 w-4',
               iconButton: 'h-8 w-8 p-0',
               themeButton: 'h-8 px-2.5 py-0',
+              headerButton: 'h-8 px-3 py-0',
               methodBadge: 'px-2.5 py-1',
               itemSpacing: 'space-x-2',
               menuItem: 'px-3 py-2 text-sm'
@@ -279,6 +282,7 @@ export const useUIStore = create(
               iconMd: 'h-5 w-5',
               iconButton: 'h-9 w-9 p-0',
               themeButton: 'h-9 px-3 py-0',
+              headerButton: 'h-9 px-4 py-0',
               methodBadge: 'px-3 py-1.5',
               itemSpacing: 'space-x-3',
               menuItem: 'px-4 py-2.5 text-base'

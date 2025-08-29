@@ -6,6 +6,7 @@ import (
 
 	"rikuest/internal/database"
 	"rikuest/internal/handlers"
+	"rikuest/internal/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,9 @@ func main() {
 	}
 	defer db.Close()
 
-	handler := handlers.NewHandler(db)
+	// Initialize services
+	servicesContainer := services.NewServices(db)
+	handler := handlers.NewHandler(servicesContainer)
 
 	r := gin.Default()
 

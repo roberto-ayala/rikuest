@@ -42,7 +42,7 @@ import {
   oneLight,
   oneDark
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import axios from 'axios';
+import apiService from '../lib/apiService.js';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest } = useRequestStore();
@@ -90,13 +90,13 @@ function RequestBuilder() {
   const getResponseTheme = () => {
     if (responseTheme === 'auto') {
       const defaultThemeId = isDark ? defaultResponseThemeDark : defaultResponseThemeLight;
-      return themeMap[defaultThemeId] || (isDark ? twilight : tomorrow);
+      return themeMap[defaultThemeId] || (isDark ? oneDark : oneLight);
     } else if (responseTheme === 'custom') {
       const themeId = isDark ? responseThemeDark : responseThemeLight;
-      return themeMap[themeId] || (isDark ? twilight : tomorrow);
+      return themeMap[themeId] || (isDark ? oneDark : oneLight);
     }
     // This shouldn't happen with current implementation, but fallback
-    return themeMap[responseTheme] || (isDark ? twilight : tomorrow);
+    return themeMap[responseTheme] || (isDark ? oneDark : oneLight);
   };
 
   
@@ -622,7 +622,7 @@ function RequestBuilder() {
     if (!requestData.id) return;
     
     try {
-      const response = await axios.get(`/api/request/${requestData.id}/history`);
+      const response = await apiService.get(`/api/request/${requestData.id}/history`);
       setHistory(response.data || []);
     } catch (error) {
       console.error('Failed to load history:', error);

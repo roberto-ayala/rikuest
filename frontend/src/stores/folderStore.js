@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import apiService from '../lib/apiService.js';
 
 export const useFolderStore = create((set, get) => ({
   folders: [],
@@ -10,7 +10,7 @@ export const useFolderStore = create((set, get) => ({
     console.log('folderStore: fetchFolders called for projectId:', projectId);
     set({ loading: true, error: null });
     try {
-      const response = await axios.get(`/api/project/${projectId}/folders`);
+      const response = await apiService.get(`/api/project/${projectId}/folders`);
       console.log('folderStore: received folders response:', response.data);
       set({ folders: response.data || [], loading: false });
     } catch (error) {
@@ -26,7 +26,7 @@ export const useFolderStore = create((set, get) => ({
     console.log('folderStore: createFolder called with data:', folderData);
     set({ loading: true, error: null });
     try {
-      const response = await axios.post('/api/folders', folderData);
+      const response = await apiService.post('/api/folders', folderData);
       const newFolder = response.data;
       console.log('folderStore: created new folder:', newFolder);
       
@@ -49,7 +49,7 @@ export const useFolderStore = create((set, get) => ({
   updateFolder: async (folderId, folderData) => {
     set({ loading: true, error: null });
     try {
-      const response = await axios.put(`/api/folder/${folderId}`, folderData);
+      const response = await apiService.put(`/api/folder/${folderId}`, folderData);
       const updatedFolder = response.data;
       
       set((state) => ({
@@ -73,7 +73,7 @@ export const useFolderStore = create((set, get) => ({
   deleteFolder: async (folderId) => {
     set({ loading: true, error: null });
     try {
-      await axios.delete(`/api/folder/${folderId}`);
+      await apiService.delete(`/api/folder/${folderId}`);
       
       set((state) => ({
         folders: state.folders.filter(folder => folder.id !== folderId),
@@ -91,7 +91,7 @@ export const useFolderStore = create((set, get) => ({
   
   moveRequest: async (requestId, folderId, position) => {
     try {
-      await axios.post('/api/request/move', {
+      await apiService.post('/api/request/move', {
         request_id: requestId,
         folder_id: folderId,
         position: position

@@ -10,18 +10,18 @@ import (
 	"time"
 	"encoding/base64"
 
-	"rikuest/internal/database"
 	"rikuest/internal/models"
+	"rikuest/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	db *database.DB
+	services *services.Services
 }
 
-func NewHandler(db *database.DB) *Handler {
-	return &Handler{db: db}
+func NewHandler(services *services.Services) *Handler {
+	return &Handler{services: services}
 }
 
 // buildRawRequest constructs the raw HTTP request string
@@ -133,7 +133,7 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.CreateProject(&project); err != nil {
+	if err := h.services.Project.CreateProject(&project); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -142,7 +142,7 @@ func (h *Handler) CreateProject(c *gin.Context) {
 }
 
 func (h *Handler) GetProjects(c *gin.Context) {
-	projects, err := h.db.GetProjects()
+	projects, err := h.services.Project.GetProjects()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -158,7 +158,7 @@ func (h *Handler) GetProject(c *gin.Context) {
 		return
 	}
 
-	project, err := h.db.GetProject(id)
+	project, err := h.services.Project.GetProject(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
@@ -181,7 +181,7 @@ func (h *Handler) UpdateProject(c *gin.Context) {
 	}
 
 	project.ID = id
-	if err := h.db.UpdateProject(&project); err != nil {
+	if err := h.services.Project.UpdateProject(&project); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -196,7 +196,7 @@ func (h *Handler) DeleteProject(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteProject(id); err != nil {
+	if err := h.services.Project.DeleteProject(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -211,7 +211,7 @@ func (h *Handler) CreateRequest(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.CreateRequest(&request); err != nil {
+	if err := h.services.Request.CreateRequest(&request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -226,7 +226,7 @@ func (h *Handler) GetRequests(c *gin.Context) {
 		return
 	}
 
-	requests, err := h.db.GetRequests(projectID)
+	requests, err := h.services.Request.GetRequests(projectID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -242,7 +242,7 @@ func (h *Handler) GetRequest(c *gin.Context) {
 		return
 	}
 
-	request, err := h.db.GetRequest(id)
+	request, err := h.services.Request.GetRequest(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
 		return
@@ -265,7 +265,7 @@ func (h *Handler) UpdateRequest(c *gin.Context) {
 	}
 
 	request.ID = id
-	if err := h.db.UpdateRequest(&request); err != nil {
+	if err := h.services.Request.UpdateRequest(&request); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -280,7 +280,7 @@ func (h *Handler) DeleteRequest(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteRequest(id); err != nil {
+	if err := h.services.Request.DeleteRequest(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -295,7 +295,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
-	request, err := h.db.GetRequest(id)
+	request, err := h.services.Request.GetRequest(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
 		return
@@ -418,7 +418,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		RequestID: id,
 		Response:  response,
 	}
-	h.db.SaveRequestHistory(history)
+	h.services.Request.SaveRequestHistory(history)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -430,7 +430,7 @@ func (h *Handler) GetRequestHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := h.db.GetRequestHistory(id)
+	history, err := h.services.Request.GetRequestHistory(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -447,7 +447,7 @@ func (h *Handler) CreateFolder(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.CreateFolder(&folder); err != nil {
+	if err := h.services.Folder.CreateFolder(&folder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -462,7 +462,7 @@ func (h *Handler) GetFolders(c *gin.Context) {
 		return
 	}
 
-	folders, err := h.db.GetFolders(projectID)
+	folders, err := h.services.Folder.GetFolders(projectID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -490,7 +490,7 @@ func (h *Handler) UpdateFolder(c *gin.Context) {
 	}
 
 	folder.ID = id
-	if err := h.db.UpdateFolder(&folder); err != nil {
+	if err := h.services.Folder.UpdateFolder(&folder); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -505,7 +505,7 @@ func (h *Handler) DeleteFolder(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.DeleteFolder(id); err != nil {
+	if err := h.services.Folder.DeleteFolder(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -526,7 +526,7 @@ func (h *Handler) MoveRequest(c *gin.Context) {
 		return
 	}
 
-	if err := h.db.MoveRequest(payload.RequestID, payload.FolderID, payload.Position); err != nil {
+	if err := h.services.Request.MoveRequest(payload.RequestID, payload.FolderID, payload.Position); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
