@@ -128,6 +128,14 @@ func (a *App) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 	return a.services.Request.GetRequestHistory(requestID)
 }
 
+func (a *App) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
+	return a.services.Request.ExecuteRequest(requestID)
+}
+
+func (a *App) DeleteRequestHistoryItem(requestID int, historyID int) error {
+	return a.services.Request.DeleteRequestHistoryItem(requestID, historyID)
+}
+
 func (a *App) MoveRequest(requestID int, folderID *int, position int) error {
 	return a.services.Request.MoveRequest(requestID, folderID, position)
 }

@@ -20,6 +20,36 @@ type Handler struct {
 	services *services.Services
 }
 
+// getErrorStatusText returns a user-friendly status text based on the error message
+func getErrorStatusText(errorMsg string) string {
+	errorMsg = strings.ToLower(errorMsg)
+	
+	if strings.Contains(errorMsg, "connection refused") {
+		return "Connection Refused"
+	}
+	if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "no such domain") {
+		return "Host Not Found"
+	}
+	if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "timed out") {
+		return "Request Timeout"
+	}
+	if strings.Contains(errorMsg, "eof") {
+		return "Connection Closed"
+	}
+	if strings.Contains(errorMsg, "certificate") || strings.Contains(errorMsg, "tls") || strings.Contains(errorMsg, "ssl") {
+		return "SSL/TLS Error"
+	}
+	if strings.Contains(errorMsg, "network") {
+		return "Network Error"
+	}
+	if strings.Contains(errorMsg, "dns") {
+		return "DNS Error"
+	}
+	
+	// Default for unknown network errors
+	return "Connection Failed"
+}
+
 func NewHandler(services *services.Services) *Handler {
 	return &Handler{services: services}
 }
@@ -382,43 +412,68 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 	}
 
 	resp, err := client.Do(req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer resp.Body.Close()
-
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	duration := time.Since(start)
-
-	responseHeaders := make(map[string]string)
-	for key, values := range resp.Header {
-		responseHeaders[key] = strings.Join(values, ", ")
-	}
-
+	
 	// Generate raw request
 	rawRequestString := buildRawRequest(request)
+	
+	var response models.RequestResponse
+	
+	if err != nil {
+		// Handle network/connection errors as a response
+		statusText := getErrorStatusText(err.Error())
+		response = models.RequestResponse{
+			Status:     0,
+			StatusText: statusText,
+			Headers:    make(map[string]string),
+			Body:       err.Error(),
+			Duration:   duration.Milliseconds(),
+			Size:       int64(len(err.Error())),
+			RawRequest: rawRequestString,
+		}
+	} else {
+		defer resp.Body.Close()
 
-	response := models.RequestResponse{
-		Status:     resp.StatusCode,
-		StatusText: resp.Status,
-		Headers:    responseHeaders,
-		Body:       string(responseBody),
-		Duration:   duration.Milliseconds(),
-		Size:       int64(len(responseBody)),
-		RawRequest: rawRequestString,
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			// Handle body read errors as a response
+			response = models.RequestResponse{
+				Status:     resp.StatusCode,
+				StatusText: resp.Status,
+				Headers:    make(map[string]string),
+				Body:       "Failed to read response body: " + err.Error(),
+				Duration:   duration.Milliseconds(),
+				Size:       0,
+				RawRequest: rawRequestString,
+			}
+		} else {
+			responseHeaders := make(map[string]string)
+			for key, values := range resp.Header {
+				responseHeaders[key] = strings.Join(values, ", ")
+			}
+
+			response = models.RequestResponse{
+				Status:     resp.StatusCode,
+				StatusText: resp.Status,
+				Headers:    responseHeaders,
+				Body:       string(responseBody),
+				Duration:   duration.Milliseconds(),
+				Size:       int64(len(responseBody)),
+				RawRequest: rawRequestString,
+			}
+		}
 	}
 
 	history := &models.RequestHistory{
 		RequestID: id,
 		Response:  response,
 	}
-	h.services.Request.SaveRequestHistory(history)
+	
+	// Save to history (ignore errors to ensure response is always returned)
+	if err := h.services.Request.SaveRequestHistory(history); err != nil {
+		// Log the error but don't fail the request execution
+		println("Warning: Failed to save request history:", err.Error())
+	}
 
 	c.JSON(http.StatusOK, response)
 }
@@ -437,6 +492,27 @@ func (h *Handler) GetRequestHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, history)
+}
+
+func (h *Handler) DeleteRequestHistoryItem(c *gin.Context) {
+	requestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID"})
+		return
+	}
+
+	historyID, err := strconv.Atoi(c.Param("historyId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid history ID"})
+		return
+	}
+
+	if err := h.services.Request.DeleteRequestHistoryItem(requestID, historyID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "History item deleted successfully"})
 }
 
 // Folder handlers

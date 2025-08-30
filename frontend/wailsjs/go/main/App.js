@@ -26,6 +26,14 @@ export function DeleteRequest(arg1) {
   return window['go']['main']['App']['DeleteRequest'](arg1);
 }
 
+export function DeleteRequestHistoryItem(arg1, arg2) {
+  return window['go']['main']['App']['DeleteRequestHistoryItem'](arg1, arg2);
+}
+
+export function ExecuteRequest(arg1) {
+  return window['go']['main']['App']['ExecuteRequest'](arg1);
+}
+
 export function GetFolders(arg1) {
   return window['go']['main']['App']['GetFolders'](arg1);
 }

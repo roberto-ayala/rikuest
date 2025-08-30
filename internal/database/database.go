@@ -325,6 +325,25 @@ func (db *DB) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 	return history, nil
 }
 
+func (db *DB) DeleteRequestHistoryItem(requestID int, historyID int) error {
+	query := `DELETE FROM request_history WHERE id = ? AND request_id = ?`
+	result, err := db.Exec(query, historyID, requestID)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return fmt.Errorf("history item not found or does not belong to this request")
+	}
+	
+	return nil
+}
+
 // Folder operations
 func (db *DB) CreateFolder(folder *models.Folder) error {
 	// Get the next position for this parent folder (or root level)

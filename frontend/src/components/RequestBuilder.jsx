@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Send, Plus, Trash2, Loader2, BarChart3, Clock, History, X, Timer, HardDrive, Calendar } from 'lucide-react';
+import { Send, Plus, Trash2, Loader2, BarChart3, Clock, History, X, Timer, HardDrive, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/Textarea';
@@ -45,7 +45,7 @@ import {
 import { adapterFactory } from '../adapters/adapterFactory.js';
 
 function RequestBuilder() {
-  const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest } = useRequestStore();
+  const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
   const { responseTheme, responseThemeLight, responseThemeDark, defaultResponseThemeLight, defaultResponseThemeDark } = useUIStore();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
@@ -139,6 +139,7 @@ function RequestBuilder() {
   const [history, setHistory] = useState([]);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [loadingHistoryItem, setLoadingHistoryItem] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null); // { historyId, historyItem }
   const tabsContainerRef = React.useRef(null);
 
   // Panel resizing with percentage-based persistence
@@ -669,13 +670,41 @@ function RequestBuilder() {
       };
       
       // Update the current response with the history item's response
-      const { setCurrentResponse } = useRequestStore.getState();
       setCurrentResponse(response);
     } finally {
       setLoadingHistoryItem(false);
     }
   };
 
+  // Handle history item deletion
+  const handleDeleteHistoryItem = async (historyId, historyItem) => {
+    setDeleteConfirmation({ historyId, historyItem });
+  };
+
+  const confirmDeleteHistoryItem = async () => {
+    if (!deleteConfirmation) return;
+    
+    try {
+      const adapter = await adapterFactory.getAdapter();
+      await adapter.deleteRequestHistoryItem(requestData.id, deleteConfirmation.historyId);
+      
+      // Reload history
+      await loadHistory();
+      
+      // Clear current response if it matches the deleted item
+      if (currentResponse && currentResponse.executed_at === deleteConfirmation.historyItem.executed_at) {
+        setCurrentResponse(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete history item:', error);
+    } finally {
+      setDeleteConfirmation(null);
+    }
+  };
+
+  const cancelDeleteHistoryItem = () => {
+    setDeleteConfirmation(null);
+  };
 
   const requestTabs = [
     { 
@@ -1083,6 +1112,18 @@ function RequestBuilder() {
                 </div>
               </div>
             </div>
+          ) : executing ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                  <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                </div>
+                <div>
+                  <h3 className={`${text('lg')} font-medium text-foreground`}>Executing Request</h3>
+                  <p className={`${text('sm')} text-muted-foreground`}>Please wait while the request is being processed...</p>
+                </div>
+              </div>
+            </div>
           ) : !currentResponse ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center space-y-4">
@@ -1271,32 +1312,102 @@ function RequestBuilder() {
               ) : (
                 <div className="space-y-2">
                   {history.map((item) => (
-                    <button
+                    <div
                       key={item.id}
-                      onClick={() => handleHistoryItemSelect(item)}
-                      className="w-full p-3 text-left border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="relative border border-border rounded-lg hover:bg-muted/50 transition-all duration-200 group hover:shadow-sm"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`${text('xs')} text-muted-foreground`}>
-                          {new Date(item.executed_at).toLocaleString()}
-                        </span>
-                        <span className={`${text('sm')} font-medium ${getHistoryStatusColor(item.response.status)}`}>
-                          {item.response.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className={`${text('xs')} text-muted-foreground flex items-center gap-2`}>
-                          <BarChart3 className="h-3 w-3" />
-                          <span>{item.response.duration}ms</span>
+                      <button
+                        onClick={() => handleHistoryItemSelect(item)}
+                        className="w-full p-3 pr-12 text-left rounded-lg hover:bg-transparent transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`${text('xs')} text-muted-foreground`}>
+                            {new Date(item.executed_at).toLocaleString()}
+                          </span>
+                          <span className={`${text('sm')} font-medium ${getHistoryStatusColor(item.response.status)}`}>
+                            {item.response.status}
+                          </span>
                         </div>
-                        <div className={`${text('xs')} text-muted-foreground`}>
-                          {formatSize(item.response.size)}
+                        <div className="flex items-center justify-between">
+                          <div className={`${text('xs')} text-muted-foreground flex items-center gap-2`}>
+                            <BarChart3 className="h-3 w-3" />
+                            <span>{item.response.duration}ms</span>
+                          </div>
+                          <div className={`${text('xs')} text-muted-foreground`}>
+                            {formatSize(item.response.size)}
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteHistoryItem(item.id, item);
+                        }}
+                        className="absolute top-2 right-2 p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:hover:text-red-400 transition-all duration-200 shadow-sm border border-red-200 dark:border-red-800 bg-white dark:bg-card opacity-95 hover:opacity-100"
+                        title="Delete history item"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={cancelDeleteHistoryItem}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-card border border-border rounded-lg shadow-lg p-6 m-4 max-w-md w-full">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>
+                  Delete History Item
+                </h3>
+                <p className={`${text('sm')} text-muted-foreground mb-4`}>
+                  Are you sure you want to delete this history item? This action cannot be undone.
+                </p>
+                <div className={`${text('xs')} text-muted-foreground p-2 bg-muted rounded border mb-4`}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span>Executed:</span>
+                    <span>{new Date(deleteConfirmation.historyItem.executed_at).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Status:</span>
+                    <span className={`font-medium ${getHistoryStatusColor(deleteConfirmation.historyItem.response.status)}`}>
+                      {deleteConfirmation.historyItem.response.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={cancelDeleteHistoryItem}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={confirmDeleteHistoryItem}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

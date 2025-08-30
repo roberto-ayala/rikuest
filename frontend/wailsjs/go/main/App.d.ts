@@ -14,6 +14,10 @@ export function DeleteProject(arg1:number):Promise<void>;
 
 export function DeleteRequest(arg1:number):Promise<void>;
 
+export function DeleteRequestHistoryItem(arg1:number,arg2:number):Promise<void>;
+
+export function ExecuteRequest(arg1:number):Promise<models.RequestResponse>;
+
 export function GetFolders(arg1:number):Promise<Array<models.Folder>>;
 
 export function GetPlatform():Promise<string>;

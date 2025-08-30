@@ -1,7 +1,10 @@
 // Wails Native Bindings Adapter for desktop mode
+import * as App from '../../wailsjs/go/main/App.js';
+
 export class WailsAdapter {
   constructor() {
     this.app = window.go.main.App;
+    this.bindings = App;
   }
 
   // ===== PROJECT METHODS =====
@@ -51,13 +54,30 @@ export class WailsAdapter {
   }
 
   async executeRequest(id) {
-    // TODO: Implement request execution in Wails bindings
-    // For now, we'll use a placeholder
-    throw new Error('Request execution not yet implemented in native mode');
+    try {
+      const response = await this.bindings.ExecuteRequest(id);
+      // Add timestamp for consistency with API adapter
+      return {
+        ...response,
+        executed_at: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Failed to execute request in native mode:', error);
+      throw error;
+    }
   }
 
   async getRequestHistory(id) {
     return await this.app.GetRequestHistory(id);
+  }
+
+  async deleteRequestHistoryItem(requestId, historyId) {
+    try {
+      await this.bindings.DeleteRequestHistoryItem(requestId, historyId);
+    } catch (error) {
+      console.error('Failed to delete history item in native mode:', error);
+      throw error;
+    }
   }
 
   async moveRequest(requestId, folderId, position) {

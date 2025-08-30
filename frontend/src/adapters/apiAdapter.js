@@ -88,6 +88,12 @@ export class APIAdapter {
     return this.request(`/api/request/${id}/history`);
   }
 
+  async deleteRequestHistoryItem(requestId, historyId) {
+    await this.request(`/api/request/${requestId}/history/${historyId}`, {
+      method: 'DELETE'
+    });
+  }
+
   async moveRequest(requestId, folderId, position) {
     return this.request('/api/request/move', {
       method: 'POST',

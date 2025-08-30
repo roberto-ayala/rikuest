@@ -5,7 +5,7 @@
 # Development mode - Web with HTTP REST API
 web-dev: dev
 
-# Traditional development mode with HTTP REST API
+# Traditional development mode with HTTP REST API (watch changes)
 dev:
 	gow run ./cmd/server/main.go
 

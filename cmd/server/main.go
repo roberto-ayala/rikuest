@@ -57,6 +57,7 @@ func main() {
 		api.DELETE("/request/:id", handler.DeleteRequest)
 		api.POST("/request/:id/execute", handler.ExecuteRequest)
 		api.GET("/request/:id/history", handler.GetRequestHistory)
+		api.DELETE("/request/:id/history/:historyId", handler.DeleteRequestHistoryItem)
 		api.POST("/request/move", handler.MoveRequest)
 	}
 

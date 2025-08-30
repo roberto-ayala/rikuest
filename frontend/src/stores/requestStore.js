@@ -78,7 +78,10 @@ export const useRequestStore = create((set, get) => ({
   },
 
   executeRequest: async (id) => {
-    set({ executing: true });
+    set({ 
+      executing: true,
+      currentResponse: null // Clear current response to show loading state
+    });
     try {
       const adapter = await adapterFactory.getAdapter();
       const response = await adapter.executeRequest(id);
@@ -96,11 +99,29 @@ export const useRequestStore = create((set, get) => ({
     }
   },
 
-  setCurrentRequest: (request) => {
+  setCurrentRequest: async (request) => {
     set({ 
       currentRequest: request, 
       currentResponse: null 
     });
+    
+    // Auto-load the last response from history
+    if (request && request.id) {
+      try {
+        const adapter = await adapterFactory.getAdapter();
+        const history = await adapter.getRequestHistory(request.id);
+        if (history && history.length > 0) {
+          // Set the most recent response (first item in history)
+          const lastResponse = {
+            ...history[0].response,
+            executed_at: history[0].executed_at
+          };
+          set({ currentResponse: lastResponse });
+        }
+      } catch (error) {
+        console.error('Failed to load request history:', error);
+      }
+    }
   },
 
   clearCurrentRequest: () => {
