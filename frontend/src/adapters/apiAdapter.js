@@ -129,4 +129,12 @@ export class APIAdapter {
       method: 'DELETE'
     });
   }
+
+  async copyRequestFormats(requestID, format) {
+    return this.request(`/api/request/${requestID}/copy?format=${format}`);
+  }
+
+  async copyAllRequestFormats(requestID) {
+    return this.request(`/api/request/${requestID}/copy-all`);
+  }
 }

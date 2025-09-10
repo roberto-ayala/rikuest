@@ -140,6 +140,32 @@ func (a *App) MoveRequest(requestID int, folderID *int, position int) error {
 	return a.services.Request.MoveRequest(requestID, folderID, position)
 }
 
+func (a *App) CopyRequest(requestID int, format string) (string, error) {
+	request, err := a.services.Request.GetRequest(requestID)
+	if err != nil {
+		return "", err
+	}
+
+	return a.services.Format.GetFormat(request, format)
+}
+
+func (a *App) CopyAllRequestFormats(requestID int) (map[string]string, error) {
+	request, err := a.services.Request.GetRequest(requestID)
+	if err != nil {
+		return nil, err
+	}
+
+	allFormats := a.services.Format.GetAllFormats(request)
+	formats := map[string]string{
+		"raw":    allFormats.Raw,
+		"curl":   allFormats.Curl,
+		"fetch":  allFormats.Fetch,
+		"python": allFormats.Python,
+	}
+
+	return formats, nil
+}
+
 // ===== FOLDER BINDINGS =====
 
 func (a *App) GetFolders(projectID int) ([]models.Folder, error) {
@@ -172,11 +198,11 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Rikuest",
-		Width:  1280,
-		Height: 720,
-		MinWidth:          800,
-		MinHeight:         600,
+		Title:     "Rikuest",
+		Width:     1280,
+		Height:    720,
+		MinWidth:  800,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

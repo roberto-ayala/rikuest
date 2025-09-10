@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/base64"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"encoding/base64"
 
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -23,7 +22,7 @@ type Handler struct {
 // getErrorStatusText returns a user-friendly status text based on the error message
 func getErrorStatusText(errorMsg string) string {
 	errorMsg = strings.ToLower(errorMsg)
-	
+
 	if strings.Contains(errorMsg, "connection refused") {
 		return "Connection Refused"
 	}
@@ -45,115 +44,13 @@ func getErrorStatusText(errorMsg string) string {
 	if strings.Contains(errorMsg, "dns") {
 		return "DNS Error"
 	}
-	
+
 	// Default for unknown network errors
 	return "Connection Failed"
 }
 
 func NewHandler(services *services.Services) *Handler {
 	return &Handler{services: services}
-}
-
-// buildRawRequest constructs the raw HTTP request string
-func buildRawRequest(request *models.Request) string {
-	var rawRequest strings.Builder
-	
-	// Parse URL to extract query parameters
-	parsedURL, err := url.Parse(request.URL)
-	if err != nil {
-		parsedURL = &url.URL{Path: request.URL}
-	}
-	
-	// Build query parameters from request.QueryParams
-	queryParams := url.Values{}
-	for _, param := range request.QueryParams {
-		if param.Enabled && param.Key != "" {
-			queryParams.Add(param.Key, param.Value)
-		}
-	}
-	
-	// Construct the request line
-	requestPath := parsedURL.Path
-	if requestPath == "" {
-		requestPath = "/"
-	}
-	
-	if len(queryParams) > 0 {
-		requestPath += "?" + queryParams.Encode()
-	}
-	
-	// Add host from URL
-	host := parsedURL.Host
-	if host == "" {
-		host = "unknown-host"
-	}
-	
-	rawRequest.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", request.Method, requestPath))
-	rawRequest.WriteString(fmt.Sprintf("Host: %s\r\n", host))
-	
-	// Add custom User-Agent header
-	rawRequest.WriteString("User-Agent: Rikuest/1.0 (HTTP API Client)\r\n")
-	
-	// Add headers
-	for key, value := range request.Headers {
-		rawRequest.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
-	}
-	
-	// Add authorization headers based on auth type
-	switch request.AuthType {
-	case "bearer":
-		if request.BearerToken != "" {
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Bearer %s\r\n", request.BearerToken))
-		}
-	case "basic":
-		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
-			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
-			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Basic %s\r\n", encodedAuth))
-		}
-	}
-	
-	// Determine the actual body content
-	var actualBody string
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		// Build form data body
-		formValues := url.Values{}
-		for _, item := range request.FormData {
-			if item.Key != "" {
-				formValues.Add(item.Key, item.Value)
-			}
-		}
-		actualBody = formValues.Encode()
-		
-		// Ensure Content-Type header for form data
-		hasContentType := false
-		for key := range request.Headers {
-			if strings.ToLower(key) == "content-type" {
-				hasContentType = true
-				break
-			}
-		}
-		if !hasContentType {
-			rawRequest.WriteString("Content-Type: application/x-www-form-urlencoded\r\n")
-		}
-	} else if request.Body != "" {
-		actualBody = request.Body
-	}
-	
-	// Add content length if there's a body
-	if actualBody != "" {
-		rawRequest.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(actualBody)))
-	}
-	
-	// End headers section
-	rawRequest.WriteString("\r\n")
-	
-	// Add body if present
-	if actualBody != "" {
-		rawRequest.WriteString(actualBody)
-	}
-	
-	return rawRequest.String()
 }
 
 func (h *Handler) CreateProject(c *gin.Context) {
@@ -343,14 +240,14 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		parsedURL, err := url.Parse(request.URL)
 		if err == nil {
 			queryValues := parsedURL.Query()
-			
+
 			// Add query parameters from the request
 			for _, param := range request.QueryParams {
 				if param.Enabled && param.Key != "" {
 					queryValues.Add(param.Key, param.Value)
 				}
 			}
-			
+
 			parsedURL.RawQuery = queryValues.Encode()
 			finalURL = parsedURL.String()
 		}
@@ -359,7 +256,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 	// Prepare the request body based on body type
 	var body io.Reader
 	var bodyString string
-	
+
 	if request.BodyType == "form" && len(request.FormData) > 0 {
 		// Handle form data
 		formValues := url.Values{}
@@ -384,7 +281,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 
 	// Set custom User-Agent header
 	req.Header.Set("User-Agent", "Rikuest/1.0 (HTTP API Client)")
-	
+
 	// Set headers from the request
 	for key, value := range request.Headers {
 		req.Header.Set(key, value)
@@ -413,12 +310,12 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 
 	resp, err := client.Do(req)
 	duration := time.Since(start)
-	
+
 	// Generate raw request
-	rawRequestString := buildRawRequest(request)
-	
+	rawRequestString := h.services.Format.BuildRawRequest(request)
+
 	var response models.RequestResponse
-	
+
 	if err != nil {
 		// Handle network/connection errors as a response
 		statusText := getErrorStatusText(err.Error())
@@ -468,7 +365,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		RequestID: id,
 		Response:  response,
 	}
-	
+
 	// Save to history (ignore errors to ensure response is always returned)
 	if err := h.services.Request.SaveRequestHistory(history); err != nil {
 		// Log the error but don't fail the request execution
@@ -608,4 +505,63 @@ func (h *Handler) MoveRequest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Request moved successfully"})
+}
+
+// CopyRequestFormats returns the request in different formats
+func (h *Handler) CopyRequestFormats(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID"})
+		return
+	}
+
+	format := c.Query("format")
+	if format == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format parameter is required"})
+		return
+	}
+
+	request, err := h.services.Request.GetRequest(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
+		return
+	}
+
+	formattedRequest, err := h.services.Format.GetFormat(request, format)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"format":  format,
+		"content": formattedRequest,
+	})
+}
+
+// CopyAllRequestFormats returns the request in all available formats
+func (h *Handler) CopyAllRequestFormats(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID"})
+		return
+	}
+
+	request, err := h.services.Request.GetRequest(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
+		return
+	}
+
+	allFormats := h.services.Format.GetAllFormats(request)
+	formats := gin.H{
+		"raw":    allFormats.Raw,
+		"curl":   allFormats.Curl,
+		"fetch":  allFormats.Fetch,
+		"python": allFormats.Python,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"formats": formats,
+	})
 }

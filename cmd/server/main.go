@@ -33,7 +33,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-
 	api := r.Group("/api")
 	{
 		// Projects routes
@@ -59,12 +58,14 @@ func main() {
 		api.GET("/request/:id/history", handler.GetRequestHistory)
 		api.DELETE("/request/:id/history/:historyId", handler.DeleteRequestHistoryItem)
 		api.POST("/request/move", handler.MoveRequest)
+		api.GET("/request/:id/copy", handler.CopyRequestFormats)
+		api.GET("/request/:id/copy-all", handler.CopyAllRequestFormats)
 	}
 
 	// Serve static files for non-API routes
 	r.Static("/assets", "./frontend/dist/assets")
 	r.StaticFile("/vite.svg", "./frontend/dist/vite.svg")
-	
+
 	r.NoRoute(func(c *gin.Context) {
 		// Only serve index.html for non-API routes
 		if !strings.HasPrefix(c.Request.URL.Path, "/api") {

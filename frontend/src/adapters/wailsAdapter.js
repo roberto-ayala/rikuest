@@ -102,4 +102,12 @@ export class WailsAdapter {
   async deleteFolder(id) {
     await this.app.DeleteFolder(id);
   }
+
+  async copyRequestFormats(requestID, format) {
+    return await this.app.CopyRequest(requestID, format);
+  }
+
+  async copyAllRequestFormats(requestID) {
+    return await this.app.CopyAllRequestFormats(requestID);
+  }
 }

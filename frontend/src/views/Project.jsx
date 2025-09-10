@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, MoreVertical, Copy, Trash2, Zap, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useProjectStore } from '../stores/projectStore';
@@ -11,6 +11,7 @@ import { useUISize } from '../hooks/useUISize';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
+import CopyFormatModal from '../components/CopyFormatModal.jsx';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -28,6 +29,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
   const [newRequest, setNewRequest] = useState({
     name: '',
     method: 'GET',
@@ -248,6 +250,27 @@ function Project({ layout, onNewProject, onSettings }) {
     }
   };
 
+  const handleCopyRequest = () => {
+    if (!selectedRequest) return;
+    
+    // Show modal directly
+    setCopyModal({
+      isOpen: true,
+      requestId: selectedRequest.id
+    });
+    
+    // Close menus
+    setShowMenu(false);
+    setSelectedRequest(null);
+    
+    console.log('✅ Opening copy request modal');
+  };
+
+  const handleCloseMenus = () => {
+    setShowMenu(false);
+    setSelectedRequest(null);
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -438,7 +461,7 @@ function Project({ layout, onNewProject, onSettings }) {
 
       {/* Request Menu */}
       {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)}>
+        <div className="fixed inset-0 z-50" onClick={handleCloseMenus}>
           <div 
             className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
             style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
@@ -452,6 +475,13 @@ function Project({ layout, onNewProject, onSettings }) {
               Duplicate
             </button>
             <button
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
+              onClick={handleCopyRequest}
+            >
+              <Copy className={iconMd} />
+              Copy Request
+            </button>
+            <button
               className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteRequest}
             >
@@ -461,6 +491,13 @@ function Project({ layout, onNewProject, onSettings }) {
           </div>
         </div>
       )}
+
+      {/* Copy Format Modal */}
+      <CopyFormatModal
+        isOpen={copyModal.isOpen}
+        onClose={() => setCopyModal({ isOpen: false, requestId: null })}
+        requestId={copyModal.requestId}
+      />
     </div>
   );
 }
