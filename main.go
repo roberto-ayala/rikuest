@@ -4,6 +4,8 @@ import (
 	"context"
 	"embed"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -32,8 +34,23 @@ func NewApp() *App {
 func (a *App) OnStartup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Initialize database
-	db, err := database.NewDB("rikuest.db")
+	// Get the application data directory
+	dataDir, err := getAppDataDir()
+	if err != nil {
+		log.Fatal("Failed to get application data directory:", err)
+	}
+
+	// Create the data directory if it doesn't exist
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatal("Failed to create application data directory:", err)
+	}
+
+	// Database path in the application data directory
+	dbPath := filepath.Join(dataDir, "rikuest.db")
+	log.Printf("Using database at: %s", dbPath)
+
+	// Initialize database (will create if it doesn't exist)
+	db, err := database.NewDB(dbPath)
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
@@ -166,17 +183,38 @@ func (a *App) DeleteFolder(id int) error {
 	return a.services.Folder.DeleteFolder(id)
 }
 
+// getAppDataDir returns the appropriate application data directory for the current OS
+func getAppDataDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Platform-specific application data directories
+	switch {
+	case filepath.Separator == '\\': // Windows
+		return filepath.Join(homeDir, "AppData", "Local", "Rikuest"), nil
+	case os.Getenv("XDG_DATA_HOME") != "": // Linux with XDG
+		return filepath.Join(os.Getenv("XDG_DATA_HOME"), "rikuest"), nil
+	case filepath.Separator == '/': // macOS and Linux
+		return filepath.Join(homeDir, "Library", "Application Support", "Rikuest"), nil
+	default:
+		// Fallback to current directory
+		return ".", nil
+	}
+}
+
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Rikuest",
-		Width:  1280,
-		Height: 720,
-		MinWidth:          800,
-		MinHeight:         600,
+		Title:     "Rikuest",
+		Width:     1280,
+		Height:    720,
+		MinWidth:  800,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
