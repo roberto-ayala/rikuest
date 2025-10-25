@@ -8,6 +8,7 @@ export const useUIStore = create(
       theme: 'system',
       primaryColor: 'slate',
       layout: 'default', // 'default' or 'compact'
+      language: 'en', // default language
       backgroundColorLight: 'default',
       backgroundColorDark: 'default',
       responseTheme: 'auto', // auto, or theme name
@@ -18,6 +19,7 @@ export const useUIStore = create(
       setUISize: (size) => set({ uiSize: size }),
       setLayout: (layout) => set({ layout }),
       setTheme: (theme) => set({ theme }),
+      setLanguage: (language) => set({ language }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setPrimaryColor: (color) => set({ primaryColor: color }),
       setBackgroundColorLight: (color) => set({ backgroundColorLight: color }),

@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
-import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush } from 'lucide-react';
+import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush, Globe } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
+import { useTranslation } from '../hooks/useTranslation';
 import ColorSelector from './ColorSelector';
 import UISizeSelector from './UISizeSelector';
 import LayoutSelector from './LayoutSelector';
 import BackgroundColorSelector from './BackgroundColorSelector';
 import ResponseThemeSelector from './ResponseThemeSelector';
+import LanguageSelector from './LanguageSelector';
+import LanguageCards from './LanguageCards';
 
 const SettingsModal = ({ isOpen, onClose }) => {
   const { text, spacing, button, iconMd, iconButton, icon } = useUISize();
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState('interface');
 
   const sections = [
-    { id: 'interface', name: 'Interface', icon: Type, description: 'Size and spacing' },
-    { id: 'layout', name: 'Layout', icon: Layout, description: 'App layout style' },
-    { id: 'colors', name: 'Colors', icon: Palette, description: 'Theme and colors' },
-    { id: 'background', name: 'Background', icon: Paintbrush, description: 'Background colors' },
-    { id: 'response', name: 'Response', icon: Monitor, description: 'Response display' },
+    { id: 'interface', name: t('settings.general'), icon: Type, description: t('settings.uiSize') },
+    { id: 'language', name: t('settings.language'), icon: Globe, description: t('settings.language') },
+    { id: 'layout', name: t('settings.layout'), icon: Layout, description: t('settings.layout') },
+    { id: 'colors', name: t('settings.appearance'), icon: Palette, description: t('settings.primaryColor') },
+    { id: 'background', name: t('settings.background'), icon: Paintbrush, description: t('settings.background') },
+    { id: 'response', name: t('settings.responseTheme'), icon: Monitor, description: t('settings.responseTheme') },
   ];
 
   if (!isOpen) return null;
@@ -28,11 +33,23 @@ const SettingsModal = ({ isOpen, onClose }) => {
         return (
           <div className="space-y-6">
             <div>
-              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>Interface Size</h3>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>{t('settings.uiSize')}</h3>
               <p className={`${text('sm')} text-muted-foreground mb-6`}>
-                Choose the size of text, buttons, and other interface elements throughout the application.
+                {t('settings.uiSize')}
               </p>
               <UISizeSelector modal={true} />
+            </div>
+          </div>
+        );
+      case 'language':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>{t('settings.language')}</h3>
+              <p className={`${text('sm')} text-muted-foreground mb-6`}>
+                {t('settings.language')}
+              </p>
+              <LanguageCards />
             </div>
           </div>
         );
@@ -111,37 +128,42 @@ const SettingsModal = ({ isOpen, onClose }) => {
         {/* Main Content */}
         <div className="flex-1 flex min-h-0">
           {/* Sidebar Navigation */}
-          <div className={`w-64 border-r border-border flex-shrink-0 ${spacing(4)}`}>
-            <nav className="space-y-2">
-              {sections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`
-                      w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200
-                      ${isActive 
-                        ? 'bg-primary/10 text-primary border border-primary/20' 
-                        : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                      }
-                    `}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className={`${text('sm')} font-medium`}>
-                        {section.name}
+          <div className={`w-64 border-r border-border flex-shrink-0 flex flex-col`}>
+            <div className={`${spacing(4)} border-b border-border flex-shrink-0`}>
+              <h3 className={`${text('sm')} font-medium text-muted-foreground`}>Settings</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <nav className={`space-y-2 ${spacing(4)}`}>
+                {sections.map((section) => {
+                  const Icon = section.icon;
+                  const isActive = activeSection === section.id;
+                  
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setActiveSection(section.id)}
+                      className={`
+                        w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200
+                        ${isActive 
+                          ? 'bg-primary/10 text-primary border border-primary/20' 
+                          : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                        }
+                      `}
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className={`${text('sm')} font-medium`}>
+                          {section.name}
+                        </div>
+                        <div className={`${text('xs')} ${isActive ? 'text-primary/70' : 'text-muted-foreground'}`}>
+                          {section.description}
+                        </div>
                       </div>
-                      <div className={`${text('xs')} ${isActive ? 'text-primary/70' : 'text-muted-foreground'}`}>
-                        {section.description}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </nav>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
 
           {/* Content Area */}
