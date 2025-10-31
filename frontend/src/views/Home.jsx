@@ -6,11 +6,13 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { useProjectStore } from '../stores/projectStore';
 import { useUISize } from '../hooks/useUISize';
+import { useTranslation } from '../hooks/useTranslation';
 
 function Home() {
   const navigate = useNavigate();
   const { text, spacing, button, input, card } = useUISize();
   const { projects, loading, fetchProjects, createProject, deleteProject } = useProjectStore();
+  const { t } = useTranslation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -57,7 +59,7 @@ function Home() {
   const handleDeleteProject = async () => {
     if (!selectedProject) return;
     
-    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    if (window.confirm(t('project.deleteProjectConfirm'))) {
       try {
         await deleteProject(selectedProject.id);
         setShowMenu(false);
@@ -83,15 +85,15 @@ function Home() {
             </div>
             
             <div className="space-y-2">
-              <h1 className={`${text('2xl')} font-semibold text-foreground`}>Welcome to Rikuest</h1>
+              <h1 className={`${text('2xl')} font-semibold text-foreground`}>{t('app.welcome')}</h1>
               <p className={`${text('base')} text-muted-foreground`}>
-                Get started by creating your first project to organize your API requests
+                {t('app.welcomeDescription')}
               </p>
             </div>
 
             <Button onClick={() => setShowCreateDialog(true)} className={`mt-6 ${button}`}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Project
+              {t('project.create')}
             </Button>
           </div>
         </div>
@@ -102,8 +104,8 @@ function Home() {
         <div className={spacing(6)}>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className={`${text('2xl')} font-semibold text-foreground`}>Projects</h1>
-              <p className={`${text('base')} text-muted-foreground`}>Manage your API request collections</p>
+              <h1 className={`${text('2xl')} font-semibold text-foreground`}>{t('common.projects')}</h1>
+              <p className={`${text('base')} text-muted-foreground`}>{t('project.allProjects')}</p>
             </div>
           </div>
 
@@ -163,25 +165,25 @@ function Home() {
       {showCreateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Create New Project</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('project.create')}</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Project Name</label>
+                <label className="text-sm font-medium mb-2 block">{t('project.projectName')}</label>
                 <Input
                   value={newProject.name}
                   onChange={(e) => setNewProject({...newProject, name: e.target.value})}
-                  placeholder="Enter project name"
+                  placeholder={t('project.projectNamePlaceholder')}
                   className="w-full"
                 />
               </div>
               
               <div>
-                <label className="text-sm font-medium mb-2 block">Description</label>
+                <label className="text-sm font-medium mb-2 block">{t('project.projectDescription')}</label>
                 <Textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                  placeholder="Project description (optional)"
+                  placeholder={t('project.projectDescriptionPlaceholder')}
                   className="w-full"
                   rows={3}
                 />
@@ -190,10 +192,10 @@ function Home() {
 
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="ghost" onClick={handleCancelCreate}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreateProject} disabled={!newProject.name.trim()}>
-                Create Project
+                {t('common.create')} {t('common.project')}
               </Button>
             </div>
           </div>
@@ -212,13 +214,13 @@ function Home() {
               className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
               onClick={handleEditProject}
             >
-              Edit Project
+              {t('common.edit')} {t('common.project')}
             </button>
             <button
               className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors"
               onClick={handleDeleteProject}
             >
-              Delete Project
+              {t('project.deleteProject')}
             </button>
           </div>
         </div>

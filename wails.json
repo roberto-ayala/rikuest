@@ -25,7 +25,7 @@
   "info": {
     "productName": "Rikuest",
     "productVersion": "1.0.0",
-    "copyright": "Copyright © 2024",
+    "copyright": "Copyright © 2025",
     "comments": "A REST API client built with Wails"
   },
   "nsisType": "multiple",

@@ -8,7 +8,9 @@ import { useProjectStore } from './stores/projectStore';
 import { useUIStore } from './stores/uiStore';
 import { useUISize } from './hooks/useUISize';
 import { useBackgroundColor } from './hooks/useBackgroundColor';
+import { useTranslation } from './hooks/useTranslation';
 import ThemeSelector from './components/ThemeSelector';
+import LanguageSelector from './components/LanguageSelector';
 import SettingsModal from './components/SettingsModal';
 import Home from './views/Home';
 import Project from './views/Project';
@@ -18,6 +20,7 @@ function App() {
   const createProject = useProjectStore(state => state.createProject);
   const layout = useUIStore(state => state.layout);
   const { text, spacing, button, input, icon, iconButton, headerButton } = useUISize();
+  const { t } = useTranslation();
   
   // Apply background colors
   useBackgroundColor();
@@ -65,14 +68,15 @@ function App() {
               <div className="ml-auto flex items-center space-x-2">
                 <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
                   <Plus className="h-4 w-4 mr-2" />
-                  New Project
+                  {t('navigation.newProject')}
                 </Button>
                 <ThemeSelector />
+                <LanguageSelector />
                 <Button 
                   variant="ghost"
                   onClick={() => setShowSettingsModal(true)} 
                   className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-                  title="Settings"
+                  title={t('common.settings')}
                 >
                   <Settings className={icon} />
                 </Button>
@@ -108,14 +112,15 @@ function App() {
                     <div className="ml-auto flex items-center space-x-2">
                       <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
                         <Plus className="h-4 w-4 mr-2" />
-                        New Project
+                        {t('navigation.newProject')}
                       </Button>
                       <ThemeSelector />
+                      <LanguageSelector />
                       <Button 
                         variant="ghost"
                         onClick={() => setShowSettingsModal(true)} 
                         className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-                        title="Settings"
+                        title={t('common.settings')}
                       >
                         <Settings className={icon} />
                       </Button>
@@ -136,25 +141,25 @@ function App() {
       {showNewProjectDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(6)} rounded-lg shadow-lg border border-border w-full max-w-md`}>
-            <h2 className={`${text('lg')} font-semibold mb-4`}>Create New Project</h2>
+            <h2 className={`${text('lg')} font-semibold mb-4`}>{t('project.create')}</h2>
             
             <div className="space-y-4">
               <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>Project Name</label>
+                <label className={`${text('sm')} font-medium mb-2 block`}>{t('project.projectName')}</label>
                 <Input
                   value={newProject.name}
                   onChange={(e) => setNewProject({...newProject, name: e.target.value})}
-                  placeholder="Enter project name"
+                  placeholder={t('project.projectNamePlaceholder')}
                   className={`w-full ${input}`}
                 />
               </div>
               
               <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>Description</label>
+                <label className={`${text('sm')} font-medium mb-2 block`}>{t('project.projectDescription')}</label>
                 <Textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                  placeholder="Project description (optional)"
+                  placeholder={t('project.projectDescriptionPlaceholder')}
                   className={`w-full ${input}`}
                   rows={3}
                 />
@@ -163,10 +168,10 @@ function App() {
 
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="ghost" onClick={handleCancelNewProject} className={button}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreateProject} disabled={!newProject.name.trim()} className={button}>
-                Create Project
+                {t('common.create')} {t('common.project')}
               </Button>
             </div>
           </div>
