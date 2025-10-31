@@ -19,8 +19,8 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize services
-	servicesContainer := services.NewServices(db)
+	// Initialize services (webhook URL empty for server mode)
+	servicesContainer := services.NewServices(db, "")
 	handler := handlers.NewHandler(servicesContainer)
 
 	r := gin.Default()

@@ -137,4 +137,21 @@ export class APIAdapter {
   async copyAllRequestFormats(requestID) {
     return this.request(`/api/request/${requestID}/copy-all`);
   }
+
+  // ===== TELEMETRY METHODS (not available in web mode) =====
+  async getTelemetryEnabled() {
+    return false; // Telemetry not available in web mode
+  }
+
+  async setTelemetryEnabled(enabled) {
+    // No-op in web mode
+  }
+
+  async reportError(errorMsg, stackTrace) {
+    // No-op in web mode
+  }
+
+  async reportUsageEvent(eventType, metadata) {
+    // No-op in web mode
+  }
 }

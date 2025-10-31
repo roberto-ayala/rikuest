@@ -118,7 +118,15 @@
     "small": "Petit",
     "medium": "Moyen",
     "large": "Grand",
-    "extraLarge": "Très Grand"
+    "extraLarge": "Très Grand",
+    "telemetry": "Télémétrie",
+    "telemetryDescription": "Aidez-nous à améliorer Rikuest en partageant les données d'utilisation et les rapports d'erreurs",
+    "telemetryEnabled": "La télémétrie est activée. Les données d'utilisation anonymes et les erreurs sont signalées.",
+    "telemetryDisabled": "La télémétrie est désactivée. Aucune donnée n'est collectée.",
+    "telemetryInfo": "Lorsqu'elle est activée, les informations suivantes peuvent être collectées :",
+    "telemetryInfo1": "Rapports d'erreurs avec traces de pile",
+    "telemetryInfo2": "Événements d'utilisation (création de projet, exécution de requêtes, etc.)",
+    "telemetryInfo3": "Métriques anonymes (nombre de requêtes, durée de session)"
   },
   "methods": {
     "GET": "GET",

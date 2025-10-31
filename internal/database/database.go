@@ -35,7 +35,29 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("failed to migrate requests table: %w", err)
 	}
 
+	// Initialize telemetry config
+	if err := database.initializeTelemetryConfig(); err != nil {
+		return nil, fmt.Errorf("failed to initialize telemetry config: %w", err)
+	}
+
 	return database, nil
+}
+
+func (db *DB) initializeTelemetryConfig() error {
+	// Check if config exists
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM telemetry_config WHERE id = 1").Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		// Insert default config
+		_, err = db.Exec("INSERT INTO telemetry_config (id, enabled, webhook_url, installation_id) VALUES (1, 1, '', '')")
+		return err
+	}
+
+	return nil
 }
 
 func (db *DB) createTables() error {
@@ -85,6 +107,16 @@ func (db *DB) createTables() error {
 			response TEXT NOT NULL,
 			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS telemetry_config (
+			id INTEGER PRIMARY KEY,
+			enabled INTEGER DEFAULT 1,
+			webhook_url TEXT DEFAULT '',
+			installation_id TEXT DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS telemetry_events_cache (
+			event_hash TEXT PRIMARY KEY,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 	}
 
@@ -412,5 +444,47 @@ func (db *DB) DeleteFolder(id int) error {
 func (db *DB) MoveRequest(requestID int, folderID *int, position int) error {
 	query := `UPDATE requests SET folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := db.Exec(query, folderID, position, requestID)
+	return err
+}
+
+// Telemetry operations
+func (db *DB) GetTelemetryConfig() (*models.TelemetryConfig, error) {
+	var config models.TelemetryConfig
+	var enabled int
+	err := db.QueryRow("SELECT enabled, webhook_url, installation_id FROM telemetry_config WHERE id = 1").Scan(
+		&enabled, &config.WebhookURL, &config.InstallationID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	config.Enabled = enabled == 1
+	return &config, nil
+}
+
+func (db *DB) UpdateTelemetryConfig(config *models.TelemetryConfig) error {
+	enabled := 0
+	if config.Enabled {
+		enabled = 1
+	}
+	query := `UPDATE telemetry_config SET enabled = ?, webhook_url = ?, installation_id = ? WHERE id = 1`
+	_, err := db.Exec(query, enabled, config.WebhookURL, config.InstallationID)
+	return err
+}
+
+func (db *DB) IsEventDuplicated(eventHash string) (bool, error) {
+	// Clean old events (older than 1 hour)
+	_, _ = db.Exec("DELETE FROM telemetry_events_cache WHERE timestamp < datetime('now', '-1 hour')")
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM telemetry_events_cache WHERE event_hash = ?", eventHash).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (db *DB) CacheEventHash(eventHash string) error {
+	query := `INSERT OR REPLACE INTO telemetry_events_cache (event_hash, timestamp) VALUES (?, CURRENT_TIMESTAMP)`
+	_, err := db.Exec(query, eventHash)
 	return err
 }

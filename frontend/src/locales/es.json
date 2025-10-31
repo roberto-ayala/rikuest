@@ -118,7 +118,15 @@
     "small": "Pequeño",
     "medium": "Mediano",
     "large": "Grande",
-    "extraLarge": "Extra Grande"
+    "extraLarge": "Extra Grande",
+    "telemetry": "Telemetría",
+    "telemetryDescription": "Ayúdanos a mejorar Rikuest compartiendo datos de uso e informes de errores",
+    "telemetryEnabled": "La telemetría está habilitada. Se están reportando datos de uso anónimos y errores.",
+    "telemetryDisabled": "La telemetría está deshabilitada. No se están recopilando datos.",
+    "telemetryInfo": "Cuando está habilitada, se puede recopilar la siguiente información:",
+    "telemetryInfo1": "Informes de errores con seguimientos de pila",
+    "telemetryInfo2": "Eventos de uso (creación de proyectos, ejecución de solicitudes, etc.)",
+    "telemetryInfo3": "Métricas anónimas (recuentos de solicitudes, duración de sesión)"
   },
   "methods": {
     "GET": "GET",
