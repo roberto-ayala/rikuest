@@ -29,12 +29,28 @@ backend:
 wails-dev: wails-deps
 	wails dev
 
+# Generate app icon from SVG (solo appicon.png)
+generate-icon:
+	@if [ -d ".venv" ]; then \
+		. .venv/bin/activate && python3 generate_icon.py; \
+	else \
+		python3 generate_icon.py; \
+	fi
+
+# Generate all icons for all platforms (macOS, Windows, Linux)
+generate-all-icons:
+	@if [ -d ".venv" ]; then \
+		. .venv/bin/activate && python3 generate_all_icons.py; \
+	else \
+		python3 generate_all_icons.py; \
+	fi
+
 # Build native app with Wails bindings
-wails-build: wails-deps
+wails-build: wails-deps generate-icon
 	wails build
 
 # Build native app for production (multiple platforms)
-wails-build-prod: wails-deps
+wails-build-prod: wails-deps generate-icon
 	wails build -clean -platform windows/amd64,darwin/amd64,darwin/arm64,linux/amd64
 
 # Clean build artifacts
