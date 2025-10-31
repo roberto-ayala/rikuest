@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
 import ThemeProvider from './components/ThemeProvider.jsx';
+import { setupErrorHandlers } from './utils/errorHandler.js';
+
+// Setup global error handlers for telemetry
+setupErrorHandlers();
 
 // Debug logs only, no alerts
 console.log('main.jsx loaded - Environment check:', {

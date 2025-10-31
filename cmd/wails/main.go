@@ -9,6 +9,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
+	"rikuest/internal/config"
 	"rikuest/internal/database"
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -38,19 +39,34 @@ func (a *App) OnStartup(ctx context.Context) {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
+	// Get webhook URL from centralized config
+	webhookURL := config.DiscordWebhookURL()
+
 	// Initialize services
-	a.services = services.NewServices(db)
+	a.services = services.NewServices(db, webhookURL)
+
+	// Update webhook URL from config if available (allows runtime override from DB)
+	telemetryConfig, err := a.services.Telemetry.GetConfig()
+	if err == nil && telemetryConfig.WebhookURL != "" {
+		// Use webhook from config (allows users to override via DB)
+		a.services.Telemetry = services.NewTelemetryService(db, telemetryConfig.WebhookURL)
+	}
+
 	log.Println("Wails App initialized with native bindings")
 }
 
 // OnDomReady is called after front-end resources have been loaded
 func (a *App) OnDomReady(ctx context.Context) {
-	// This is a good place to allocate and start your main application
+	// Report session start
+	a.services.Telemetry.ReportSessionStart()
 }
 
 // OnShutdown is called when the application is about to quit
 func (a *App) OnShutdown(ctx context.Context) {
-	// Cleanup if needed
+	// Report session end with final metrics
+	if a.services != nil && a.services.Telemetry != nil {
+		a.services.Telemetry.ReportSessionEnd()
+	}
 }
 
 // GetPlatform returns the current platform
@@ -60,7 +76,7 @@ func (a *App) GetPlatform() string {
 
 // GetVersion returns the application version
 func (a *App) GetVersion() string {
-	return "1.0.0"
+	return config.Version()
 }
 
 // ===== PROJECT BINDINGS =====

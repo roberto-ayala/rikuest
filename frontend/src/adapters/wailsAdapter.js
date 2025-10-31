@@ -110,4 +110,21 @@ export class WailsAdapter {
   async copyAllRequestFormats(requestID) {
     return await this.app.CopyAllRequestFormats(requestID);
   }
+
+  // ===== TELEMETRY METHODS =====
+  async getTelemetryEnabled() {
+    return await this.app.GetTelemetryEnabled();
+  }
+
+  async setTelemetryEnabled(enabled) {
+    await this.app.SetTelemetryEnabled(enabled);
+  }
+
+  async reportError(errorMsg, stackTrace) {
+    await this.app.ReportError(errorMsg, stackTrace);
+  }
+
+  async reportUsageEvent(eventType, metadata) {
+    await this.app.ReportUsageEvent(eventType, metadata);
+  }
 }

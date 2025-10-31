@@ -80,3 +80,9 @@ type CopyRequestResponse struct {
 	Format  string `json:"format"`
 	Content string `json:"content"`
 }
+
+type TelemetryConfig struct {
+	Enabled        bool   `json:"enabled" db:"enabled"`
+	WebhookURL     string `json:"webhook_url" db:"webhook_url"`
+	InstallationID string `json:"installation_id" db:"installation_id"`
+}
