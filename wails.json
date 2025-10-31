@@ -1,7 +1,7 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "Rikuest",
-  "outputfilename": "rikuest",
+  "outputfilename": "Rikuest",
   "frontend": {
     "dir": "./frontend",
     "install": "npm install",
