@@ -26,7 +26,7 @@ backend:
 # ===== NATIVE MODE (Wails with Go bindings) =====
 
 # Development mode - Native app with Wails bindings
-wails-dev: wails-deps
+wails-dev: wails-deps frontend
 	wails dev
 
 # Generate app icon from SVG (solo appicon.png)
