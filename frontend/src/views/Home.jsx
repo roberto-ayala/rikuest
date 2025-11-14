@@ -4,6 +4,7 @@ import { Plus, Zap, Folder, MoreVertical } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useProjectStore } from '../stores/projectStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -11,13 +12,16 @@ import { useTranslation } from '../hooks/useTranslation';
 function Home() {
   const navigate = useNavigate();
   const { text, spacing, button, input, card } = useUISize();
-  const { projects, loading, fetchProjects, createProject, deleteProject } = useProjectStore();
+  const { projects, loading, fetchProjects, createProject, updateProject, deleteProject } = useProjectStore();
   const { t } = useTranslation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [newProject, setNewProject] = useState({ name: '', description: '' });
+  const [editProject, setEditProject] = useState({ id: null, name: '', description: '' });
 
   useEffect(() => {
     fetchProjects();
@@ -52,21 +56,53 @@ function Home() {
   };
 
   const handleEditProject = () => {
-    setShowMenu(false);
-    // Implement edit functionality
-  };
-
-  const handleDeleteProject = async () => {
     if (!selectedProject) return;
     
-    if (window.confirm(t('project.deleteProjectConfirm'))) {
-      try {
-        await deleteProject(selectedProject.id);
-        setShowMenu(false);
-        setSelectedProject(null);
-      } catch (error) {
-        console.error('Failed to delete project:', error);
-      }
+    setEditProject({
+      id: selectedProject.id,
+      name: selectedProject.name,
+      description: selectedProject.description || ''
+    });
+    setShowMenu(false);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateProject = async () => {
+    if (!editProject.name.trim()) return;
+    
+    try {
+      await updateProject(editProject.id, {
+        name: editProject.name,
+        description: editProject.description
+      });
+      setShowEditDialog(false);
+      setEditProject({ id: null, name: '', description: '' });
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Failed to update project:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditDialog(false);
+    setEditProject({ id: null, name: '', description: '' });
+  };
+
+  const handleDeleteProject = () => {
+    if (!selectedProject) return;
+    
+    setShowMenu(false);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedProject) return;
+    
+    try {
+      await deleteProject(selectedProject.id);
+      setSelectedProject(null);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
     }
   };
 
@@ -202,6 +238,47 @@ function Home() {
         </div>
       )}
 
+      {/* Edit Project Dialog */}
+      {showEditDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">{t('common.edit')} {t('common.project')}</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t('project.projectName')}</label>
+                <Input
+                  value={editProject.name}
+                  onChange={(e) => setEditProject({...editProject, name: e.target.value})}
+                  placeholder={t('project.projectNamePlaceholder')}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">{t('project.projectDescription')}</label>
+                <Textarea
+                  value={editProject.description}
+                  onChange={(e) => setEditProject({...editProject, description: e.target.value})}
+                  placeholder={t('project.projectDescriptionPlaceholder')}
+                  className="w-full"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 mt-6">
+              <Button variant="ghost" onClick={handleCancelEdit}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={handleUpdateProject} disabled={!editProject.name.trim()}>
+                {t('common.save')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Project Actions Menu */}
       {showMenu && (
         <div className="fixed inset-0 z-50" onClick={handleMenuClose}>
@@ -225,6 +302,17 @@ function Home() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('project.deleteProject')}
+        message={`${t('project.deleteProjectConfirm')} "${selectedProject?.name}"?`}
+        confirmText={t('common.delete')}
+        variant="danger"
+      />
     </div>
   );
 }

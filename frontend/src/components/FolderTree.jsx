@@ -29,7 +29,9 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import ConfirmDialog from './ConfirmDialog';
 import { useUISize } from '../hooks/useUISize';
+import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
 import FolderTreeItem from './FolderTreeItem';
@@ -76,6 +78,7 @@ function RootDropZone() {
 
 function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
   const { text, spacing, button, input, icon, iconMd, menuItem, itemSpacing } = useUISize();
+  const { t } = useTranslation();
   
   // Load expanded folders from localStorage
   const loadExpandedFolders = () => {
@@ -105,6 +108,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false);
   const [showRenameFolderDialog, setShowRenameFolderDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -204,13 +208,18 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     }
   };
   
-  const handleDeleteFolder = async () => {
+  const handleDeleteFolder = () => {
     if (!selectedFolder) return;
     
-    if (window.confirm(`Are you sure you want to delete the folder "${selectedFolder.name}"? All requests in this folder will be moved to the root level.`)) {
+    setShowFolderMenu(false);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmDeleteFolder = async () => {
+    if (!selectedFolder) return;
+    
       try {
         await deleteFolder(selectedFolder.id);
-        setShowFolderMenu(false);
         setSelectedFolder(null);
         // Refresh both folders and requests
         if (onRequestMoved) {
@@ -218,7 +227,6 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         }
       } catch (error) {
         console.error('Failed to delete folder:', error);
-      }
     }
   };
   
@@ -731,6 +739,17 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Folder Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmDeleteFolder}
+        title={t('folder.deleteFolder')}
+        message={`${t('folder.deleteFolderConfirm')} "${selectedFolder?.name}"? ${t('folder.deleteFolderWarning')}`}
+        confirmText={t('common.delete')}
+        variant="danger"
+      />
     </div>
   );
 }

@@ -86,7 +86,9 @@
     "copyCurl": "Copiar cURL",
     "copyJavaScript": "Copiar JavaScript",
     "copyPython": "Copiar Python",
-    "copyAll": "Copiar Todos los Formatos"
+    "copyAll": "Copiar Todos los Formatos",
+    "deleteRequest": "Eliminar Solicitud",
+    "deleteRequestConfirm": "¿Estás seguro de que quieres eliminar"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -96,7 +98,10 @@
     "noFolders": "Aún no hay carpetas",
     "noFoldersDescription": "Crea carpetas para organizar tus solicitudes",
     "moveToFolder": "Mover a Carpeta",
-    "moveToRoot": "Mover a Raíz"
+    "moveToRoot": "Mover a Raíz",
+    "deleteFolder": "Eliminar Carpeta",
+    "deleteFolderConfirm": "¿Estás seguro de que quieres eliminar la carpeta",
+    "deleteFolderWarning": "Todas las solicitudes en esta carpeta se moverán al nivel raíz."
   },
   "settings": {
     "title": "Configuración",

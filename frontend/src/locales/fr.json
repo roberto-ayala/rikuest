@@ -86,7 +86,9 @@
     "copyCurl": "Copier cURL",
     "copyJavaScript": "Copier JavaScript",
     "copyPython": "Copier Python",
-    "copyAll": "Copier Tous les Formats"
+    "copyAll": "Copier Tous les Formats",
+    "deleteRequest": "Supprimer la Requête",
+    "deleteRequestConfirm": "Êtes-vous sûr de vouloir supprimer"
   },
   "folder": {
     "create": "Créer un Nouveau Dossier",
@@ -96,7 +98,10 @@
     "noFolders": "Aucun dossier encore",
     "noFoldersDescription": "Créez des dossiers pour organiser vos requêtes",
     "moveToFolder": "Déplacer vers le Dossier",
-    "moveToRoot": "Déplacer vers la Racine"
+    "moveToRoot": "Déplacer vers la Racine",
+    "deleteFolder": "Supprimer le Dossier",
+    "deleteFolderConfirm": "Êtes-vous sûr de vouloir supprimer le dossier",
+    "deleteFolderWarning": "Toutes les requêtes de ce dossier seront déplacées au niveau racine."
   },
   "settings": {
     "title": "Paramètres",

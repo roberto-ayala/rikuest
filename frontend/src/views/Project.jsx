@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
 import { useFolderStore } from '../stores/folderStore';
 import { useUIStore } from '../stores/uiStore';
 import { useUISize } from '../hooks/useUISize';
+import { useTranslation } from '../hooks/useTranslation';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
@@ -20,12 +22,14 @@ function Project({ layout, onNewProject, onSettings }) {
   const uiLayout = useUIStore(state => state.layout);
   const currentLayout = layout || uiLayout;
   const { text, spacing, button, input, select, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
+  const { t } = useTranslation();
   
   const { currentProject, fetchProject } = useProjectStore();
   const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest } = useRequestStore();
   const { fetchFolders } = useFolderStore();
   
   const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -231,10 +235,16 @@ function Project({ layout, onNewProject, onSettings }) {
     }
   };
 
-  const handleDeleteRequest = async () => {
+  const handleDeleteRequest = () => {
     if (!selectedRequest) return;
     
-    if (window.confirm(`Are you sure you want to delete "${selectedRequest.name}"?`)) {
+    setShowMenu(false);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmDeleteRequest = async () => {
+    if (!selectedRequest) return;
+    
       try {
         // If deleting the current request, clear it
         if (currentRequest && currentRequest.id === selectedRequest.id) {
@@ -242,11 +252,9 @@ function Project({ layout, onNewProject, onSettings }) {
         }
         
         await deleteRequest(selectedRequest.id);
-        setShowMenu(false);
         setSelectedRequest(null);
       } catch (error) {
         console.error('Failed to delete request:', error);
-      }
     }
   };
 
@@ -497,6 +505,17 @@ function Project({ layout, onNewProject, onSettings }) {
         isOpen={copyModal.isOpen}
         onClose={() => setCopyModal({ isOpen: false, requestId: null })}
         requestId={copyModal.requestId}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmDeleteRequest}
+        title={t('request.deleteRequest')}
+        message={`${t('request.deleteRequestConfirm')} "${selectedRequest?.name}"?`}
+        confirmText={t('common.delete')}
+        variant="danger"
       />
     </div>
   );
