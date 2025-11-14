@@ -123,7 +123,22 @@
     "small": "Petit",
     "medium": "Moyen",
     "large": "Grand",
-    "extraLarge": "Très Grand"
+    "extraLarge": "Très Grand",
+    "requests": "Requêtes",
+    "parameters": "Paramètres",
+    "requestTimeout": "Délai d'Attente des Requêtes",
+    "requestTimeoutDescription": "Configurez le temps d'attente maximum pour les requêtes HTTP. Les requêtes dépassant ce temps seront automatiquement annulées.",
+    "timeoutSeconds": "Secondes",
+    "timeoutRange": "Plage autorisée : 1 seconde à 3 heures (10800 secondes)",
+    "presetTimeouts": "Valeurs Prédéfinies",
+    "timeoutSaved": "Délai d'attente enregistré avec succès",
+    "timeoutInvalid": "Le délai d'attente doit être entre 1 et 10800 secondes",
+    "timeoutSaveError": "Erreur lors de l'enregistrement du délai d'attente",
+    "seconds": "secondes",
+    "minutes": "minutes",
+    "hours": "heures",
+    "requestSettings": "Paramètres de Requête",
+    "requestSettingsDescription": "Configurez les paramètres liés aux requêtes HTTP"
   },
   "methods": {
     "GET": "GET",

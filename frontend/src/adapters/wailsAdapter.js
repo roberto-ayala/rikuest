@@ -110,4 +110,13 @@ export class WailsAdapter {
   async copyAllRequestFormats(requestID) {
     return await this.app.CopyAllRequestFormats(requestID);
   }
+
+  // ===== CONFIG METHODS =====
+  async getRequestTimeout() {
+    return await this.app.GetRequestTimeout();
+  }
+
+  async setRequestTimeout(seconds) {
+    await this.app.SetRequestTimeout(seconds);
+  }
 }

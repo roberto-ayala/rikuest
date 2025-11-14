@@ -230,8 +230,14 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 
 	start := time.Now()
 
+	// Get configured timeout, default to 5 minutes
+	timeout, err := h.services.Config.GetRequestTimeout()
+	if err != nil {
+		timeout = 300 * time.Second // Default to 5 minutes on error
+	}
+
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: timeout,
 	}
 
 	// Build the complete URL with query parameters

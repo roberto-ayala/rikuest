@@ -123,7 +123,22 @@
     "small": "Pequeño",
     "medium": "Mediano",
     "large": "Grande",
-    "extraLarge": "Extra Grande"
+    "extraLarge": "Extra Grande",
+    "requests": "Solicitudes",
+    "parameters": "Parámetros",
+    "requestTimeout": "Timeout de Solicitudes",
+    "requestTimeoutDescription": "Configura el tiempo máximo de espera para las solicitudes HTTP. Las solicitudes que excedan este tiempo serán canceladas automáticamente.",
+    "timeoutSeconds": "Segundos",
+    "timeoutRange": "Rango permitido: 1 segundo a 3 horas (10800 segundos)",
+    "presetTimeouts": "Valores Predefinidos",
+    "timeoutSaved": "Timeout guardado correctamente",
+    "timeoutInvalid": "El timeout debe estar entre 1 y 10800 segundos",
+    "timeoutSaveError": "Error al guardar el timeout",
+    "seconds": "segundos",
+    "minutes": "minutos",
+    "hours": "horas",
+    "requestSettings": "Configuración de Solicitudes",
+    "requestSettingsDescription": "Configura los parámetros relacionados con las solicitudes HTTP"
   },
   "methods": {
     "GET": "GET",

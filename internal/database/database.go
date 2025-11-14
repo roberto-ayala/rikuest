@@ -35,6 +35,11 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("failed to migrate requests table: %w", err)
 	}
 
+	// Initialize default settings
+	if err := database.initializeDefaultSettings(); err != nil {
+		return nil, fmt.Errorf("failed to initialize default settings: %w", err)
+	}
+
 	return database, nil
 }
 
@@ -86,6 +91,11 @@ func (db *DB) createTables() error {
 			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 		)`,
+		`CREATE TABLE IF NOT EXISTS settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, query := range queries {
@@ -131,6 +141,33 @@ func isColumnExistsError(err error) bool {
 		errStr == "duplicate column name: form_data" ||
 		errStr == "duplicate column name: folder_id" ||
 		errStr == "duplicate column name: position")
+}
+
+func (db *DB) initializeDefaultSettings() error {
+	// Set default timeout to 5 minutes (300 seconds) if not exists
+	_, err := db.Exec(`
+		INSERT OR IGNORE INTO settings (key, value) 
+		VALUES ('request_timeout_seconds', '300')
+	`)
+	return err
+}
+
+func (db *DB) GetSetting(key string) (string, error) {
+	var value string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
+}
+
+func (db *DB) SetSetting(key, value string) error {
+	_, err := db.Exec(`
+		INSERT INTO settings (key, value, updated_at) 
+		VALUES (?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+	`, key, value, value)
+	return err
 }
 
 func (db *DB) CreateProject(project *models.Project) error {

@@ -8,6 +8,7 @@ type Services struct {
 	Request *RequestService
 	Folder  *FolderService
 	Format  *FormatService
+	Config  *ConfigService
 }
 
 // NewServices creates a new services container
@@ -17,5 +18,6 @@ func NewServices(db *database.DB) *Services {
 		Request: NewRequestService(db),
 		Folder:  NewFolderService(db),
 		Format:  NewFormatService(),
+		Config:  NewConfigService(db),
 	}
 }
