@@ -35,6 +35,11 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("failed to migrate requests table: %w", err)
 	}
 
+	// Initialize default settings
+	if err := database.initializeDefaultSettings(); err != nil {
+		return nil, fmt.Errorf("failed to initialize default settings: %w", err)
+	}
+
 	// Initialize telemetry config
 	if err := database.initializeTelemetryConfig(); err != nil {
 		return nil, fmt.Errorf("failed to initialize telemetry config: %w", err)
@@ -108,6 +113,11 @@ func (db *DB) createTables() error {
 			executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
 		)`,
+		`CREATE TABLE IF NOT EXISTS settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE TABLE IF NOT EXISTS telemetry_config (
 			id INTEGER PRIMARY KEY,
 			enabled INTEGER DEFAULT 1,
@@ -154,8 +164,7 @@ func (db *DB) migrateRequestsTable() error {
 
 func isColumnExistsError(err error) bool {
 	errStr := fmt.Sprintf("%s", err)
-	return err != nil && (
-		errStr == "duplicate column name: query_params" ||
+	return err != nil && (errStr == "duplicate column name: query_params" ||
 		errStr == "duplicate column name: auth_type" ||
 		errStr == "duplicate column name: bearer_token" ||
 		errStr == "duplicate column name: basic_auth" ||
@@ -163,6 +172,33 @@ func isColumnExistsError(err error) bool {
 		errStr == "duplicate column name: form_data" ||
 		errStr == "duplicate column name: folder_id" ||
 		errStr == "duplicate column name: position")
+}
+
+func (db *DB) initializeDefaultSettings() error {
+	// Set default timeout to 5 minutes (300 seconds) if not exists
+	_, err := db.Exec(`
+		INSERT OR IGNORE INTO settings (key, value) 
+		VALUES ('request_timeout_seconds', '300')
+	`)
+	return err
+}
+
+func (db *DB) GetSetting(key string) (string, error) {
+	var value string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
+}
+
+func (db *DB) SetSetting(key, value string) error {
+	_, err := db.Exec(`
+		INSERT INTO settings (key, value, updated_at) 
+		VALUES (?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+	`, key, value, value)
+	return err
 }
 
 func (db *DB) CreateProject(project *models.Project) error {
@@ -223,24 +259,24 @@ func (db *DB) CreateRequest(request *models.Request) error {
 	queryParamsJSON, _ := json.Marshal(request.QueryParams)
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
-	
+
 	// Get the next position for this folder (or root level)
 	var maxPosition int
 	if request.FolderID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL",
 			request.ProjectID).Scan(&maxPosition)
 	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?",
 			request.ProjectID, request.FolderID).Scan(&maxPosition)
 	}
 	request.Position = maxPosition + 1
-	
+
 	query := `INSERT INTO requests (project_id, folder_id, name, method, url, headers, body, 
 			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data, position) 
 			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
-	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method, 
+	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method,
 		request.URL, string(headersJSON), request.Body, string(queryParamsJSON),
-		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+		request.AuthType, request.BearerToken, string(basicAuthJSON),
 		request.BodyType, string(formDataJSON), request.Position).Scan(
 		&request.ID, &request.CreatedAt, &request.UpdatedAt,
 	)
@@ -263,8 +299,8 @@ func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
 		var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
 		var folderID *int
 		err := rows.Scan(&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
-			&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
-			&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+			&request.URL, &headersJSON, &request.Body, &queryParamsJSON,
+			&request.AuthType, &request.BearerToken, &basicAuthJSON,
 			&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -289,8 +325,8 @@ func (db *DB) GetRequest(id int) (*models.Request, error) {
 	var folderID *int
 	err := db.QueryRow(query, id).Scan(
 		&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
-		&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
-		&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+		&request.URL, &headersJSON, &request.Body, &queryParamsJSON,
+		&request.AuthType, &request.BearerToken, &basicAuthJSON,
 		&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt,
 	)
 	if err != nil {
@@ -309,13 +345,13 @@ func (db *DB) UpdateRequest(request *models.Request) error {
 	queryParamsJSON, _ := json.Marshal(request.QueryParams)
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
-	
+
 	query := `UPDATE requests SET name = ?, method = ?, url = ?, headers = ?, body = ?, 
 			  query_params = ?, auth_type = ?, bearer_token = ?, basic_auth = ?, 
 			  body_type = ?, form_data = ?, folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-	_, err := db.Exec(query, request.Name, request.Method, request.URL, 
-		string(headersJSON), request.Body, string(queryParamsJSON), 
-		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+	_, err := db.Exec(query, request.Name, request.Method, request.URL,
+		string(headersJSON), request.Body, string(queryParamsJSON),
+		request.AuthType, request.BearerToken, string(basicAuthJSON),
 		request.BodyType, string(formDataJSON), request.FolderID, request.Position, request.ID)
 	return err
 }
@@ -363,16 +399,16 @@ func (db *DB) DeleteRequestHistoryItem(requestID int, historyID int) error {
 	if err != nil {
 		return err
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rowsAffected == 0 {
 		return fmt.Errorf("history item not found or does not belong to this request")
 	}
-	
+
 	return nil
 }
 
@@ -381,10 +417,10 @@ func (db *DB) CreateFolder(folder *models.Folder) error {
 	// Get the next position for this parent folder (or root level)
 	var maxPosition int
 	if folder.ParentID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL",
 			folder.ProjectID).Scan(&maxPosition)
 	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?",
 			folder.ProjectID, folder.ParentID).Scan(&maxPosition)
 	}
 	folder.Position = maxPosition + 1
@@ -410,7 +446,7 @@ func (db *DB) GetFolders(projectID int) ([]models.Folder, error) {
 	for rows.Next() {
 		var folder models.Folder
 		var parentID *int
-		err := rows.Scan(&folder.ID, &folder.ProjectID, &folder.Name, &parentID, 
+		err := rows.Scan(&folder.ID, &folder.ProjectID, &folder.Name, &parentID,
 			&folder.Position, &folder.CreatedAt, &folder.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -434,7 +470,7 @@ func (db *DB) DeleteFolder(id int) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Then delete the folder
 	query := `DELETE FROM folders WHERE id = ?`
 	_, err = db.Exec(query, id)

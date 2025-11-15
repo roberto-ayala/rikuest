@@ -138,6 +138,18 @@ export class APIAdapter {
     return this.request(`/api/request/${requestID}/copy-all`);
   }
 
+  // ===== CONFIG METHODS =====
+  async getRequestTimeout() {
+    // In web mode, get from localStorage or default to 300
+    const saved = localStorage.getItem('request_timeout_seconds');
+    return saved ? parseInt(saved, 10) : 300;
+  }
+
+  async setRequestTimeout(seconds) {
+    // In web mode, save to localStorage
+    localStorage.setItem('request_timeout_seconds', seconds.toString());
+  }
+
   // ===== TELEMETRY METHODS (not available in web mode) =====
   async getTelemetryEnabled() {
     return false; // Telemetry not available in web mode

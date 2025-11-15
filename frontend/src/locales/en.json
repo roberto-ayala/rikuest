@@ -86,7 +86,9 @@
     "copyCurl": "Copy cURL",
     "copyJavaScript": "Copy JavaScript",
     "copyPython": "Copy Python",
-    "copyAll": "Copy All Formats"
+    "copyAll": "Copy All Formats",
+    "deleteRequest": "Delete Request",
+    "deleteRequestConfirm": "Are you sure you want to delete"
   },
   "folder": {
     "create": "Create New Folder",
@@ -96,7 +98,10 @@
     "noFolders": "No folders yet",
     "noFoldersDescription": "Create folders to organize your requests",
     "moveToFolder": "Move to Folder",
-    "moveToRoot": "Move to Root"
+    "moveToRoot": "Move to Root",
+    "deleteFolder": "Delete Folder",
+    "deleteFolderConfirm": "Are you sure you want to delete the folder",
+    "deleteFolderWarning": "All requests in this folder will be moved to the root level."
   },
   "settings": {
     "title": "Settings",
@@ -119,6 +124,21 @@
     "medium": "Medium",
     "large": "Large",
     "extraLarge": "Extra Large",
+    "requests": "Requests",
+    "parameters": "Parameters",
+    "requestTimeout": "Request Timeout",
+    "requestTimeoutDescription": "Configure the maximum wait time for HTTP requests. Requests exceeding this time will be automatically cancelled.",
+    "timeoutSeconds": "Seconds",
+    "timeoutRange": "Allowed range: 1 second to 3 hours (10800 seconds)",
+    "presetTimeouts": "Preset Values",
+    "timeoutSaved": "Timeout saved successfully",
+    "timeoutInvalid": "Timeout must be between 1 and 10800 seconds",
+    "timeoutSaveError": "Error saving timeout",
+    "seconds": "seconds",
+    "minutes": "minutes",
+    "hours": "hours",
+    "requestSettings": "Request Settings",
+    "requestSettingsDescription": "Configure parameters related to HTTP requests",
     "telemetry": "Telemetry",
     "telemetryDescription": "Help us improve Rikuest by sharing usage data and error reports",
     "telemetryEnabled": "Telemetry is enabled. Anonymous usage data and errors are being reported.",

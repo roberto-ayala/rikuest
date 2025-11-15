@@ -208,6 +208,16 @@ func (a *App) DeleteFolder(id int) error {
 	return a.services.Folder.DeleteFolder(id)
 }
 
+// ===== CONFIG BINDINGS =====
+
+func (a *App) GetRequestTimeout() (int, error) {
+	return a.services.Config.GetRequestTimeoutSeconds()
+}
+
+func (a *App) SetRequestTimeout(seconds int) error {
+	return a.services.Config.SetRequestTimeout(seconds)
+}
+
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()

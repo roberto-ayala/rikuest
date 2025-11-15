@@ -86,7 +86,9 @@
     "copyCurl": "Copiar cURL",
     "copyJavaScript": "Copiar JavaScript",
     "copyPython": "Copiar Python",
-    "copyAll": "Copiar Todos los Formatos"
+    "copyAll": "Copiar Todos los Formatos",
+    "deleteRequest": "Eliminar Solicitud",
+    "deleteRequestConfirm": "¿Estás seguro de que quieres eliminar"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -96,7 +98,10 @@
     "noFolders": "Aún no hay carpetas",
     "noFoldersDescription": "Crea carpetas para organizar tus solicitudes",
     "moveToFolder": "Mover a Carpeta",
-    "moveToRoot": "Mover a Raíz"
+    "moveToRoot": "Mover a Raíz",
+    "deleteFolder": "Eliminar Carpeta",
+    "deleteFolderConfirm": "¿Estás seguro de que quieres eliminar la carpeta",
+    "deleteFolderWarning": "Todas las solicitudes en esta carpeta se moverán al nivel raíz."
   },
   "settings": {
     "title": "Configuración",
@@ -119,6 +124,21 @@
     "medium": "Mediano",
     "large": "Grande",
     "extraLarge": "Extra Grande",
+    "requests": "Solicitudes",
+    "parameters": "Parámetros",
+    "requestTimeout": "Timeout de Solicitudes",
+    "requestTimeoutDescription": "Configura el tiempo máximo de espera para las solicitudes HTTP. Las solicitudes que excedan este tiempo serán canceladas automáticamente.",
+    "timeoutSeconds": "Segundos",
+    "timeoutRange": "Rango permitido: 1 segundo a 3 horas (10800 segundos)",
+    "presetTimeouts": "Valores Predefinidos",
+    "timeoutSaved": "Timeout guardado correctamente",
+    "timeoutInvalid": "El timeout debe estar entre 1 y 10800 segundos",
+    "timeoutSaveError": "Error al guardar el timeout",
+    "seconds": "segundos",
+    "minutes": "minutos",
+    "hours": "horas",
+    "requestSettings": "Configuración de Solicitudes",
+    "requestSettingsDescription": "Configura los parámetros relacionados con las solicitudes HTTP",
     "telemetry": "Telemetría",
     "telemetryDescription": "Ayúdanos a mejorar Rikuest compartiendo datos de uso e informes de errores",
     "telemetryEnabled": "La telemetría está habilitada. Se están reportando datos de uso anónimos y errores.",

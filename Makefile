@@ -100,3 +100,59 @@ wails-clean: clean
 wails-package: wails-build-prod
 	@echo "Native applications built for multiple platforms:"
 	@ls -la build/bin/ || echo "No binaries found in build/bin/"
+
+# Remove quarantine attribute from macOS app (allows execution without signing)
+# Use this before distributing to other users
+wails-remove-quarantine:
+	@if [ -d "build/bin/Rikuest-arm64.app" ]; then \
+		xattr -d com.apple.quarantine build/bin/Rikuest-arm64.app 2>/dev/null || true; \
+		echo "Removed quarantine from Rikuest-arm64.app"; \
+	fi
+	@if [ -d "build/bin/Rikuest-amd64.app" ]; then \
+		xattr -d com.apple.quarantine build/bin/Rikuest-amd64.app 2>/dev/null || true; \
+		echo "Removed quarantine from Rikuest-amd64.app"; \
+	fi
+	@if [ -d "build/bin/Rikuest.app" ]; then \
+		xattr -d com.apple.quarantine build/bin/Rikuest.app 2>/dev/null || true; \
+		echo "Removed quarantine from Rikuest.app"; \
+	fi
+
+# Sign macOS app with ad-hoc signature (allows execution without developer certificate)
+# This is a temporary solution for distribution without a paid Apple Developer account
+wails-sign-adhoc:
+	@if [ -d "build/bin/Rikuest-arm64.app" ]; then \
+		codesign --force --deep --sign - build/bin/Rikuest-arm64.app; \
+		echo "Signed Rikuest-arm64.app with ad-hoc signature"; \
+	fi
+	@if [ -d "build/bin/Rikuest-amd64.app" ]; then \
+		codesign --force --deep --sign - build/bin/Rikuest-amd64.app; \
+		echo "Signed Rikuest-amd64.app with ad-hoc signature"; \
+	fi
+	@if [ -d "build/bin/Rikuest.app" ]; then \
+		codesign --force --deep --sign - build/bin/Rikuest.app; \
+		echo "Signed Rikuest.app with ad-hoc signature"; \
+	fi
+
+# Sign macOS app with Developer ID (requires paid Apple Developer account)
+# Usage: make wails-sign-dev CERT="Developer ID Application: Your Name"
+wails-sign-dev:
+	@if [ -z "$(CERT)" ]; then \
+		echo "Error: CERT variable required. Usage: make wails-sign-dev CERT=\"Developer ID Application: Your Name\""; \
+		exit 1; \
+	fi
+	@if [ -d "build/bin/Rikuest-arm64.app" ]; then \
+		codesign --force --deep --sign "$(CERT)" build/bin/Rikuest-arm64.app; \
+		echo "Signed Rikuest-arm64.app with $(CERT)"; \
+	fi
+	@if [ -d "build/bin/Rikuest-amd64.app" ]; then \
+		codesign --force --deep --sign "$(CERT)" build/bin/Rikuest-amd64.app; \
+		echo "Signed Rikuest-amd64.app with $(CERT)"; \
+	fi
+	@if [ -d "build/bin/Rikuest.app" ]; then \
+		codesign --force --deep --sign "$(CERT)" build/bin/Rikuest.app; \
+		echo "Signed Rikuest.app with $(CERT)"; \
+	fi
+
+# Prepare macOS app for distribution (remove quarantine + ad-hoc sign)
+wails-prepare-macos: wails-remove-quarantine wails-sign-adhoc
+	@echo "macOS app prepared for distribution"

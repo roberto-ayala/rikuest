@@ -8,6 +8,7 @@ type Services struct {
 	Request   *RequestService
 	Folder    *FolderService
 	Format    *FormatService
+	Config    *ConfigService
 	Telemetry *TelemetryService
 }
 
@@ -18,6 +19,7 @@ func NewServices(db *database.DB, webhookURL string) *Services {
 		Request:   NewRequestService(db),
 		Folder:    NewFolderService(db),
 		Format:    NewFormatService(),
+		Config:    NewConfigService(db),
 		Telemetry: NewTelemetryService(db, webhookURL),
 	}
 }

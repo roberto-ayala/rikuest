@@ -111,6 +111,15 @@ export class WailsAdapter {
     return await this.app.CopyAllRequestFormats(requestID);
   }
 
+  // ===== CONFIG METHODS =====
+  async getRequestTimeout() {
+    return await this.app.GetRequestTimeout();
+  }
+
+  async setRequestTimeout(seconds) {
+    await this.app.SetRequestTimeout(seconds);
+  
+  }
   // ===== TELEMETRY METHODS =====
   async getTelemetryEnabled() {
     return await this.app.GetTelemetryEnabled();

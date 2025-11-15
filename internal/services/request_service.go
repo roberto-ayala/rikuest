@@ -14,11 +14,15 @@ import (
 )
 
 type RequestService struct {
-	db *database.DB
+	db     *database.DB
+	config *ConfigService
 }
 
 func NewRequestService(db *database.DB) *RequestService {
-	return &RequestService{db: db}
+	return &RequestService{
+		db:     db,
+		config: NewConfigService(db),
+	}
 }
 
 func (s *RequestService) GetRequests(projectID int) ([]models.Request, error) {
@@ -88,8 +92,14 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.RequestResponse, error) {
 	start := time.Now()
 
+	// Get configured timeout, default to 5 minutes
+	timeout, err := s.config.GetRequestTimeout()
+	if err != nil {
+		timeout = 300 * time.Second // Default to 5 minutes on error
+	}
+
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: timeout,
 	}
 
 	// Build the complete URL with query parameters
