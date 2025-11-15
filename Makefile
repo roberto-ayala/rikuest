@@ -50,7 +50,7 @@ wails-build: wails-deps generate-icon
 	wails build
 
 # Build native app for production (multiple platforms)
-wails-build-prod: wails-deps generate-icon
+wails-build-prod: wails-deps generate-icon frontend
 	wails build -clean -platform windows/amd64,darwin/amd64,darwin/arm64,linux/amd64
 
 # Clean build artifacts

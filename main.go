@@ -3,14 +3,17 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
+	"rikuest/internal/config"
 	"rikuest/internal/database"
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -55,19 +58,44 @@ func (a *App) OnStartup(ctx context.Context) {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
+	// Get webhook URL from centralized config
+	webhookURL := config.DiscordWebhookURL()
+
 	// Initialize services
-	a.services = services.NewServices(db)
+	a.services = services.NewServices(db, webhookURL)
+
+	// Update webhook URL from config if available (allows runtime override from DB)
+	telemetryConfig, err := a.services.Telemetry.GetConfig()
+	if err == nil && telemetryConfig.WebhookURL != "" {
+		// Use webhook from config (allows users to override via DB)
+		a.services.Telemetry = services.NewTelemetryService(db, telemetryConfig.WebhookURL)
+	}
+
+	// Setup panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			stackTrace := string(debug.Stack())
+			err := fmt.Errorf("panic: %v", r)
+			a.services.Telemetry.ReportError(err, stackTrace)
+			log.Fatalf("Panic recovered: %v\n%s", r, stackTrace)
+		}
+	}()
+
 	log.Println("Wails App initialized with native bindings")
 }
 
 // OnDomReady is called after front-end resources have been loaded
 func (a *App) OnDomReady(ctx context.Context) {
-	// This is a good place to allocate and start your main application
+	// Report session start
+	a.services.Telemetry.ReportSessionStart()
 }
 
 // OnShutdown is called when the application is about to quit
 func (a *App) OnShutdown(ctx context.Context) {
-	// Cleanup if needed
+	// Report session end with final metrics
+	if a.services != nil && a.services.Telemetry != nil {
+		a.services.Telemetry.ReportSessionEnd()
+	}
 }
 
 // GetPlatform returns the current platform
@@ -77,7 +105,7 @@ func (a *App) GetPlatform() string {
 
 // GetVersion returns the application version
 func (a *App) GetVersion() string {
-	return "1.0.0"
+	return config.Version()
 }
 
 // ===== PROJECT BINDINGS =====
@@ -93,8 +121,14 @@ func (a *App) GetProject(id int) (*models.Project, error) {
 func (a *App) CreateProject(project models.Project) (*models.Project, error) {
 	err := a.services.Project.CreateProject(&project)
 	if err != nil {
+		a.services.Telemetry.ReportError(err, string(debug.Stack()))
 		return nil, err
 	}
+	// Track usage event
+	a.services.Telemetry.ReportUsageEvent("project_created", map[string]interface{}{
+		"project_id":   project.ID,
+		"project_name": project.Name,
+	})
 	// Return the created project with ID
 	return a.services.Project.GetProject(project.ID)
 }
@@ -146,7 +180,18 @@ func (a *App) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 }
 
 func (a *App) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
-	return a.services.Request.ExecuteRequest(requestID)
+	response, err := a.services.Request.ExecuteRequest(requestID)
+	if err != nil {
+		a.services.Telemetry.ReportError(err, string(debug.Stack()))
+		return nil, err
+	}
+	// Track usage event
+	a.services.Telemetry.ReportUsageEvent("request_executed", map[string]interface{}{
+		"request_id": requestID,
+		"status":     response.Status,
+		"duration":   response.Duration,
+	})
+	return response, nil
 }
 
 func (a *App) DeleteRequestHistoryItem(requestID int, historyID int) error {
@@ -166,8 +211,15 @@ func (a *App) GetFolders(projectID int) ([]models.Folder, error) {
 func (a *App) CreateFolder(folder models.Folder) (*models.Folder, error) {
 	err := a.services.Folder.CreateFolder(&folder)
 	if err != nil {
+		a.services.Telemetry.ReportError(err, string(debug.Stack()))
 		return nil, err
 	}
+	// Track usage event
+	a.services.Telemetry.ReportUsageEvent("folder_created", map[string]interface{}{
+		"folder_id":   folder.ID,
+		"folder_name": folder.Name,
+		"project_id":  folder.ProjectID,
+	})
 	return &folder, nil
 }
 
@@ -181,6 +233,32 @@ func (a *App) UpdateFolder(folder models.Folder) (*models.Folder, error) {
 
 func (a *App) DeleteFolder(id int) error {
 	return a.services.Folder.DeleteFolder(id)
+}
+
+// ===== TELEMETRY BINDINGS =====
+
+func (a *App) ReportError(errMsg string, stackTrace string) error {
+	err := fmt.Errorf("%s", errMsg)
+	a.services.Telemetry.ReportError(err, stackTrace)
+	return nil
+}
+
+func (a *App) ReportUsageEvent(eventType string, metadata map[string]interface{}) error {
+	a.services.Telemetry.ReportUsageEvent(eventType, metadata)
+	return nil
+}
+
+func (a *App) GetTelemetryEnabled() (bool, error) {
+	return a.services.Telemetry.IsEnabled()
+}
+
+func (a *App) SetTelemetryEnabled(enabled bool) error {
+	config, err := a.services.Telemetry.GetConfig()
+	if err != nil {
+		return err
+	}
+	config.Enabled = enabled
+	return a.services.Telemetry.UpdateConfig(config)
 }
 
 // getAppDataDir returns the appropriate application data directory for the current OS

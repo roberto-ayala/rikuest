@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush, Globe, Clock } from 'lucide-react';
+import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush, Globe, Clock, Activity } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -11,6 +11,7 @@ import ResponseThemeSelector from './ResponseThemeSelector';
 import LanguageSelector from './LanguageSelector';
 import LanguageCards from './LanguageCards';
 import ParametersSettings from './ParametersSettings';
+import TelemetrySettings from './TelemetrySettings';
 
 const SettingsModal = ({ isOpen, onClose }) => {
   const { text, spacing, button, iconMd, iconButton, icon } = useUISize();
@@ -25,6 +26,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     { id: 'background', name: t('settings.background'), icon: Paintbrush, description: t('settings.background') },
     { id: 'response', name: t('settings.responseTheme'), icon: Monitor, description: t('settings.responseTheme') },
     { id: 'parameters', name: t('settings.parameters'), icon: Clock, description: t('settings.parameters') },
+    { id: 'telemetry', name: t('settings.telemetry'), icon: Activity, description: t('settings.telemetry') },
   ];
 
   if (!isOpen) return null;
@@ -107,6 +109,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
         return (
           <div className="space-y-6">
             <ParametersSettings />
+          </div>
+        );
+      case 'telemetry':
+        return (
+          <div className="space-y-6">
+            <TelemetrySettings />
           </div>
         );
       default:
