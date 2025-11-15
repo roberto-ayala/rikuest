@@ -32,9 +32,17 @@ export function GetRequestHistory(arg1:number):Promise<Array<models.RequestHisto
 
 export function GetRequests(arg1:number):Promise<Array<models.Request>>;
 
+export function GetTelemetryEnabled():Promise<boolean>;
+
 export function GetVersion():Promise<string>;
 
 export function MoveRequest(arg1:number,arg2:any,arg3:number):Promise<void>;
+
+export function ReportError(arg1:string,arg2:string):Promise<void>;
+
+export function ReportUsageEvent(arg1:string,arg2:Record<string, any>):Promise<void>;
+
+export function SetTelemetryEnabled(arg1:boolean):Promise<void>;
 
 export function UpdateFolder(arg1:models.Folder):Promise<models.Folder>;
 

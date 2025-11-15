@@ -138,7 +138,15 @@
     "minutes": "minutes",
     "hours": "hours",
     "requestSettings": "Request Settings",
-    "requestSettingsDescription": "Configure parameters related to HTTP requests"
+    "requestSettingsDescription": "Configure parameters related to HTTP requests",
+    "telemetry": "Telemetry",
+    "telemetryDescription": "Help us improve Rikuest by sharing usage data and error reports",
+    "telemetryEnabled": "Telemetry is enabled. Anonymous usage data and errors are being reported.",
+    "telemetryDisabled": "Telemetry is disabled. No data is being collected.",
+    "telemetryInfo": "When enabled, the following information may be collected:",
+    "telemetryInfo1": "Error reports with stack traces",
+    "telemetryInfo2": "Usage events (project creation, request execution, etc.)",
+    "telemetryInfo3": "Anonymous metrics (request counts, session duration)"
   },
   "methods": {
     "GET": "GET",

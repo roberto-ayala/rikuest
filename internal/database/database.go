@@ -40,7 +40,29 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("failed to initialize default settings: %w", err)
 	}
 
+	// Initialize telemetry config
+	if err := database.initializeTelemetryConfig(); err != nil {
+		return nil, fmt.Errorf("failed to initialize telemetry config: %w", err)
+	}
+
 	return database, nil
+}
+
+func (db *DB) initializeTelemetryConfig() error {
+	// Check if config exists
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM telemetry_config WHERE id = 1").Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		// Insert default config
+		_, err = db.Exec("INSERT INTO telemetry_config (id, enabled, webhook_url, installation_id) VALUES (1, 1, '', '')")
+		return err
+	}
+
+	return nil
 }
 
 func (db *DB) createTables() error {
@@ -96,6 +118,16 @@ func (db *DB) createTables() error {
 			value TEXT NOT NULL,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS telemetry_config (
+			id INTEGER PRIMARY KEY,
+			enabled INTEGER DEFAULT 1,
+			webhook_url TEXT DEFAULT '',
+			installation_id TEXT DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS telemetry_events_cache (
+			event_hash TEXT PRIMARY KEY,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, query := range queries {
@@ -132,8 +164,7 @@ func (db *DB) migrateRequestsTable() error {
 
 func isColumnExistsError(err error) bool {
 	errStr := fmt.Sprintf("%s", err)
-	return err != nil && (
-		errStr == "duplicate column name: query_params" ||
+	return err != nil && (errStr == "duplicate column name: query_params" ||
 		errStr == "duplicate column name: auth_type" ||
 		errStr == "duplicate column name: bearer_token" ||
 		errStr == "duplicate column name: basic_auth" ||
@@ -228,24 +259,24 @@ func (db *DB) CreateRequest(request *models.Request) error {
 	queryParamsJSON, _ := json.Marshal(request.QueryParams)
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
-	
+
 	// Get the next position for this folder (or root level)
 	var maxPosition int
 	if request.FolderID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL",
 			request.ProjectID).Scan(&maxPosition)
 	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?",
 			request.ProjectID, request.FolderID).Scan(&maxPosition)
 	}
 	request.Position = maxPosition + 1
-	
+
 	query := `INSERT INTO requests (project_id, folder_id, name, method, url, headers, body, 
 			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data, position) 
 			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
-	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method, 
+	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method,
 		request.URL, string(headersJSON), request.Body, string(queryParamsJSON),
-		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+		request.AuthType, request.BearerToken, string(basicAuthJSON),
 		request.BodyType, string(formDataJSON), request.Position).Scan(
 		&request.ID, &request.CreatedAt, &request.UpdatedAt,
 	)
@@ -268,8 +299,8 @@ func (db *DB) GetRequests(projectID int) ([]models.Request, error) {
 		var headersJSON, queryParamsJSON, basicAuthJSON, formDataJSON string
 		var folderID *int
 		err := rows.Scan(&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
-			&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
-			&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+			&request.URL, &headersJSON, &request.Body, &queryParamsJSON,
+			&request.AuthType, &request.BearerToken, &basicAuthJSON,
 			&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -294,8 +325,8 @@ func (db *DB) GetRequest(id int) (*models.Request, error) {
 	var folderID *int
 	err := db.QueryRow(query, id).Scan(
 		&request.ID, &request.ProjectID, &folderID, &request.Name, &request.Method,
-		&request.URL, &headersJSON, &request.Body, &queryParamsJSON, 
-		&request.AuthType, &request.BearerToken, &basicAuthJSON, 
+		&request.URL, &headersJSON, &request.Body, &queryParamsJSON,
+		&request.AuthType, &request.BearerToken, &basicAuthJSON,
 		&request.BodyType, &formDataJSON, &request.Position, &request.CreatedAt, &request.UpdatedAt,
 	)
 	if err != nil {
@@ -314,13 +345,13 @@ func (db *DB) UpdateRequest(request *models.Request) error {
 	queryParamsJSON, _ := json.Marshal(request.QueryParams)
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
-	
+
 	query := `UPDATE requests SET name = ?, method = ?, url = ?, headers = ?, body = ?, 
 			  query_params = ?, auth_type = ?, bearer_token = ?, basic_auth = ?, 
 			  body_type = ?, form_data = ?, folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-	_, err := db.Exec(query, request.Name, request.Method, request.URL, 
-		string(headersJSON), request.Body, string(queryParamsJSON), 
-		request.AuthType, request.BearerToken, string(basicAuthJSON), 
+	_, err := db.Exec(query, request.Name, request.Method, request.URL,
+		string(headersJSON), request.Body, string(queryParamsJSON),
+		request.AuthType, request.BearerToken, string(basicAuthJSON),
 		request.BodyType, string(formDataJSON), request.FolderID, request.Position, request.ID)
 	return err
 }
@@ -368,16 +399,16 @@ func (db *DB) DeleteRequestHistoryItem(requestID int, historyID int) error {
 	if err != nil {
 		return err
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	
+
 	if rowsAffected == 0 {
 		return fmt.Errorf("history item not found or does not belong to this request")
 	}
-	
+
 	return nil
 }
 
@@ -386,10 +417,10 @@ func (db *DB) CreateFolder(folder *models.Folder) error {
 	// Get the next position for this parent folder (or root level)
 	var maxPosition int
 	if folder.ParentID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL",
 			folder.ProjectID).Scan(&maxPosition)
 	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?", 
+		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?",
 			folder.ProjectID, folder.ParentID).Scan(&maxPosition)
 	}
 	folder.Position = maxPosition + 1
@@ -415,7 +446,7 @@ func (db *DB) GetFolders(projectID int) ([]models.Folder, error) {
 	for rows.Next() {
 		var folder models.Folder
 		var parentID *int
-		err := rows.Scan(&folder.ID, &folder.ProjectID, &folder.Name, &parentID, 
+		err := rows.Scan(&folder.ID, &folder.ProjectID, &folder.Name, &parentID,
 			&folder.Position, &folder.CreatedAt, &folder.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -439,7 +470,7 @@ func (db *DB) DeleteFolder(id int) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Then delete the folder
 	query := `DELETE FROM folders WHERE id = ?`
 	_, err = db.Exec(query, id)
@@ -449,5 +480,47 @@ func (db *DB) DeleteFolder(id int) error {
 func (db *DB) MoveRequest(requestID int, folderID *int, position int) error {
 	query := `UPDATE requests SET folder_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := db.Exec(query, folderID, position, requestID)
+	return err
+}
+
+// Telemetry operations
+func (db *DB) GetTelemetryConfig() (*models.TelemetryConfig, error) {
+	var config models.TelemetryConfig
+	var enabled int
+	err := db.QueryRow("SELECT enabled, webhook_url, installation_id FROM telemetry_config WHERE id = 1").Scan(
+		&enabled, &config.WebhookURL, &config.InstallationID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	config.Enabled = enabled == 1
+	return &config, nil
+}
+
+func (db *DB) UpdateTelemetryConfig(config *models.TelemetryConfig) error {
+	enabled := 0
+	if config.Enabled {
+		enabled = 1
+	}
+	query := `UPDATE telemetry_config SET enabled = ?, webhook_url = ?, installation_id = ? WHERE id = 1`
+	_, err := db.Exec(query, enabled, config.WebhookURL, config.InstallationID)
+	return err
+}
+
+func (db *DB) IsEventDuplicated(eventHash string) (bool, error) {
+	// Clean old events (older than 1 hour)
+	_, _ = db.Exec("DELETE FROM telemetry_events_cache WHERE timestamp < datetime('now', '-1 hour')")
+
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM telemetry_events_cache WHERE event_hash = ?", eventHash).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (db *DB) CacheEventHash(eventHash string) error {
+	query := `INSERT OR REPLACE INTO telemetry_events_cache (event_hash, timestamp) VALUES (?, CURRENT_TIMESTAMP)`
+	_, err := db.Exec(query, eventHash)
 	return err
 }

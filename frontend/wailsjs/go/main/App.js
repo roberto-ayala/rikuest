@@ -62,12 +62,28 @@ export function GetRequests(arg1) {
   return window['go']['main']['App']['GetRequests'](arg1);
 }
 
+export function GetTelemetryEnabled() {
+  return window['go']['main']['App']['GetTelemetryEnabled']();
+}
+
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
 }
 
 export function MoveRequest(arg1, arg2, arg3) {
   return window['go']['main']['App']['MoveRequest'](arg1, arg2, arg3);
+}
+
+export function ReportError(arg1, arg2) {
+  return window['go']['main']['App']['ReportError'](arg1, arg2);
+}
+
+export function ReportUsageEvent(arg1, arg2) {
+  return window['go']['main']['App']['ReportUsageEvent'](arg1, arg2);
+}
+
+export function SetTelemetryEnabled(arg1) {
+  return window['go']['main']['App']['SetTelemetryEnabled'](arg1);
 }
 
 export function UpdateFolder(arg1) {
