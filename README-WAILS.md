@@ -104,6 +104,10 @@ The application runs as a native desktop app with:
 | `make wails-generate` | Generate TypeScript bindings |
 | `make wails-clean` | Clean all build artifacts |
 | `make wails-package` | Build and list all platforms |
+| `make wails-prepare-macos` | Prepare macOS app for distribution |
+| `make wails-remove-quarantine` | Remove quarantine attribute |
+| `make wails-sign-adhoc` | Sign with ad-hoc signature |
+| `make wails-sign-dev CERT="..."` | Sign with Developer ID |
 
 ## Configuration
 
@@ -140,16 +144,54 @@ The application automatically finds an available port starting from 8080. If iss
 
 ### Platform-specific Issues
 
-#### macOS Code Signing
-For distribution, you'll need to sign the application:
+#### macOS Code Signing and Distribution
+For distribution, prepare the macOS app to avoid Gatekeeper issues:
+
+**Quick preparation (recommended):**
 ```bash
-codesign --sign "Developer ID Application: Your Name" build/bin/rikuest
+make wails-prepare-macos
 ```
+
+This removes quarantine and signs with ad-hoc signature.
+
+**With Developer ID certificate:**
+```bash
+make wails-sign-dev CERT="Developer ID Application: Your Name"
+```
+
+**Manual steps:**
+```bash
+# Remove quarantine
+xattr -d com.apple.quarantine build/bin/Rikuest-arm64.app
+
+# Sign with ad-hoc
+codesign --force --deep --sign - build/bin/Rikuest-arm64.app
+```
+
+For detailed troubleshooting of "Launch failed" errors, see `DISTRIBUTION.md`.
 
 #### Windows Defender
 Windows might flag the unsigned executable. For distribution, consider code signing with a valid certificate.
 
 ## Distribution
+
+### Preparing macOS Apps
+Before distributing macOS applications:
+
+```bash
+make wails-prepare-macos
+```
+
+This command:
+- Removes the quarantine attribute (prevents "Launch failed" errors)
+- Signs the app with ad-hoc signature (allows execution without Apple Developer certificate)
+
+**Important**: Always run this before sharing macOS binaries with other users.
+
+See `DISTRIBUTION.md` for:
+- Detailed troubleshooting of macOS launch errors
+- Code signing options
+- User instructions for fixing launch issues
 
 ### Creating Installers
 - **Windows**: Use tools like NSIS or Inno Setup

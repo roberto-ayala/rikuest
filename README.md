@@ -29,6 +29,8 @@ A modern, elegant REST API client built with Go and React, available as both a n
 - 🌈 **Status Indicators**: Color-coded HTTP status responses
 - 📊 **Response Metrics**: Duration, size, and status information
 - 🎯 **Syntax Highlighting**: Multiple themes for code highlighting
+- ⚠️ **Custom Modals**: Beautiful confirmation dialogs instead of native browser alerts
+- ⚙️ **Parameters Panel**: Organized settings for request configuration and future options
 
 ### Internationalization
 - 🇺🇸 **English** - Default language
@@ -105,6 +107,11 @@ npm run dev
 2. Enter a project name and optional description
 3. Click "Create" to create your project
 
+### Managing Projects
+- **Edit Project**: Click the three-dot menu (⋮) on any project card → "Edit Project"
+- **Delete Project**: Click the three-dot menu (⋮) on any project card → "Delete Project"
+  - A confirmation dialog will appear before deletion
+
 ### Organizing Requests
 - Create **folders** to organize requests within projects
 - **Drag and drop** to reorganize requests
@@ -128,13 +135,21 @@ npm run dev
 
 ### Customization
 Access **Settings** (⚙️ icon) to customize:
+
+#### Interface
 - **Language**: Choose between English, Spanish, French
-- **Theme**: Light, dark, or system
-- **UI Size**: Adjust text and component sizes
+- **UI Size**: Adjust text and component sizes (XS, SM, MD, LG, XL)
+- **Layout**: Default or compact layout
+- **Theme**: Light, dark, or system theme
 - **Primary Color**: Customize the color scheme
 - **Background**: Choose background color themes
-- **Layout**: Default or compact layout
 - **Response Theme**: Syntax highlighting theme for responses
+
+#### Parameters
+- **Request Timeout**: Configure maximum wait time for HTTP requests (1 second to 3 hours)
+  - Default: 5 minutes (300 seconds)
+  - Maximum: 3 hours (10800 seconds)
+  - Quick presets: 30s, 1m, 2m, 5m, 10m, 15m, 30m, 1h, 2h, 3h
 
 ## 🏗️ Project Structure
 
@@ -185,7 +200,19 @@ make wails-dev         # Development mode with hot-reload
 make wails-build       # Build for current platform
 make wails-build-prod  # Build for all platforms (Windows, macOS, Linux)
 make wails-clean       # Clean Wails build artifacts
+make wails-generate    # Generate TypeScript bindings
+make wails-package     # Build and list all platforms
 ```
+
+### macOS Distribution Preparation
+```bash
+make wails-prepare-macos      # Prepare app for distribution (remove quarantine + sign)
+make wails-remove-quarantine  # Remove quarantine attribute only
+make wails-sign-adhoc         # Sign with ad-hoc signature (no certificate needed)
+make wails-sign-dev CERT="..." # Sign with Developer ID (requires Apple Developer account)
+```
+
+**Note**: Before distributing macOS apps, run `make wails-prepare-macos` to ensure the app can be executed by other users. See `DISTRIBUTION.md` for detailed instructions.
 
 ### Icon Generation
 ```bash
@@ -300,10 +327,27 @@ make wails-build-prod
 ```
 Builds for Windows (amd64), macOS (amd64, arm64), and Linux (amd64).
 
+**Note**: The `wails-build-prod` command automatically builds the frontend before compiling.
+
 ### Output Locations
-- **macOS**: `build/bin/Rikuest.app`
-- **Windows**: `build/bin/rikuest.exe`
-- **Linux**: `build/bin/rikuest`
+- **macOS**: `build/bin/Rikuest-arm64.app` (Apple Silicon) or `build/bin/Rikuest-amd64.app` (Intel)
+- **Windows**: `build/bin/Rikuest-amd64.exe`
+- **Linux**: `build/bin/Rikuest-amd64`
+
+### macOS Distribution
+
+Before sharing macOS applications, prepare them to avoid Gatekeeper issues:
+
+```bash
+# Recommended: Prepare app for distribution
+make wails-prepare-macos
+```
+
+This command:
+- Removes the quarantine attribute (added when downloading from internet)
+- Signs the app with an ad-hoc signature (allows execution without Apple Developer certificate)
+
+**For detailed distribution instructions**, including troubleshooting "Launch failed" errors, see `DISTRIBUTION.md`.
 
 ## 🧪 Development
 
@@ -338,6 +382,13 @@ Builds for Windows (amd64), macOS (amd64, arm64), and Linux (amd64).
 - Ensure CGO is enabled: `export CGO_ENABLED=1`
 - Verify all dependencies: `make wails-deps`
 - Clean and rebuild: `make wails-clean && make wails-build`
+- Ensure frontend is built: `make frontend` before `make wails-build-prod`
+
+### macOS "Launch failed" Error
+If users encounter "Launch failed" error when opening the app:
+1. **Before distributing**: Run `make wails-prepare-macos` to prepare the app
+2. **For users**: See `DISTRIBUTION.md` for detailed solutions
+3. **Quick fix**: Right-click app → "Open" → Click "Open" in the dialog
 
 ### Language Not Changing
 - Check browser console for errors
@@ -348,6 +399,7 @@ Builds for Windows (amd64), macOS (amd64, arm64), and Linux (amd64).
 
 - **`README-WAILS.md`**: Detailed Wails-specific documentation
 - **`README_ICONS.md`**: Icon generation guide
+- **`DISTRIBUTION.md`**: macOS distribution guide and troubleshooting
 - **`CLAUDE.md`**: Development guidelines for AI assistants
 
 ## 📄 License
