@@ -26,7 +26,7 @@ function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBein
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center ${spacing(2)} rounded hover:bg-muted cursor-pointer transition-all ${
+      className={`group flex items-center ${spacing(1)} rounded hover:bg-muted cursor-pointer transition-all ${
         isSelected ? 'bg-muted' : ''
       } ${isDragging || isBeingDragged ? 'opacity-50 scale-105 shadow-lg bg-primary/5 border border-primary/20' : ''}`}
       onClick={() => onSelect(request)}

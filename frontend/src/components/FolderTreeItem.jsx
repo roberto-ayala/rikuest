@@ -32,7 +32,7 @@ function FolderTreeItem({ folder, isExpanded, onToggle, onShowMenu }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center ${spacing(2)} rounded hover:bg-muted cursor-pointer transition-colors ${
+      className={`group flex items-center ${spacing(1)} rounded hover:bg-muted cursor-pointer transition-colors ${
         isDragging ? 'opacity-50' : ''
       }`}
       {...attributes}

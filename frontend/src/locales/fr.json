@@ -182,5 +182,32 @@
     "notFound": "Non Trouvé",
     "serverError": "Erreur du Serveur",
     "unknownError": "Erreur Inconnue"
+  },
+  "openapi": {
+    "title": "Importer depuis OpenAPI",
+    "selectFile": "Sélectionnez un fichier OpenAPI/Swagger (JSON ou YAML) ou glissez-le ici",
+    "dropFile": "Déposez le fichier ici",
+    "chooseFile": "Choisir un Fichier",
+    "parsing": "Analyse en cours...",
+    "specification": "Spécification OpenAPI",
+    "version": "Version",
+    "endpoints": "Points de terminaison",
+    "createFoldersFromTags": "Créer des dossiers à partir des étiquettes",
+    "selectEndpoints": "Sélectionner les points de terminaison à importer",
+    "selected": "sélectionnés",
+    "deselectAll": "Tout Désélectionner",
+    "selectAll": "Tout Sélectionner",
+    "import": "Importer",
+    "importing": "Importation en cours...",
+    "importButton": "Importer {count} Requête",
+    "importButtonPlural": "Importer {count} Requêtes",
+    "importOpenAPI": "Importer OpenAPI",
+    "errors": {
+      "parseFailed": "Échec de l'analyse du fichier OpenAPI",
+      "importFailed": "Échec de l'importation des requêtes",
+      "importPartialFailed": "Échec de l'importation de toutes les requêtes. {count} erreur(s) survenue(s).",
+      "noEndpoints": "Aucun point de terminaison trouvé dans la spécification OpenAPI",
+      "invalidFormat": "Format de fichier invalide. JSON ou YAML attendu."
+    }
   }
 }

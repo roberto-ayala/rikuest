@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -14,6 +14,7 @@ import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
+import OpenAPIImportModal from '../components/OpenAPIImportModal';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -34,6 +35,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
+  const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
   const [newRequest, setNewRequest] = useState({
     name: '',
     method: 'GET',
@@ -334,6 +336,18 @@ function Project({ layout, onNewProject, onSettings }) {
                 {currentProject?.description || 'No description'}
               </p>
             </div>
+            <Button
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOpenAPIModal(true);
+              }}
+              className={iconButton}
+              title={t('openapi.title')}
+            >
+              <Upload className={icon} />
+            </Button>
           </div>
           
         </div>
@@ -503,6 +517,13 @@ function Project({ layout, onNewProject, onSettings }) {
         message={`${t('request.deleteRequestConfirm')} "${selectedRequest?.name}"?`}
         confirmText={t('common.delete')}
         variant="danger"
+      />
+
+      {/* OpenAPI Import Modal */}
+      <OpenAPIImportModal
+        isOpen={showOpenAPIModal}
+        onClose={() => setShowOpenAPIModal(false)}
+        projectId={projectId}
       />
     </div>
   );
