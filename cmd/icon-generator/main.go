@@ -18,11 +18,6 @@ import (
 	"github.com/srwiley/rasterx"
 )
 
-const (
-	padding     = 3
-	viewBoxSize = 24 + (padding * 2) // 30x30
-)
-
 // SVG content for the lightning bolt icon
 const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
     <!-- Fondo negro -->
