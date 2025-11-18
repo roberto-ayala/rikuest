@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Send, Plus, Trash2, Loader2, BarChart3, Clock, History, X, Timer, HardDrive, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -7,97 +7,198 @@ import JsonEditor from './JsonEditor';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useUIStore } from '../stores/uiStore';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { 
-  tomorrow, 
-  twilight, 
-  prism, 
-  dark,
-  funky,
-  okaidia,
-  coy,
-  solarizedlight,
-  atomDark,
-  base16AteliersulphurpoolLight,
-  cb,
-  duotoneDark,
-  duotoneLight,
-  ghcolors,
-  hopscotch,
-  pojoaque,
-  vs,
-  xonokai,
-  coldarkCold,
-  coldarkDark,
-  a11yDark,
-  dracula,
-  materialDark,
-  materialLight,
-  materialOceanic,
-  vscDarkPlus,
-  synthwave84,
-  nightOwl,
-  nord,
-  lucario,
-  oneLight,
-  oneDark
-} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import hljs from 'highlight.js';
+// import 'highlight.js/styles/github.css';
+// import 'highlight.js/styles/github-dark.css';
 import { adapterFactory } from '../adapters/adapterFactory.js';
+
+// Optimized code highlighting component using highlight.js
+const HighlightedCode = React.memo(({ content, language, formatJson, textSize, config }) => {
+  const codeRef = useRef(null);
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  // Subscribe to store changes to get background color settings
+  const { theme, backgroundColorLight, backgroundColorDark, getBackgroundColors } = useUIStore();
+  
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDark(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, []);
+  
+  // Helper to convert HSL to hex
+  const hslToHex = useCallback((h, s, l) => {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
+    }
+    
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }, []);
+  
+  // Get app background color from configuration - directly from settings
+  const backgroundColor = useMemo(() => {
+    if (typeof window === 'undefined') return isDark ? '#020617' : '#ffffff';
+    
+    // Use isDark directly (it reflects the actual DOM state)
+    const effectiveTheme = isDark ? 'dark' : 'light';
+    
+    // Get background colors and find current selection from settings
+    const backgroundColors = getBackgroundColors();
+    const currentBgId = isDark ? backgroundColorDark : backgroundColorLight;
+    const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
+    
+    // Return the exact color from settings configuration
+    if (currentBgConfig && currentBgConfig.preview) {
+      return currentBgConfig.preview;
+    }
+    
+    // Fallback to CSS variable if no background selection
+    const root = getComputedStyle(document.documentElement);
+    let bgColor = root.getPropertyValue('--background').trim();
+    
+    if (bgColor) {
+      // Handle HSL format: "220 14% 96%" or "hsl(220, 14%, 96%)"
+      if (bgColor.includes(' ')) {
+        // Remove any hsl() wrapper if present
+        bgColor = bgColor.replace(/^hsl\(|\)$/g, '');
+        const values = bgColor.split(/[\s,]+/).map(v => v.replace('%', ''));
+        
+        if (values.length >= 3) {
+          const h = parseFloat(values[0]);
+          const s = parseFloat(values[1]);
+          const l = parseFloat(values[2]);
+          return hslToHex(h, s, l);
+        }
+      }
+      
+      // Handle hex colors directly
+      if (bgColor.startsWith('#')) {
+        return bgColor;
+      }
+      
+      // Handle rgb format
+      if (bgColor.startsWith('rgb')) {
+        const match = bgColor.match(/\d+/g);
+        if (match && match.length >= 3) {
+          const r = parseInt(match[0]);
+          const g = parseInt(match[1]);
+          const b = parseInt(match[2]);
+          return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+      }
+    }
+    
+    // Fallback colors - use default dark background
+    return isDark ? '#020617' : '#ffffff';
+  }, [isDark, backgroundColorLight, backgroundColorDark, getBackgroundColors, hslToHex]);
+
+  
+  // Memoize the highlighted HTML
+  const highlightedContent = useMemo(() => {
+    if (!content) return '';
+    
+    const processedContent = language === 'json' ? formatJson(content) : content;
+    
+    if (language === 'text' || !language) {
+      return processedContent;
+    }
+    
+    try {
+      // Use highlight.js to highlight the code
+      // Map language names to highlight.js supported languages
+      let hljsLanguage = language;
+      if (language === 'javascript') hljsLanguage = 'js';
+      if (language === 'http') hljsLanguage = 'http';
+      
+      const highlighted = hljs.highlight(processedContent, { 
+        language: hljsLanguage,
+        ignoreIllegals: true
+      });
+      return highlighted.value;
+    } catch (error) {
+      // If highlighting fails, return plain text
+      return processedContent;
+    }
+  }, [content, language, formatJson]);
+  
+  // Apply highlighting when content changes
+  useEffect(() => {
+    if (codeRef.current && language !== 'text' && language && highlightedContent) {
+      codeRef.current.innerHTML = highlightedContent;
+    }
+  }, [highlightedContent, language]);
+  
+  const fontSize = config.text.sm.includes('text-xs') ? '0.75rem' : 
+                   config.text.sm.includes('text-sm') ? '0.875rem' :
+                   config.text.sm.includes('text-base') ? '1rem' : '1.125rem';
+  
+  if (language === 'text' || !language) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <pre 
+          className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono whitespace-pre-wrap break-words`}
+          style={{ fontSize, backgroundColor }}
+        >
+          {content}
+        </pre>
+      </div>
+    );
+  }
+  
+  return (
+    <div className={`h-full overflow-y-auto hljs-container ${isDark ? 'hljs-theme-dark' : 'hljs-theme-light'}`}>
+      <pre 
+        className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono`}
+        style={{ 
+          fontSize, 
+          backgroundColor,
+          ['--hljs-bg']: backgroundColor
+        }}
+      >
+        <code 
+          ref={codeRef}
+          className={`hljs language-${language}`}
+        />
+      </pre>
+    </div>
+  );
+});
+
+HighlightedCode.displayName = 'HighlightedCode';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
-  const { responseTheme, responseThemeLight, responseThemeDark, defaultResponseThemeLight, defaultResponseThemeDark } = useUIStore();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   
-  // Theme mapping object
-  const themeMap = {
-    tomorrow,
-    twilight,
-    prism,
-    dark,
-    funky,
-    okaidia,
-    coy,
-    solarizedlight,
-    atomDark,
-    base16AteliersulphurpoolLight,
-    cb,
-    duotoneDark,
-    duotoneLight,
-    ghcolors,
-    hopscotch,
-    pojoaque,
-    vs,
-    xonokai,
-    coldarkCold,
-    coldarkDark,
-    a11yDark,
-    dracula,
-    materialDark,
-    materialLight,
-    materialOceanic,
-    vscDarkPlus,
-    synthwave84,
-    nightOwl,
-    nord,
-    lucario,
-    oneLight,
-    oneDark
-  };
-  
-  // Function to get the actual theme object
-  const getResponseTheme = () => {
-    if (responseTheme === 'auto') {
-      const defaultThemeId = isDark ? defaultResponseThemeDark : defaultResponseThemeLight;
-      return themeMap[defaultThemeId] || (isDark ? oneDark : oneLight);
-    } else if (responseTheme === 'custom') {
-      const themeId = isDark ? responseThemeDark : responseThemeLight;
-      return themeMap[themeId] || (isDark ? oneDark : oneLight);
-    }
-    // This shouldn't happen with current implementation, but fallback
-    return themeMap[responseTheme] || (isDark ? oneDark : oneLight);
-  };
 
   
   // Listen for theme changes
@@ -475,7 +576,6 @@ function RequestBuilder() {
     return 'text';
   };
 
-  const isJsonResponse = currentResponse && getResponseLanguage() === 'json';
 
   // Query parameters
   const addQueryParam = () => {
@@ -946,12 +1046,12 @@ function RequestBuilder() {
             {/* Body Tab */}
             {activeRequestTab === 'body' && (
               <div className="h-full flex flex-col">
-                <div className={`flex-shrink-0 ${spacing(4)}`}>
+                <div className={`flex-shrink-0 ${spacing(3)}`}>
                   <div className="flex space-x-2">
                     {bodyTypes.map((type) => (
                       <button
                         key={type.id}
-                        className={`${spacing(2)} ${text('sm')} rounded transition-colors ${
+                        className={`${spacing(1)} ${text('sm')} rounded transition-colors ${
                           requestData.body_type === type.id 
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -1139,10 +1239,10 @@ function RequestBuilder() {
           ) : (
             <div className="flex flex-col min-h-0 h-full">
               {/* Response Header */}
-              <div className="border-b border-border p-4 flex-shrink-0">
+              <div className="border-b border-border p-2 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`px-3 py-1 rounded text-sm font-medium ${getStatusColor(currentResponse.status)}`}>
+                    <div className={`px-2 py-1 rounded ${text('sm')} font-bold ${getStatusColor(currentResponse.status)}`}>
                       {currentResponse.status_text}
                     </div>
                     <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>
@@ -1185,41 +1285,13 @@ function RequestBuilder() {
               {/* Response Content */}
               <div className="flex-1 min-h-0 overflow-hidden">
                 {activeResponseTab === 'body' && (
-                  <div className="h-full overflow-y-auto">
-                    {(() => {
-                      const language = getResponseLanguage();
-                      const content = language === 'json' ? formatJson(currentResponse.body) : currentResponse.body;
-                      
-                      if (language === 'text') {
-                        return (
-                          <pre className={`${text('sm')} bg-muted/30 p-4 rounded-lg overflow-x-auto font-mono whitespace-pre-wrap break-words`}>
-                            {content}
-                          </pre>
-                        );
-                      }
-                      
-                      return (
-                        <SyntaxHighlighter
-                          language={language}
-                          style={getResponseTheme()}
-                          customStyle={{
-                            margin: 0,
-                            borderRadius: '0.5rem',
-                            fontSize: config.text.sm.includes('text-xs') ? '0.75rem' : 
-                                     config.text.sm.includes('text-sm') ? '0.875rem' :
-                                     config.text.sm.includes('text-base') ? '1rem' : '1.125rem',
-                            backgroundColor: 'hsl(var(--background))',
-                            padding: '1rem'
-                          }}
-                          showLineNumbers={content.split('\n').length > 10}
-                          wrapLines={true}
-                          wrapLongLines={true}
-                        >
-                          {content}
-                        </SyntaxHighlighter>
-                      );
-                    })()}
-                  </div>
+                  <HighlightedCode
+                    content={currentResponse.body}
+                    language={getResponseLanguage()}
+                    formatJson={formatJson}
+                    textSize={text('sm')}
+                    config={config}
+                  />
                 )}
 
                 {activeResponseTab === 'headers' && (
@@ -1238,24 +1310,13 @@ function RequestBuilder() {
                 {activeResponseTab === 'raw' && (
                   <div className="h-full overflow-y-auto p-4">
                     {currentResponse.raw_request ? (
-                      <SyntaxHighlighter
+                      <HighlightedCode
+                        content={currentResponse.raw_request}
                         language="http"
-                        style={getResponseTheme()}
-                        customStyle={{
-                          margin: 0,
-                          borderRadius: '0.5rem',
-                          fontSize: config.text.sm.includes('text-xs') ? '0.75rem' : 
-                                   config.text.sm.includes('text-sm') ? '0.875rem' :
-                                   config.text.sm.includes('text-base') ? '1rem' : '1.125rem',
-                          backgroundColor: 'hsl(var(--background))',
-                          padding: '1rem'
-                        }}
-                        showLineNumbers={false}
-                        wrapLines={true}
-                        wrapLongLines={true}
-                      >
-                        {currentResponse.raw_request}
-                      </SyntaxHighlighter>
+                        formatJson={formatJson}
+                        textSize={text('sm')}
+                        config={config}
+                      />
                     ) : (
                       <div className="text-center py-8">
                         <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">

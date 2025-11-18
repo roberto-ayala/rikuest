@@ -61,7 +61,7 @@ make deps
 # 3. Generate icons (optional, but recommended)
 make generate-icon
 
-# 4. Build native desktop app
+# 4. Build native desktop app (frontend build runs automatically)
 make wails-build
 
 # 5. Run the application
@@ -176,8 +176,8 @@ rikuest/
 ├── build/               # Build artifacts and icons
 ├── main.go              # Wails entry point (native desktop)
 ├── wails.json           # Wails configuration
-├── generate_icon.py     # Icon generation script
-├── generate_all_icons.py # Multi-platform icon generator
+├── cmd/
+│   └── icon-generator/  # Go tool for icon generation
 └── Makefile            # Build automation
 ```
 
@@ -185,9 +185,9 @@ rikuest/
 
 ### Web Mode
 ```bash
-make deps              # Install all dependencies
-make dev               # Start development server
-make build             # Build web application
+make deps              # Install Go + frontend dependencies
+make dev               # Start backend API for web mode
+make build             # Build full web bundle (runs frontend build)
 make web-build         # Alias for build
 make clean             # Clean build artifacts
 ```
@@ -195,13 +195,13 @@ make clean             # Clean build artifacts
 ### Native Desktop App (Wails)
 ```bash
 make install-wails     # Install Wails CLI (first time only)
-make wails-deps        # Install Wails dependencies
-make wails-dev         # Development mode with hot-reload
-make wails-build       # Build for current platform
-make wails-build-prod  # Build for all platforms (Windows, macOS, Linux)
+make wails-deps        # Install Wails prerequisites
+make wails-dev         # Hot-reload desktop app (builds frontend first)
+make wails-build       # Build for current platform (frontend included)
+make wails-build-prod  # Build all platforms + frontend
 make wails-clean       # Clean Wails build artifacts
 make wails-generate    # Generate TypeScript bindings
-make wails-package     # Build and list all platforms
+make wails-package     # Package macOS/Windows/Linux binaries (runs wails-build-prod)
 ```
 
 ### macOS Distribution Preparation
@@ -216,8 +216,8 @@ make wails-sign-dev CERT="..." # Sign with Developer ID (requires Apple Develope
 
 ### Icon Generation
 ```bash
-make generate-icon     # Generate appicon.png (main icon)
-make generate-all-icons # Generate icons for all platforms
+make generate-icon      # Render appicon.png (1024x1024) from logo.svg
+make generate-all-icons # Produce .icns, .ico & Linux PNGs with padding
 ```
 
 ## 📁 Data Storage
@@ -312,7 +312,7 @@ The backend provides REST API endpoints:
 - **Windows**: `build/windows/info.json` and `wails.exe.manifest`
 - **Linux**: Default GTK application settings
 
-## 📦 Distribution
+## 📦 Distribution & Release Workflow
 
 ### Building for Production
 
@@ -325,9 +325,26 @@ make wails-build
 ```bash
 make wails-build-prod
 ```
-Builds for Windows (amd64), macOS (amd64, arm64), and Linux (amd64).
+Both commands automatically run the frontend build so that `frontend/dist/index.html` exists before Wails compiles the desktop binaries.
 
-**Note**: The `wails-build-prod` command automatically builds the frontend before compiling.
+### Packaging a Release
+Use this checklist whenever you need to publish a new desktop build:
+
+```bash
+# 1) Update metadata & version only once in wails.json
+#    Go services read config.Version() so everything stays in sync.
+vim wails.json
+
+# 2) Refresh icons if logo/padding changed
+make generate-icon
+make generate-all-icons   # optional but keeps every platform in sync
+
+# 3) Build + package every platform (includes frontend build)
+make wails-deps           # first time only
+make wails-package
+```
+
+`make wails-package` depends on `wails-build-prod`, so the resulting artifacts in `build/bin/` are already named `Rikuest` for macOS (Intel/ARM), Windows, and Linux.
 
 ### Output Locations
 - **macOS**: `build/bin/Rikuest-arm64.app` (Apple Silicon) or `build/bin/Rikuest-amd64.app` (Intel)
@@ -348,6 +365,10 @@ This command:
 - Signs the app with an ad-hoc signature (allows execution without Apple Developer certificate)
 
 **For detailed distribution instructions**, including troubleshooting "Launch failed" errors, see `DISTRIBUTION.md`.
+
+### Versioning Tips
+- Change the application version in a single place: `wails.json` (`info.productVersion` & `fileVersion`). The Go runtime, telemetry, and UI all call `config.Version()`, which reads this file, keeping every layer synchronized.
+- After bumping the version, rebuild with `make wails-package` to ensure binary metadata, About dialogs, and telemetry payloads reflect the new value.
 
 ## 🧪 Development
 

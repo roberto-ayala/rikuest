@@ -2,73 +2,54 @@
 
 ## 📋 Descripción
 
-Este proyecto incluye scripts para generar íconos de la aplicación para todas las plataformas (macOS, Windows, Linux) desde el archivo SVG original.
+Este proyecto incluye una herramienta en Go para generar íconos de la aplicación para todas las plataformas (macOS, Windows, Linux) desde el archivo SVG original.
 
 ## 🎨 Características
 
 - **Fondo negro** con símbolo blanco
 - **Padding proporcional** para mejor visualización
-- **Renderizado preciso** desde SVG usando cairosvg
+- **Renderizado preciso** desde SVG usando bibliotecas Go
 - **Soporte multiplataforma** completo
+- **Sin dependencias externas** (solo Go)
 
-## 📁 Scripts Disponibles
+## 📁 Herramienta Disponible
 
-### 1. `generate_icon.py`
-Genera solo el ícono principal `appicon.png` (1024x1024)
-```bash
-make generate-icon
-```
-
-### 2. `generate_all_icons.py`
-Genera íconos para todas las plataformas:
+### `cmd/icon-generator`
+Herramienta en Go que genera íconos para todas las plataformas:
 - **macOS**: `.icns` con múltiples tamaños
 - **Windows**: `.ico` con múltiples tamaños + PNGs individuales
 - **Linux**: PNGs en diferentes tamaños estándar
-
-```bash
-make generate-all-icons
-```
 
 ## 🚀 Uso
 
 ### Generar Ícono Principal
 ```bash
-# Opción 1: Usar Makefile
+# Opción 1: Usar Makefile (recomendado)
 make generate-icon
 
 # Opción 2: Ejecutar directamente
-source .venv/bin/activate
-python3 generate_icon.py
+go run ./cmd/icon-generator -icon-only
 ```
 
 ### Generar Todos los Íconos
 ```bash
-# Opción 1: Usar Makefile
+# Opción 1: Usar Makefile (recomendado)
 make generate-all-icons
 
 # Opción 2: Ejecutar directamente
-source .venv/bin/activate
-python3 generate_all_icons.py
+go run ./cmd/icon-generator
 ```
 
 ## 📦 Requisitos
 
 ### Requeridos
-- Python 3.x
-- Pillow (PIL)
-
-### Opcionales (Recomendado)
-- **cairosvg**: Para renderizado SVG perfecto
-  ```bash
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install cairosvg
-  ```
+- **Go 1.22+**: Para compilar y ejecutar la herramienta
+- Las dependencias se instalan automáticamente con `go mod download`
 
 ### Herramientas del Sistema
 - **iconutil** (macOS): Para generar archivos `.icns`
   - Ya incluido en macOS
-  - El script lo usa automáticamente
+  - La herramienta lo usa automáticamente
 
 ## 📂 Estructura de Archivos Generados
 
@@ -113,8 +94,8 @@ make wails-build-prod
 ## 📝 Notas Técnicas
 
 ### Renderizado SVG
-- **Con cairosvg**: Renderizado perfecto del path SVG original
-- **Sin cairosvg**: Renderizado manual con calidad aceptable
+- **Renderizado nativo**: Usa bibliotecas Go (`oksvg` y `rasterx`) para renderizado preciso del SVG
+- **Calidad**: Renderizado de alta calidad sin dependencias externas
 
 ### Padding
 - Padding configurado: **3 unidades** en cada lado
@@ -124,16 +105,9 @@ make wails-build-prod
 ### Colores
 - **Fondo**: Negro (#000000)
 - **Símbolo**: Blanco (#FFFFFF)
-- **Renderizado**: Desde SVG original (`frontend/public/logo.svg`)
+- **Renderizado**: Desde SVG embebido en el código
 
 ## 🐛 Solución de Problemas
-
-### Error: cairosvg no encontrado
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install cairosvg
-```
 
 ### Error: iconutil no encontrado
 - Solo disponible en macOS
@@ -141,23 +115,28 @@ pip install cairosvg
 - Copia el directorio `.iconset` a macOS para generar el `.icns`
 
 ### .ico con un solo tamaño
-- PIL tiene limitaciones con múltiples tamaños
-- Los PNGs individuales están disponibles
-- Puedes usar herramientas externas como ImageMagick para combinar:
+- La biblioteca ICO de Go guarda el tamaño más grande en el archivo .ico
+- Los PNGs individuales están disponibles para todos los tamaños
+- Puedes usar herramientas externas como ImageMagick para combinar múltiples tamaños:
   ```bash
   convert icon_*.png rikuest.ico
   ```
 
+### Error de compilación
+Si encuentras errores al compilar, asegúrate de tener las dependencias actualizadas:
+```bash
+go mod download
+go mod tidy
+```
+
 ## ✅ Comandos Completos
 
 ```bash
-# Configurar entorno (solo primera vez)
-python3 -m venv .venv
-source .venv/bin/activate
-pip install cairosvg Pillow
-
 # Generar todos los íconos
 make generate-all-icons
+
+# Generar solo el ícono principal
+make generate-icon
 
 # Compilar aplicación con íconos
 make wails-build

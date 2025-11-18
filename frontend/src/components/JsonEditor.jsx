@@ -17,10 +17,10 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const getFontSize = () => {
     // Extract font size from text.sm configuration
     const textSm = config.text.sm;
-    if (textSm.includes('text-xs')) return 12;
-    if (textSm.includes('text-sm')) return 14;
-    if (textSm.includes('text-base')) return 16;
-    if (textSm.includes('text-lg')) return 18;
+    if (textSm.includes('text-xs')) return 10;
+    if (textSm.includes('text-sm')) return 12;
+    if (textSm.includes('text-base')) return 14;
+    if (textSm.includes('text-lg')) return 16;
     return 14; // default fallback
   };
 
@@ -41,7 +41,10 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
 
   // Get app background color from CSS variables with fallback
   const getAppBackgroundColor = useCallback(() => {
-    if (typeof window === 'undefined') return isDark ? '#0f0f23' : '#ffffff';
+    if (typeof window === 'undefined') return isDark ? '#020617' : '#ffffff';
+    
+    // Use isDark directly (it reflects the actual DOM state)
+    const effectiveTheme = isDark ? 'dark' : 'light';
     
     // First try to get the current background color selection
     const { 
@@ -51,18 +54,12 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
       getBackgroundColors 
     } = useUIStore.getState();
     
-    // Determine effective theme
-    let effectiveTheme = theme;
-    if (theme === 'system') {
-      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    
     // Get background colors and find current selection
     const backgroundColors = getBackgroundColors();
-    const currentBgId = effectiveTheme === 'dark' ? backgroundColorDark : backgroundColorLight;
+    const currentBgId = isDark ? backgroundColorDark : backgroundColorLight;
     const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
     
-    if (currentBgConfig) {
+    if (currentBgConfig && currentBgConfig.preview) {
       return currentBgConfig.preview;
     }
     
@@ -102,8 +99,8 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
       }
     }
     
-    // Fallback colors
-    return isDark ? '#0f0f23' : '#ffffff';
+    // Fallback colors - use default dark background
+    return isDark ? '#020617' : '#ffffff';
   }, [isDark]);
 
   // Helper to convert HSL to hex
@@ -142,17 +139,29 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     const baseTheme = isDark ? 'vs-dark' : 'vs';
     const backgroundColor = getAppBackgroundColor();
     
-    monaco.editor.defineTheme(themeName, {
-      base: baseTheme,
-      inherit: true,
-      rules: [], // Keep all default syntax highlighting
-      colors: {
-        'editor.background': backgroundColor,
-      }
-    });
+    // Define theme if it doesn't exist or update it
+    try {
+      monaco.editor.defineTheme(themeName, {
+        base: baseTheme,
+        inherit: true,
+        rules: [], // Keep all default syntax highlighting
+        colors: {
+          'editor.background': backgroundColor,
+        }
+      });
+    } catch (error) {
+      // Theme might already be defined, that's okay
+      console.debug('Theme definition:', error);
+    }
     
     return themeName;
   }, [isDark, getAppBackgroundColor]);
+
+  // Setup theme before editor mounts
+  const handleEditorWillMount = useCallback((monaco) => {
+    // Define theme before mount to prevent white background flash
+    setupAppTheme(monaco);
+  }, [setupAppTheme]);
 
   // Listen for theme changes
   useEffect(() => {
@@ -264,6 +273,7 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
         theme={getMonacoTheme()}
         value={value}
         onChange={handleEditorChange}
+        beforeMount={handleEditorWillMount}
         onMount={handleEditorDidMount}
         options={{
           selectOnLineNumbers: true,

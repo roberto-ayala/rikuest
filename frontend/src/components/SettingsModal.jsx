@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Palette, Type, Monitor, Settings, Layout, Paintbrush, Globe, Clock, Activity } from 'lucide-react';
+import { X, Palette, Type, Settings, Layout, Paintbrush, Globe, Clock, Activity } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -7,7 +7,6 @@ import ColorSelector from './ColorSelector';
 import UISizeSelector from './UISizeSelector';
 import LayoutSelector from './LayoutSelector';
 import BackgroundColorSelector from './BackgroundColorSelector';
-import ResponseThemeSelector from './ResponseThemeSelector';
 import LanguageSelector from './LanguageSelector';
 import LanguageCards from './LanguageCards';
 import ParametersSettings from './ParametersSettings';
@@ -24,7 +23,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
     { id: 'layout', name: t('settings.layout'), icon: Layout, description: t('settings.layout') },
     { id: 'colors', name: t('settings.appearance'), icon: Palette, description: t('settings.primaryColor') },
     { id: 'background', name: t('settings.background'), icon: Paintbrush, description: t('settings.background') },
-    { id: 'response', name: t('settings.responseTheme'), icon: Monitor, description: t('settings.responseTheme') },
     { id: 'parameters', name: t('settings.parameters'), icon: Clock, description: t('settings.parameters') },
     { id: 'telemetry', name: t('settings.telemetry'), icon: Activity, description: t('settings.telemetry') },
   ];
@@ -90,18 +88,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 Select the primary color that will be used for buttons, links, highlights, and other interactive elements.
               </p>
               <ColorSelector modal={true} />
-            </div>
-          </div>
-        );
-      case 'response':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>Response Syntax Highlighting</h3>
-              <p className={`${text('sm')} text-muted-foreground mb-6`}>
-                Choose how API responses are displayed. You can follow the app theme automatically or select specific themes for light and dark modes.
-              </p>
-              <ResponseThemeSelector modal={true} />
             </div>
           </div>
         );
