@@ -13,13 +13,13 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/Kodeworks/golang-image-ico"
+	ico "github.com/Kodeworks/golang-image-ico"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 )
 
 const (
-	padding = 3
+	padding     = 3
 	viewBoxSize = 24 + (padding * 2) // 30x30
 )
 
@@ -48,7 +48,7 @@ func generatePNGFromSVG(outputPath string, size int) error {
 
 	// Create image
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
-	
+
 	// Fill with black background
 	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{0, 0, 0, 255}}, image.Point{}, draw.Src)
 
@@ -73,7 +73,7 @@ func generatePNGFromSVG(outputPath string, size int) error {
 
 func generateAppIcon(outputPath string, size int) error {
 	fmt.Printf("\n📱 Generando appicon.png (principal)...\n")
-	
+
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 		return fmt.Errorf("error creating directory: %w", err)
 	}
@@ -344,4 +344,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
