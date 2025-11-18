@@ -107,6 +107,11 @@ make wails-build-prod
 - **Símbolo**: Blanco (#FFFFFF)
 - **Renderizado**: Desde SVG embebido en el código
 
+### Grosor del Trazo (Stroke Width)
+- **Valor actual**: 50 (configurado para un aspecto más grueso y visible)
+- **Ubicación**: Definido en `stroke-width` del SVG embebido en `cmd/icon-generator/main.go`
+- **Personalización**: Puedes ajustar el valor de `stroke-width` en el SVG para cambiar el grosor de la línea del rayo
+
 ## 🐛 Solución de Problemas
 
 ### Error: iconutil no encontrado

@@ -216,9 +216,15 @@ make wails-sign-dev CERT="..." # Sign with Developer ID (requires Apple Develope
 
 ### Icon Generation
 ```bash
-make generate-icon      # Render appicon.png (1024x1024) from logo.svg
-make generate-all-icons # Produce .icns, .ico & Linux PNGs with padding
+make generate-icon      # Generate appicon.png (1024x1024) from embedded SVG
+make generate-all-icons # Generate .icns, .ico & Linux PNGs for all platforms
 ```
+
+The icon generator is a Go tool located in `cmd/icon-generator/` that renders the lightning bolt icon from an embedded SVG. The icon features:
+- **Black background** with white lightning bolt symbol
+- **Configurable stroke width** (currently set to 50 for a bold appearance)
+- **Proportional padding** for better visual balance
+- **No external dependencies** (pure Go implementation)
 
 ## 📁 Data Storage
 
@@ -250,22 +256,32 @@ The database is automatically created on first run if it doesn't exist.
 
 ## 🎨 Icon Generation
 
-The project includes scripts to generate icons from the SVG logo:
+The project includes a Go tool to generate icons from an embedded SVG:
 
 ### Generate Main Icon
 ```bash
 make generate-icon
 ```
-Generates `build/appicon.png` (1024x1024) with black background and white symbol.
+Generates `build/appicon.png` (1024x1024) with black background and white lightning bolt symbol.
 
 ### Generate All Platform Icons
 ```bash
 make generate-all-icons
 ```
 Generates icons for:
-- **macOS**: `.icns` file with multiple sizes
+- **macOS**: `.icns` file with multiple sizes (using `iconutil`)
 - **Windows**: `.ico` file with multiple sizes
 - **Linux**: PNG files in standard sizes
+
+### Icon Tool Details
+- **Location**: `cmd/icon-generator/main.go`
+- **Technology**: Pure Go implementation using `oksvg` and `rasterx` for SVG rendering
+- **Features**: 
+  - Black background (#000000)
+  - White lightning bolt symbol (#FFFFFF)
+  - Configurable stroke width (currently 50 for bold appearance)
+  - Proportional padding (3 units on each side)
+  - No Python or external dependencies required
 
 See `README_ICONS.md` for detailed icon generation documentation.
 
@@ -395,9 +411,11 @@ This command:
 - Ensure write permissions to application data directory
 
 ### Icon Generation
-- Requires Python 3 with Pillow
-- For best quality, install cairosvg: `pip install cairosvg`
-- Use virtual environment: `python3 -m venv .venv`
+- Requires **Go 1.22+** (no Python needed)
+- The icon generator is a pure Go tool in `cmd/icon-generator/`
+- Uses `oksvg` and `rasterx` for SVG rendering
+- For macOS `.icns` generation, requires `iconutil` (included with macOS)
+- If icon generation fails, ensure Go dependencies are installed: `go mod download`
 
 ### Wails Build Issues
 - Ensure CGO is enabled: `export CGO_ENABLED=1`
