@@ -11,11 +11,6 @@ export const useUIStore = create(
       language: 'en', // default language
       backgroundColorLight: 'default',
       backgroundColorDark: 'default',
-      responseTheme: 'auto', // auto, or theme name
-      responseThemeLight: 'oneLight', // default light theme
-      responseThemeDark: 'oneDark', // default dark theme
-      defaultResponseThemeLight: 'oneLight', // user-defined default light theme
-      defaultResponseThemeDark: 'oneDark', // user-defined default dark theme
       setUISize: (size) => set({ uiSize: size }),
       setLayout: (layout) => set({ layout }),
       setTheme: (theme) => set({ theme }),
@@ -24,11 +19,6 @@ export const useUIStore = create(
       setPrimaryColor: (color) => set({ primaryColor: color }),
       setBackgroundColorLight: (color) => set({ backgroundColorLight: color }),
       setBackgroundColorDark: (color) => set({ backgroundColorDark: color }),
-      setResponseTheme: (responseTheme) => set({ responseTheme }),
-      setResponseThemeLight: (responseThemeLight) => set({ responseThemeLight }),
-      setResponseThemeDark: (responseThemeDark) => set({ responseThemeDark }),
-      setDefaultResponseThemeLight: (defaultResponseThemeLight) => set({ defaultResponseThemeLight }),
-      setDefaultResponseThemeDark: (defaultResponseThemeDark) => set({ defaultResponseThemeDark }),
       
       // Background color palettes
       getBackgroundColors: () => ({
@@ -51,46 +41,6 @@ export const useUIStore = create(
           { id: 'wine', name: 'Wine', class: 'bg-red-950', preview: '#7f1d1d' },
           { id: 'coffee', name: 'Coffee', class: 'bg-amber-950', preview: '#451a03' },
           { id: 'obsidian', name: 'Obsidian', class: 'bg-zinc-950', preview: '#09090b' }
-        ]
-      }),
-      
-      // Response syntax highlighting themes
-      getAvailableResponseThemes: () => ({
-        light: [
-          { id: 'tomorrow', name: 'Tomorrow' },
-          { id: 'prism', name: 'Prism' },
-          { id: 'coy', name: 'Coy' },
-          { id: 'solarizedlight', name: 'Solarized Light' },
-          { id: 'base16AteliersulphurpoolLight', name: 'Base16 Light' },
-          { id: 'cb', name: 'CB' },
-          { id: 'duotoneLight', name: 'Duotone Light' },
-          { id: 'ghcolors', name: 'GitHub Colors' },
-          { id: 'pojoaque', name: 'Pojoaque' },
-          { id: 'vs', name: 'Visual Studio' },
-          { id: 'coldarkCold', name: 'Coldark Cold' },
-          { id: 'materialLight', name: 'Material Light' },
-          { id: 'oneLight', name: 'One Light' }
-        ],
-        dark: [
-          { id: 'twilight', name: 'Twilight' },
-          { id: 'dark', name: 'Dark' },
-          { id: 'funky', name: 'Funky' },
-          { id: 'okaidia', name: 'Okaidia' },
-          { id: 'atomDark', name: 'Atom Dark' },
-          { id: 'duotoneDark', name: 'Duotone Dark' },
-          { id: 'hopscotch', name: 'Hopscotch' },
-          { id: 'xonokai', name: 'Xonokai' },
-          { id: 'coldarkDark', name: 'Coldark Dark' },
-          { id: 'a11yDark', name: 'A11y Dark' },
-          { id: 'dracula', name: 'Dracula' },
-          { id: 'materialDark', name: 'Material Dark' },
-          { id: 'materialOceanic', name: 'Material Oceanic' },
-          { id: 'vscDarkPlus', name: 'VS Code Dark+' },
-          { id: 'synthwave84', name: 'Synthwave 84' },
-          { id: 'nightOwl', name: 'Night Owl' },
-          { id: 'nord', name: 'Nord' },
-          { id: 'lucario', name: 'Lucario' },
-          { id: 'oneDark', name: 'One Dark' }
         ]
       }),
       

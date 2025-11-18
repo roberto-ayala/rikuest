@@ -9,6 +9,9 @@ web-dev: dev
 dev:
 	gow run ./cmd/server/main.go
 
+frontend-dev:
+	cd frontend && npm run dev
+
 # Build web app (traditional HTTP REST API + frontend)
 web-build: build
 

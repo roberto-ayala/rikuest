@@ -150,19 +150,6 @@ function Project({ layout, onNewProject, onSettings }) {
     }
   }, [projectId, fetchProject, fetchRequests, setCurrentRequest]);
 
-  const getMethodColor = (method) => {
-    const colors = {
-      'GET': 'bg-blue-500',
-      'POST': 'bg-green-500',
-      'PUT': 'bg-orange-500',
-      'DELETE': 'bg-red-500',
-      'PATCH': 'bg-purple-500',
-      'HEAD': 'bg-gray-500',
-      'OPTIONS': 'bg-gray-500'
-    };
-    return colors[method] || 'bg-gray-500';
-  };
-
   const handleSelectRequest = (request) => {
     setCurrentRequest(request);
   };

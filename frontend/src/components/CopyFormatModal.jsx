@@ -3,40 +3,9 @@ import { X, Copy, Check, FileText, Terminal, Code, FileCode } from 'lucide-react
 import { adapterFactory } from '../adapters/adapterFactory';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { 
-  tomorrow, 
-  twilight, 
-  prism, 
-  dark,
-  funky,
-  okaidia,
-  coy,
-  solarizedlight,
-  atomDark,
-  base16AteliersulphurpoolLight,
-  cb,
-  duotoneDark,
-  duotoneLight,
-  ghcolors,
-  hopscotch,
-  pojoaque,
-  vs,
-  xonokai,
-  coldarkCold,
-  coldarkDark,
-  a11yDark,
-  dracula,
-  materialDark,
-  materialLight,
-  materialOceanic,
-  vscDarkPlus,
-  synthwave84,
-  nightOwl,
-  nord,
-  lucario,
   oneLight,
   oneDark
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useUIStore } from '../stores/uiStore';
 
 const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
   const [copied, setCopied] = useState(false);
@@ -44,55 +13,9 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
   const [formats, setFormats] = useState({});
   const [loading, setLoading] = useState(false);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
-  const { responseTheme, responseThemeLight, responseThemeDark, defaultResponseThemeLight, defaultResponseThemeDark } = useUIStore();
-
-  // Theme mapping object
-  const themeMap = {
-    tomorrow,
-    twilight,
-    prism,
-    dark,
-    funky,
-    okaidia,
-    coy,
-    solarizedlight,
-    atomDark,
-    base16AteliersulphurpoolLight,
-    cb,
-    duotoneDark,
-    duotoneLight,
-    ghcolors,
-    hopscotch,
-    pojoaque,
-    vs,
-    xonokai,
-    coldarkCold,
-    coldarkDark,
-    a11yDark,
-    dracula,
-    materialDark,
-    materialLight,
-    materialOceanic,
-    vscDarkPlus,
-    synthwave84,
-    nightOwl,
-    nord,
-    lucario,
-    oneLight,
-    oneDark
-  };
-
-  // Function to get the actual theme object
+  // Use default theme based on dark/light mode
   const getResponseTheme = () => {
-    if (responseTheme === 'auto') {
-      const defaultThemeId = isDark ? defaultResponseThemeDark : defaultResponseThemeLight;
-      return themeMap[defaultThemeId] || (isDark ? oneDark : oneLight);
-    } else if (responseTheme === 'custom') {
-      const themeId = isDark ? responseThemeDark : responseThemeLight;
-      return themeMap[themeId] || (isDark ? oneDark : oneLight);
-    }
-    // This shouldn't happen with current implementation, but fallback
-    return themeMap[responseTheme] || (isDark ? oneDark : oneLight);
+    return isDark ? oneDark : oneLight;
   };
 
   // Load formats when modal opens
