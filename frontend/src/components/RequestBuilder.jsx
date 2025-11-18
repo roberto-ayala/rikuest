@@ -8,8 +8,6 @@ import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useUIStore } from '../stores/uiStore';
 import hljs from 'highlight.js';
-// import 'highlight.js/styles/github.css';
-// import 'highlight.js/styles/github-dark.css';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 
 // Optimized code highlighting component using highlight.js

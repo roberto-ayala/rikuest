@@ -182,5 +182,32 @@
     "notFound": "No Encontrado",
     "serverError": "Error del Servidor",
     "unknownError": "Error Desconocido"
+  },
+  "openapi": {
+    "title": "Importar desde OpenAPI",
+    "selectFile": "Selecciona un archivo OpenAPI/Swagger (JSON o YAML) o arrástralo aquí",
+    "dropFile": "Suelta el archivo aquí",
+    "chooseFile": "Elegir Archivo",
+    "parsing": "Analizando...",
+    "specification": "Especificación OpenAPI",
+    "version": "Versión",
+    "endpoints": "Endpoints",
+    "createFoldersFromTags": "Crear carpetas desde etiquetas",
+    "selectEndpoints": "Seleccionar endpoints a importar",
+    "selected": "seleccionados",
+    "deselectAll": "Deseleccionar Todo",
+    "selectAll": "Seleccionar Todo",
+    "import": "Importar",
+    "importing": "Importando...",
+    "importButton": "Importar {count} Solicitud",
+    "importButtonPlural": "Importar {count} Solicitudes",
+    "importOpenAPI": "Importar OpenAPI",
+    "errors": {
+      "parseFailed": "Error al analizar el archivo OpenAPI",
+      "importFailed": "Error al importar solicitudes",
+      "importPartialFailed": "Error al importar todas las solicitudes. Ocurrieron {count} error(es).",
+      "noEndpoints": "No se encontraron endpoints en la especificación OpenAPI",
+      "invalidFormat": "Formato de archivo inválido. Se esperaba JSON o YAML."
+    }
   }
 }

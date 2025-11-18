@@ -8,7 +8,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "buffer": "buffer",
     },
+  },
+  define: {
+    'global': 'globalThis',
   },
   server: {
     proxy: {
@@ -20,5 +24,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist'
-  }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
 })
