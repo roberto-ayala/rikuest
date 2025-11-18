@@ -195,3 +195,5 @@ settings.local.*
 
 # Application specific
 rikuest.db
+
+build/
