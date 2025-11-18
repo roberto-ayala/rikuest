@@ -8,12 +8,15 @@ import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useUIStore } from '../stores/uiStore';
 import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css';
+import 'highlight.js/styles/github-dark.css';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 
 // Optimized code highlighting component using highlight.js
 const HighlightedCode = React.memo(({ content, language, formatJson, textSize, config }) => {
   const codeRef = useRef(null);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  // Subscribe to store changes to get background color settings
   const { theme, backgroundColorLight, backgroundColorDark, getBackgroundColors } = useUIStore();
   
   // Listen for theme changes
@@ -30,22 +33,50 @@ const HighlightedCode = React.memo(({ content, language, formatJson, textSize, c
     return () => observer.disconnect();
   }, []);
   
-  // Get app background color from configuration
-  const getAppBackgroundColor = useCallback(() => {
-    if (typeof window === 'undefined') return isDark ? '#0f0f23' : '#ffffff';
+  // Helper to convert HSL to hex
+  const hslToHex = useCallback((h, s, l) => {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
     
-    // Determine effective theme
-    let effectiveTheme = theme;
-    if (theme === 'system') {
-      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
     }
     
-    // Get background colors and find current selection
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }, []);
+  
+  // Get app background color from configuration - directly from settings
+  const backgroundColor = useMemo(() => {
+    if (typeof window === 'undefined') return isDark ? '#020617' : '#ffffff';
+    
+    // Use isDark directly (it reflects the actual DOM state)
+    const effectiveTheme = isDark ? 'dark' : 'light';
+    
+    // Get background colors and find current selection from settings
     const backgroundColors = getBackgroundColors();
-    const currentBgId = effectiveTheme === 'dark' ? backgroundColorDark : backgroundColorLight;
+    const currentBgId = isDark ? backgroundColorDark : backgroundColorLight;
     const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
     
-    if (currentBgConfig) {
+    // Return the exact color from settings configuration
+    if (currentBgConfig && currentBgConfig.preview) {
       return currentBgConfig.preview;
     }
     
@@ -85,44 +116,10 @@ const HighlightedCode = React.memo(({ content, language, formatJson, textSize, c
       }
     }
     
-    // Fallback colors
-    return isDark ? '#0f0f23' : '#ffffff';
-  }, [isDark, theme, backgroundColorLight, backgroundColorDark, getBackgroundColors]);
+    // Fallback colors - use default dark background
+    return isDark ? '#020617' : '#ffffff';
+  }, [isDark, backgroundColorLight, backgroundColorDark, getBackgroundColors, hslToHex]);
 
-  // Helper to convert HSL to hex
-  const hslToHex = (h, s, l) => {
-    s /= 100;
-    l /= 100;
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c / 2;
-    let r = 0, g = 0, b = 0;
-    
-    if (0 <= h && h < 60) {
-      r = c; g = x; b = 0;
-    } else if (60 <= h && h < 120) {
-      r = x; g = c; b = 0;
-    } else if (120 <= h && h < 180) {
-      r = 0; g = c; b = x;
-    } else if (180 <= h && h < 240) {
-      r = 0; g = x; b = c;
-    } else if (240 <= h && h < 300) {
-      r = x; g = 0; b = c;
-    } else if (300 <= h && h < 360) {
-      r = c; g = 0; b = x;
-    }
-    
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-    
-    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-  };
-  
-  // Memoize background color - recalculate when settings change
-  const backgroundColor = useMemo(() => {
-    return getAppBackgroundColor();
-  }, [isDark, theme, backgroundColorLight, backgroundColorDark, getAppBackgroundColor]);
   
   // Memoize the highlighted HTML
   const highlightedContent = useMemo(() => {
@@ -180,7 +177,11 @@ const HighlightedCode = React.memo(({ content, language, formatJson, textSize, c
     <div className="h-full overflow-y-auto hljs-container">
       <pre 
         className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono`}
-        style={{ fontSize, backgroundColor }}
+        style={{ 
+          fontSize, 
+          backgroundColor,
+          ['--hljs-bg']: backgroundColor
+        }}
       >
         <code 
           ref={codeRef}
@@ -198,28 +199,16 @@ function RequestBuilder() {
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   
-  // Load highlight.js theme CSS dynamically based on dark/light mode
+  // Apply highlight.js theme class based on dark/light mode
   useEffect(() => {
-    // Remove any existing highlight.js theme links
-    const existingLinks = document.querySelectorAll('link[data-hljs-theme]');
-    existingLinks.forEach(link => link.remove());
-    
-    // Determine which theme to load based on current dark mode
-    const themeToLoad = isDark ? 'github-dark' : 'github';
-    
-    // Load the theme CSS from CDN
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/${themeToLoad}.min.css`;
-    link.setAttribute('data-hljs-theme', 'true');
-    document.head.appendChild(link);
-    
-    return () => {
-      // Cleanup: remove the link when component unmounts or theme changes
-      if (link.parentNode) {
-        link.parentNode.removeChild(link);
-      }
-    };
+    // Apply theme class to the container
+    const container = document.querySelector('.hljs-container');
+    if (container) {
+      // Remove old theme classes
+      container.classList.remove('hljs-theme-light', 'hljs-theme-dark');
+      // Add current theme class
+      container.classList.add(isDark ? 'hljs-theme-dark' : 'hljs-theme-light');
+    }
   }, [isDark]);
 
   
@@ -1073,7 +1062,7 @@ function RequestBuilder() {
                     {bodyTypes.map((type) => (
                       <button
                         key={type.id}
-                        className={`${spacing(2)} ${text('sm')} rounded transition-colors ${
+                        className={`${spacing(1)} ${text('sm')} rounded transition-colors ${
                           requestData.body_type === type.id 
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -1261,10 +1250,10 @@ function RequestBuilder() {
           ) : (
             <div className="flex flex-col min-h-0 h-full">
               {/* Response Header */}
-              <div className="border-b border-border p-4 flex-shrink-0">
+              <div className="border-b border-border p-2 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`px-3 py-1 rounded text-sm font-medium ${getStatusColor(currentResponse.status)}`}>
+                    <div className={`px-2 py-0 rounded text-sm font-medium ${getStatusColor(currentResponse.status)}`}>
                       {currentResponse.status_text}
                     </div>
                     <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>

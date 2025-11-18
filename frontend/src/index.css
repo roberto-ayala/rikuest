@@ -107,4 +107,14 @@
   .scrollbar-thin::-webkit-scrollbar-corner {
     background: transparent;
   }
+
+  /* Override highlight.js background to respect configured background color */
+  .hljs-container pre .hljs {
+    background-color: transparent !important;
+  }
+  
+  /* Ensure highlight.js syntax colors work with custom backgrounds */
+  .hljs-container pre {
+    background-color: var(--hljs-bg, inherit);
+  }
 }
