@@ -31,19 +31,11 @@ wails-dev: wails-deps frontend
 
 # Generate app icon from SVG (solo appicon.png)
 generate-icon:
-	@if [ -d ".venv" ]; then \
-		. .venv/bin/activate && python3 generate_icon.py; \
-	else \
-		python3 generate_icon.py; \
-	fi
+	@go run ./cmd/icon-generator -icon-only
 
 # Generate all icons for all platforms (macOS, Windows, Linux)
 generate-all-icons:
-	@if [ -d ".venv" ]; then \
-		. .venv/bin/activate && python3 generate_all_icons.py; \
-	else \
-		python3 generate_all_icons.py; \
-	fi
+	@go run ./cmd/icon-generator
 
 # Build native app with Wails bindings
 wails-build: wails-deps generate-icon
@@ -67,10 +59,6 @@ deps:
 # Run the built binary
 run:
 	./bin/rikuest
-
-# Development mode with Wails (native app with hot reload)
-wails-dev:
-	wails dev
 
 # Initialize Wails project (run once)
 wails-init:
