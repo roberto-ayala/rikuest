@@ -117,4 +117,164 @@
   .hljs-container pre {
     background-color: var(--hljs-bg, inherit);
   }
+
+  /* Improve contrast for highlight.js syntax colors in light mode */
+  .hljs-container:not(.hljs-theme-dark) .hljs {
+    color: #24292e !important; /* Darker base text color for better contrast */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-keyword,
+  .hljs-container:not(.hljs-theme-dark) .hljs-selector-tag,
+  .hljs-container:not(.hljs-theme-dark) .hljs-literal,
+  .hljs-container:not(.hljs-theme-dark) .hljs-section,
+  .hljs-container:not(.hljs-theme-dark) .hljs-link {
+    color: #d73a49 !important; /* Darker red for keywords */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-function .hljs-keyword {
+    color: #6f42c1 !important; /* Darker purple for function keywords */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-subst {
+    color: #24292e !important; /* Darker base color */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-string,
+  .hljs-container:not(.hljs-theme-dark) .hljs-title,
+  .hljs-container:not(.hljs-theme-dark) .hljs-name,
+  .hljs-container:not(.hljs-theme-dark) .hljs-type,
+  .hljs-container:not(.hljs-theme-dark) .hljs-attribute,
+  .hljs-container:not(.hljs-theme-dark) .hljs-symbol,
+  .hljs-container:not(.hljs-theme-dark) .hljs-bullet,
+  .hljs-container:not(.hljs-theme-dark) .hljs-addition,
+  .hljs-container:not(.hljs-theme-dark) .hljs-variable,
+  .hljs-container:not(.hljs-theme-dark) .hljs-template-tag,
+  .hljs-container:not(.hljs-theme-dark) .hljs-template-variable {
+    color: #032f62 !important; /* Darker blue for strings */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-comment,
+  .hljs-container:not(.hljs-theme-dark) .hljs-quote,
+  .hljs-container:not(.hljs-theme-dark) .hljs-deletion,
+  .hljs-container:not(.hljs-theme-dark) .hljs-meta {
+    color: #6a737d !important; /* Darker gray for comments */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-keyword,
+  .hljs-container:not(.hljs-theme-dark) .hljs-selector-tag,
+  .hljs-container:not(.hljs-theme-dark) .hljs-literal,
+  .hljs-container:not(.hljs-theme-dark) .hljs-title,
+  .hljs-container:not(.hljs-theme-dark) .hljs-section,
+  .hljs-container:not(.hljs-theme-dark) .hljs-doctag,
+  .hljs-container:not(.hljs-theme-dark) .hljs-type,
+  .hljs-container:not(.hljs-theme-dark) .hljs-name,
+  .hljs-container:not(.hljs-theme-dark) .hljs-strong {
+    font-weight: 600 !important; /* Bolder text for better visibility */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-number,
+  .hljs-container:not(.hljs-theme-dark) .hljs-emphasis {
+    color: #005cc5 !important; /* Darker blue for numbers */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-attr {
+    color: #6f42c1 !important; /* Darker purple for attributes */
+  }
+  
+  .hljs-container:not(.hljs-theme-dark) .hljs-tag {
+    color: #22863a !important; /* Darker green for tags */
+  }
+
+  /* Improve contrast for highlight.js syntax colors in dark mode */
+  .hljs-container.hljs-theme-dark .hljs {
+    color: #e6edf3 !important; /* Much lighter base text color for better contrast */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-keyword,
+  .hljs-container.hljs-theme-dark .hljs-selector-tag,
+  .hljs-container.hljs-theme-dark .hljs-literal,
+  .hljs-container.hljs-theme-dark .hljs-section,
+  .hljs-container.hljs-theme-dark .hljs-link {
+    color: #ff6b6b !important; /* Brighter, more saturated red for keywords */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-function .hljs-keyword {
+    color: #c792ea !important; /* Brighter purple for function keywords */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-subst {
+    color: #e6edf3 !important; /* Lighter base color */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-string,
+  .hljs-container.hljs-theme-dark .hljs-title,
+  .hljs-container.hljs-theme-dark .hljs-name,
+  .hljs-container.hljs-theme-dark .hljs-type,
+  .hljs-container.hljs-theme-dark .hljs-attribute,
+  .hljs-container.hljs-theme-dark .hljs-symbol,
+  .hljs-container.hljs-theme-dark .hljs-bullet,
+  .hljs-container.hljs-theme-dark .hljs-addition,
+  .hljs-container.hljs-theme-dark .hljs-variable,
+  .hljs-container.hljs-theme-dark .hljs-template-tag,
+  .hljs-container.hljs-theme-dark .hljs-template-variable {
+    color: #7dd3fc !important; /* Brighter, more vibrant blue for strings */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-comment,
+  .hljs-container.hljs-theme-dark .hljs-quote,
+  .hljs-container.hljs-theme-dark .hljs-deletion,
+  .hljs-container.hljs-theme-dark .hljs-meta {
+    color: #a0aec0 !important; /* Lighter gray for comments - better contrast */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-keyword,
+  .hljs-container.hljs-theme-dark .hljs-selector-tag,
+  .hljs-container.hljs-theme-dark .hljs-literal,
+  .hljs-container.hljs-theme-dark .hljs-title,
+  .hljs-container.hljs-theme-dark .hljs-section,
+  .hljs-container.hljs-theme-dark .hljs-doctag,
+  .hljs-container.hljs-theme-dark .hljs-type,
+  .hljs-container.hljs-theme-dark .hljs-name,
+  .hljs-container.hljs-theme-dark .hljs-strong {
+    font-weight: 600 !important; /* Bolder text for better visibility */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-number,
+  .hljs-container.hljs-theme-dark .hljs-emphasis {
+    color: #7dd3fc !important; /* Brighter blue for numbers */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-attr {
+    color: #c792ea !important; /* Brighter purple for attributes */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-tag {
+    color: #86efac !important; /* Brighter green for tags */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-built_in,
+  .hljs-container.hljs-theme-dark .hljs-builtin-name {
+    color: #fbbf24 !important; /* Brighter yellow/orange for built-ins */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-params {
+    color: #e6edf3 !important; /* Lighter color for parameters */
+  }
+  
+  /* Additional elements for better contrast */
+  .hljs-container.hljs-theme-dark .hljs-property {
+    color: #7dd3fc !important; /* Brighter blue for properties */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-class .hljs-title {
+    color: #7dd3fc !important; /* Brighter blue for class titles */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-operator {
+    color: #ff6b6b !important; /* Brighter red for operators */
+  }
+  
+  .hljs-container.hljs-theme-dark .hljs-punctuation {
+    color: #e6edf3 !important; /* Lighter color for punctuation */
+  }
 }

@@ -8,8 +8,8 @@ import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useUIStore } from '../stores/uiStore';
 import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
-import 'highlight.js/styles/github-dark.css';
+// import 'highlight.js/styles/github.css';
+// import 'highlight.js/styles/github-dark.css';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 
 // Optimized code highlighting component using highlight.js
@@ -174,7 +174,7 @@ const HighlightedCode = React.memo(({ content, language, formatJson, textSize, c
   }
   
   return (
-    <div className="h-full overflow-y-auto hljs-container">
+    <div className={`h-full overflow-y-auto hljs-container ${isDark ? 'hljs-theme-dark' : 'hljs-theme-light'}`}>
       <pre 
         className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono`}
         style={{ 
@@ -199,17 +199,6 @@ function RequestBuilder() {
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   
-  // Apply highlight.js theme class based on dark/light mode
-  useEffect(() => {
-    // Apply theme class to the container
-    const container = document.querySelector('.hljs-container');
-    if (container) {
-      // Remove old theme classes
-      container.classList.remove('hljs-theme-light', 'hljs-theme-dark');
-      // Add current theme class
-      container.classList.add(isDark ? 'hljs-theme-dark' : 'hljs-theme-light');
-    }
-  }, [isDark]);
 
   
   // Listen for theme changes
@@ -1057,7 +1046,7 @@ function RequestBuilder() {
             {/* Body Tab */}
             {activeRequestTab === 'body' && (
               <div className="h-full flex flex-col">
-                <div className={`flex-shrink-0 ${spacing(4)}`}>
+                <div className={`flex-shrink-0 ${spacing(3)}`}>
                   <div className="flex space-x-2">
                     {bodyTypes.map((type) => (
                       <button
@@ -1253,7 +1242,7 @@ function RequestBuilder() {
               <div className="border-b border-border p-2 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`px-2 py-0 rounded text-sm font-medium ${getStatusColor(currentResponse.status)}`}>
+                    <div className={`px-2 py-1 rounded ${text('sm')} font-bold ${getStatusColor(currentResponse.status)}`}>
                       {currentResponse.status_text}
                     </div>
                     <span className={`${text('sm')} text-muted-foreground flex items-center gap-1`}>

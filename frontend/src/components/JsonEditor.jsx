@@ -17,10 +17,10 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const getFontSize = () => {
     // Extract font size from text.sm configuration
     const textSm = config.text.sm;
-    if (textSm.includes('text-xs')) return 12;
-    if (textSm.includes('text-sm')) return 14;
-    if (textSm.includes('text-base')) return 16;
-    if (textSm.includes('text-lg')) return 18;
+    if (textSm.includes('text-xs')) return 10;
+    if (textSm.includes('text-sm')) return 12;
+    if (textSm.includes('text-base')) return 14;
+    if (textSm.includes('text-lg')) return 16;
     return 14; // default fallback
   };
 
