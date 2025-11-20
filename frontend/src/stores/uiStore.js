@@ -33,7 +33,7 @@ export const useUIStore = create(
           { id: 'amber', name: 'Amber', class: 'bg-amber-50', preview: '#fffbeb' }
         ],
         dark: [
-          { id: 'default', name: 'Default', class: 'bg-slate-950', preview: '#020617' },
+          { id: 'default', name: 'Default', class: 'bg-slate-950', preview: '#1a1a1f' },
           { id: 'charcoal', name: 'Charcoal', class: 'bg-gray-900', preview: '#111827' },
           { id: 'midnight', name: 'Midnight', class: 'bg-blue-950', preview: '#0a1226' },
           { id: 'forest', name: 'Forest', class: 'bg-green-950', preview: '#082611' },
