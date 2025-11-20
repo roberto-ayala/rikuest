@@ -55,11 +55,55 @@ export function useBackgroundColor() {
         const [h, s, l] = hexToHsl(currentBgConfig.preview);
         root.style.setProperty('--background', `${h} ${s}% ${l}%`);
         console.log('Applied background HSL:', `${h} ${s}% ${l}%`, 'from', currentBgConfig.preview);
+        
+        // Update card and popover to match background (modals and popovers use these)
+        root.style.setProperty('--card', `${h} ${s}% ${l}%`);
+        root.style.setProperty('--popover', `${h} ${s}% ${l}%`);
+        
+        // Calculate border color based on background
+        // For dark backgrounds: make border slightly lighter
+        // For light backgrounds: make border slightly darker
+        let borderL = l;
+        let borderS = s;
+        
+        if (effectiveTheme === 'dark') {
+          // Dark mode: increase lightness by 8-12% but cap at 30% for very dark backgrounds
+          borderL = Math.min(l + 10, 30);
+          // Slightly reduce saturation for more subtle borders
+          borderS = Math.max(s * 0.7, 10);
+        } else {
+          // Light mode: decrease lightness by 8-12% but keep above 70% for very light backgrounds
+          borderL = Math.max(l - 10, 70);
+          // Slightly reduce saturation for more subtle borders
+          borderS = Math.max(s * 0.6, 5);
+        }
+        
+        root.style.setProperty('--border', `${h} ${borderS}% ${borderL}%`);
+        // Also update --input to match border for consistency
+        root.style.setProperty('--input', `${h} ${borderS}% ${borderL}%`);
+        console.log('Applied border HSL:', `${h} ${borderS}% ${borderL}%`);
       } else {
-        // Fallback to default Tailwind background values
-        const defaultHsl = effectiveTheme === 'dark' ? '222.2 84% 4.9%' : '0 0% 100%';
-        root.style.setProperty('--background', defaultHsl);
-        console.log('Applied default HSL:', defaultHsl);
+        // Fallback to default background values
+        if (effectiveTheme === 'dark') {
+          // Use the new default dark color: #1a1a1f (desaturated blue-grey)
+          root.style.setProperty('--background', '240 8% 10%');
+          // Update card and popover to match background
+          root.style.setProperty('--card', '240 8% 10%');
+          root.style.setProperty('--popover', '240 8% 10%');
+          // Calculate border for default dark color
+          root.style.setProperty('--border', '240 6% 18%');
+          root.style.setProperty('--input', '240 6% 18%');
+          console.log('Applied default dark HSL: 240 8% 10%');
+        } else {
+          root.style.setProperty('--background', '0 0% 100%');
+          // Update card and popover to match background
+          root.style.setProperty('--card', '0 0% 100%');
+          root.style.setProperty('--popover', '0 0% 100%');
+          const defaultBorder = '214.3 31.8% 91.4%';
+          root.style.setProperty('--border', defaultBorder);
+          root.style.setProperty('--input', defaultBorder);
+          console.log('Applied default light HSL: 0 0% 100%');
+        }
       }
     };
 
