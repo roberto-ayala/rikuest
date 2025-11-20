@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Palette, Check } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { useUISize } from '../hooks/useUISize';
@@ -23,8 +23,45 @@ const BackgroundColorSelector = ({ modal = false }) => {
     return themeValue;
   };
   
-  const effectiveTheme = getEffectiveTheme(theme);
+  const [effectiveTheme, setEffectiveTheme] = useState(() => getEffectiveTheme(theme));
   const [activeMode, setActiveMode] = useState(effectiveTheme);
+  
+  // Listen for system theme changes
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemThemeChange = (e) => {
+        const newEffectiveTheme = e.matches ? 'dark' : 'light';
+        setEffectiveTheme(newEffectiveTheme);
+        // Update activeMode if it matches the previous effective theme
+        if (activeMode === effectiveTheme) {
+          setActiveMode(newEffectiveTheme);
+        }
+      };
+      
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+      
+      // Also listen for class changes (when ThemeProvider updates it)
+      const observer = new MutationObserver(() => {
+        const newEffectiveTheme = getEffectiveTheme(theme);
+        if (newEffectiveTheme !== effectiveTheme) {
+          setEffectiveTheme(newEffectiveTheme);
+          if (activeMode === effectiveTheme) {
+            setActiveMode(newEffectiveTheme);
+          }
+        }
+      });
+      
+      observer.observe(document.documentElement, { attributes: true });
+      
+      return () => {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+        observer.disconnect();
+      };
+    } else {
+      setEffectiveTheme(theme);
+    }
+  }, [theme, effectiveTheme, activeMode]);
   
   const backgroundColors = getBackgroundColors();
   

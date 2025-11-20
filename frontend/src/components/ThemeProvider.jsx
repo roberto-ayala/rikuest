@@ -17,17 +17,35 @@ function ThemeProvider({ children }) {
 
     const handleSystemThemeChange = (e) => {
       if (theme === 'system') {
-        document.documentElement.classList.toggle('dark', e.matches);
+        // Use classList.replace to ensure proper update
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
         updateColors(); // Update colors when system theme changes
+        
+        // Dispatch a custom event to notify other components
+        window.dispatchEvent(new CustomEvent('themechange', { 
+          detail: { isDark: e.matches, theme: 'system' } 
+        }));
       }
     };
 
     // Set initial theme
     if (theme === 'system') {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.toggle('dark', isDark);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     } else {
-      document.documentElement.classList.toggle('dark', theme === 'dark');
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
 
     // Update colors after theme is set
