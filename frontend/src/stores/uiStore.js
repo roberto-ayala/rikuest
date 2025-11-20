@@ -35,11 +35,11 @@ export const useUIStore = create(
         dark: [
           { id: 'default', name: 'Default', class: 'bg-slate-950', preview: '#020617' },
           { id: 'charcoal', name: 'Charcoal', class: 'bg-gray-900', preview: '#111827' },
-          { id: 'midnight', name: 'Midnight', class: 'bg-blue-950', preview: '#172554' },
-          { id: 'forest', name: 'Forest', class: 'bg-green-950', preview: '#14532d' },
-          { id: 'plum', name: 'Plum', class: 'bg-purple-950', preview: '#581c87' },
-          { id: 'wine', name: 'Wine', class: 'bg-red-950', preview: '#7f1d1d' },
-          { id: 'coffee', name: 'Coffee', class: 'bg-amber-950', preview: '#451a03' },
+          { id: 'midnight', name: 'Midnight', class: 'bg-blue-950', preview: '#0a1226' },
+          { id: 'forest', name: 'Forest', class: 'bg-green-950', preview: '#082611' },
+          { id: 'plum', name: 'Plum', class: 'bg-purple-950', preview: '#2a0d3d' },
+          { id: 'wine', name: 'Wine', class: 'bg-red-950', preview: '#3d0d0d' },
+          { id: 'coffee', name: 'Coffee', class: 'bg-amber-950', preview: '#1f0a01' },
           { id: 'obsidian', name: 'Obsidian', class: 'bg-zinc-950', preview: '#09090b' }
         ]
       }),
