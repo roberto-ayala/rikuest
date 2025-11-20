@@ -104,11 +104,15 @@ export class WailsAdapter {
   }
 
   async copyRequestFormats(requestID, format) {
-    return await this.app.CopyRequest(requestID, format);
+    const content = await this.app.CopyRequest(requestID, format);
+    // Normalize response to match API adapter structure
+    return { format, content };
   }
 
   async copyAllRequestFormats(requestID) {
-    return await this.app.CopyAllRequestFormats(requestID);
+    const formats = await this.app.CopyAllRequestFormats(requestID);
+    // Normalize response to match API adapter structure
+    return { formats };
   }
 
   // ===== CONFIG METHODS =====
