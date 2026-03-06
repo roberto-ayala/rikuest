@@ -261,6 +261,72 @@ func (a *App) DeleteFolder(id int) error {
 	return a.services.Folder.DeleteFolder(id)
 }
 
+// ===== ENVIRONMENT BINDINGS =====
+
+func (a *App) GetEnvironments(projectID int) ([]models.Environment, error) {
+	return a.services.Environment.GetEnvironments(projectID)
+}
+
+func (a *App) CreateEnvironment(projectID int, name string) (*models.Environment, error) {
+	env := &models.Environment{ProjectID: projectID, Name: name}
+	if err := a.services.Environment.CreateEnvironment(env); err != nil {
+		return nil, err
+	}
+	env.Variables = []models.Variable{}
+	return env, nil
+}
+
+func (a *App) UpdateEnvironment(id int, name string) error {
+	return a.services.Environment.UpdateEnvironmentName(id, name)
+}
+
+func (a *App) DeleteEnvironment(id int) error {
+	return a.services.Environment.DeleteEnvironment(id)
+}
+
+func (a *App) SetActiveEnvironment(projectID int, environmentID int) ([]models.Environment, error) {
+	if err := a.services.Environment.SetActiveEnvironment(projectID, environmentID); err != nil {
+		return nil, err
+	}
+	return a.services.Environment.GetEnvironments(projectID)
+}
+
+func (a *App) DeactivateAllEnvironments(projectID int) ([]models.Environment, error) {
+	if err := a.services.Environment.DeactivateAllEnvironments(projectID); err != nil {
+		return nil, err
+	}
+	return a.services.Environment.GetEnvironments(projectID)
+}
+
+func (a *App) UpdateEnvironmentVariables(environmentID int, variables []models.Variable) error {
+	if variables == nil {
+		variables = []models.Variable{}
+	}
+	return a.services.Environment.UpdateEnvironmentVariables(environmentID, variables)
+}
+
+func (a *App) GetFolderVariables(folderID int) ([]models.Variable, error) {
+	return a.services.Environment.GetFolderVariables(folderID)
+}
+
+func (a *App) UpdateFolderVariables(folderID int, variables []models.Variable) error {
+	if variables == nil {
+		variables = []models.Variable{}
+	}
+	return a.services.Environment.UpdateFolderVariables(folderID, variables)
+}
+
+func (a *App) GetResponseCaptures(requestID int) ([]models.ResponseCapture, error) {
+	return a.services.ResponseCapture.GetCaptures(requestID)
+}
+
+func (a *App) UpdateResponseCaptures(requestID int, captures []models.ResponseCapture) error {
+	if captures == nil {
+		captures = []models.ResponseCapture{}
+	}
+	return a.services.ResponseCapture.UpdateCaptures(requestID, captures)
+}
+
 // ===== TELEMETRY BINDINGS =====
 
 func (a *App) ReportError(errMsg string, stackTrace string) error {

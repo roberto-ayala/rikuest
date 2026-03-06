@@ -48,6 +48,8 @@ func main() {
 		api.POST("/folders", handler.CreateFolder)
 		api.PUT("/folder/:id", handler.UpdateFolder)
 		api.DELETE("/folder/:id", handler.DeleteFolder)
+		api.GET("/folder/:id/variables", handler.GetFolderVariables)
+		api.PUT("/folder/:id/variables", handler.UpdateFolderVariables)
 
 		// Requests routes
 		api.POST("/requests", handler.CreateRequest)
@@ -60,6 +62,17 @@ func main() {
 		api.POST("/request/move", handler.MoveRequest)
 		api.GET("/request/:id/copy", handler.CopyRequestFormats)
 		api.GET("/request/:id/copy-all", handler.CopyAllRequestFormats)
+		api.GET("/request/:id/captures", handler.GetResponseCaptures)
+		api.PUT("/request/:id/captures", handler.UpdateResponseCaptures)
+
+		// Environments routes
+		api.GET("/project/:id/environments", handler.GetEnvironments)
+		api.POST("/project/:id/environments", handler.CreateEnvironment)
+		api.POST("/project/:id/environments/deactivate", handler.DeactivateEnvironments)
+		api.PUT("/environment/:id", handler.UpdateEnvironment)
+		api.DELETE("/environment/:id", handler.DeleteEnvironment)
+		api.POST("/environment/:id/activate", handler.SetActiveEnvironment)
+		api.PUT("/environment/:id/variables", handler.UpdateEnvironmentVariables)
 	}
 
 	// Serve static files for non-API routes

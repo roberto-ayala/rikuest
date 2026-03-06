@@ -14,8 +14,10 @@ import (
 )
 
 type RequestService struct {
-	db     *database.DB
-	config *ConfigService
+	db              *database.DB
+	config          *ConfigService
+	resolver        *VariableResolver
+	captureService  *ResponseCaptureService
 }
 
 func NewRequestService(db *database.DB) *RequestService {
@@ -23,6 +25,12 @@ func NewRequestService(db *database.DB) *RequestService {
 		db:     db,
 		config: NewConfigService(db),
 	}
+}
+
+// SetCollaborators wires in the variable resolver and capture service after construction.
+func (s *RequestService) SetCollaborators(resolver *VariableResolver, capture *ResponseCaptureService) {
+	s.resolver = resolver
+	s.captureService = capture
 }
 
 func (s *RequestService) GetRequests(projectID int) ([]models.Request, error) {
@@ -62,27 +70,34 @@ func (s *RequestService) MoveRequest(requestID int, folderID *int, position int)
 }
 
 func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
-	// Get the request details
 	request, err := s.GetRequest(requestID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Execute the request using the same logic as the HTTP handler
+	// Resolve {{variables}} before executing
+	if s.resolver != nil {
+		vars, err := s.resolver.BuildVariableMap(request.ProjectID, request.FolderID)
+		if err == nil && len(vars) > 0 {
+			request = s.resolver.ResolveRequest(request, vars)
+		}
+	}
+
 	response, err := s.executeHTTPRequest(request)
 	if err != nil {
 		return nil, err
 	}
 
-	// Save to history
+	// Apply response captures on successful responses
+	if s.captureService != nil && response.Status >= 200 && response.Status < 300 {
+		s.captureService.ApplyCaptures(requestID, request.ProjectID, response.Body)
+	}
+
 	history := &models.RequestHistory{
 		RequestID: requestID,
 		Response:  *response,
 	}
-	
-	// Save to history (ignore errors to ensure response is always returned)
 	if err := s.SaveRequestHistory(history); err != nil {
-		// Log the error but don't fail the request execution
 		fmt.Printf("Warning: Failed to save request history: %v\n", err)
 	}
 

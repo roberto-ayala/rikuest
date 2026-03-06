@@ -29,7 +29,11 @@
     "error": "Erreur",
     "success": "Succès",
     "warning": "Avertissement",
-    "info": "Information"
+    "info": "Information",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "press": "Appuyez sur",
+    "toClose": "pour fermer"
   },
   "app": {
     "title": "Rikuest",
@@ -61,7 +65,12 @@
     "actions": "Actions",
     "deleteProject": "Supprimer le Projet",
     "deleteProjectConfirm": "Êtes-vous sûr de vouloir supprimer ce projet ?",
-    "deleteProjectWarning": "Cette action ne peut pas être annulée"
+    "deleteProjectWarning": "Cette action ne peut pas être annulée",
+    "noDescription": "Aucune description",
+    "selectRequest": "Sélectionner une requête",
+    "selectRequestDesc": "Choisissez une requête dans la barre latérale ou créez-en une nouvelle",
+    "noRequestsCreate": "Créez votre première requête pour commencer",
+    "duplicate": "Dupliquer"
   },
   "request": {
     "create": "Créer une Nouvelle Requête",
@@ -88,7 +97,46 @@
     "copyPython": "Copier Python",
     "copyAll": "Copier Tous les Formats",
     "deleteRequest": "Supprimer la Requête",
-    "deleteRequestConfirm": "Êtes-vous sûr de vouloir supprimer"
+    "deleteRequestConfirm": "Êtes-vous sûr de vouloir supprimer",
+    "urlPlaceholder": "Entrez l'URL de la requête",
+    "send": "Envoyer",
+    "sending": "Envoi...",
+    "historyTitle": "Historique des Requêtes",
+    "noSelected": "Aucune requête sélectionnée",
+    "noResponse": "Aucune Réponse",
+    "noResponseDesc": "Envoyez une requête pour voir la réponse ici",
+    "executingTitle": "Exécution de la Requête",
+    "executingDesc": "Veuillez patienter pendant le traitement de la requête...",
+    "loadingHistoryTitle": "Chargement de l'Élément d'Historique",
+    "loadingHistoryDesc": "Chargement de la réponse depuis l'historique...",
+    "rawNotAvailable": "Requête brute non disponible",
+    "rawNotAvailableDesc": "Il peut s'agir d'une requête plus ancienne ou le backend ne prend pas encore en charge la journalisation des requêtes brutes",
+    "noHistory": "Aucun historique de requêtes",
+    "noHistoryDesc": "Exécutez cette requête pour voir son historique",
+    "deleteHistoryTitle": "Supprimer l'Élément d'Historique",
+    "deleteHistoryConfirm": "Êtes-vous sûr de vouloir supprimer cet élément d'historique ? Cette action ne peut pas être annulée.",
+    "executed": "Exécuté :",
+    "deleteHistoryItem": "Supprimer l'élément d'historique",
+    "paramName": "Nom du paramètre",
+    "paramValue": "Valeur du paramètre",
+    "addParam": "Ajouter un Paramètre",
+    "headerName": "Nom de l'en-tête",
+    "headerValue": "Valeur de l'en-tête",
+    "addHeader": "Ajouter un En-tête",
+    "formKey": "Clé",
+    "formValue": "Valeur",
+    "addFormField": "Ajouter un Champ",
+    "jsonPlaceholder": "Entrez le corps JSON",
+    "textPlaceholder": "Entrez le corps texte",
+    "noAuth": "Sans Authentification",
+    "token": "Jeton",
+    "tokenPlaceholder": "Entrez le jeton bearer",
+    "username": "Nom d'utilisateur",
+    "usernamePlaceholder": "Entrez le nom d'utilisateur",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Entrez le mot de passe",
+    "createRequest": "Créer la Requête",
+    "copyRequest": "Copier la Requête"
   },
   "folder": {
     "create": "Créer un Nouveau Dossier",
@@ -101,7 +149,12 @@
     "moveToRoot": "Déplacer vers la Racine",
     "deleteFolder": "Supprimer le Dossier",
     "deleteFolderConfirm": "Êtes-vous sûr de vouloir supprimer le dossier",
-    "deleteFolderWarning": "Toutes les requêtes de ce dossier seront déplacées au niveau racine."
+    "deleteFolderWarning": "Toutes les requêtes de ce dossier seront déplacées au niveau racine.",
+    "variables": "Variables",
+    "foldersAndRequests": "Dossiers et Requêtes",
+    "createNew": "Créer Nouveau",
+    "createFolder": "Créer un Dossier",
+    "rename": "Renommer"
   },
   "settings": {
     "title": "Paramètres",
@@ -146,7 +199,14 @@
     "telemetryInfo": "Lorsqu'elle est activée, les informations suivantes peuvent être collectées :",
     "telemetryInfo1": "Rapports d'erreurs avec traces de pile",
     "telemetryInfo2": "Événements d'utilisation (création de projet, exécution de requêtes, etc.)",
-    "telemetryInfo3": "Métriques anonymes (nombre de requêtes, durée de session)"
+    "telemetryInfo3": "Métriques anonymes (nombre de requêtes, durée de session)",
+    "appLayout": "Disposition de l'App",
+    "appLayoutDesc": "Choisissez comment l'interface de l'application est organisée. La disposition compacte place l'en-tête dans la barre latérale pour plus d'espace de contenu.",
+    "backgroundColors": "Couleurs d'Arrière-plan",
+    "backgroundColorsDesc": "Personnalisez la couleur d'arrière-plan pour les thèmes clair et sombre. Choisissez parmi des palettes soigneusement sélectionnées qui maintiennent la lisibilité et l'accessibilité.",
+    "primaryColorDesc": "Sélectionnez la couleur principale qui sera utilisée pour les boutons, les liens, les surbrillances et autres éléments interactifs.",
+    "savedAutomatically": "Les paramètres sont enregistrés automatiquement",
+    "done": "Terminé"
   },
   "methods": {
     "GET": "GET",
@@ -182,6 +242,28 @@
     "notFound": "Non Trouvé",
     "serverError": "Erreur du Serveur",
     "unknownError": "Erreur Inconnue"
+  },
+  "environment": {
+    "title": "Environnements",
+    "newEnvironment": "Nouvel environnement",
+    "setActive": "Activer",
+    "active": "Actif",
+    "createOrSelect": "Créez ou sélectionnez un environnement",
+    "variable": "Variable",
+    "value": "Valeur",
+    "variablePlaceholder": "Nom de variable",
+    "valuePlaceholder": "Valeur",
+    "addVariable": "Ajouter une variable",
+    "saving": "Enregistrement…",
+    "folderVariables": "Variables du Dossier",
+    "folderVariablesDesc": "Remplacer les variables d'environnement pour"
+  },
+  "captures": {
+    "tab": "Captures",
+    "description": "Extrayez des valeurs de la réponse JSON et stockez-les comme variables dans l'environnement actif. Utilisez la dot.notation pour les chemins imbriqués.",
+    "variableName": "Nom de variable",
+    "jsonPath": "Chemin JSON",
+    "addRule": "Ajouter une règle de capture"
   },
   "openapi": {
     "title": "Importer depuis OpenAPI",

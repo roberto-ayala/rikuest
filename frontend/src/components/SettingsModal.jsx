@@ -59,9 +59,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
         return (
           <div className="space-y-6">
             <div>
-              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>App Layout</h3>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>{t('settings.appLayout')}</h3>
               <p className={`${text('sm')} text-muted-foreground mb-6`}>
-                Choose how the app interface is organized. The compact layout puts the header in the sidebar for more content space.
+                {t('settings.appLayoutDesc')}
               </p>
               <LayoutSelector modal={true} />
             </div>
@@ -71,9 +71,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
         return (
           <div className="space-y-6">
             <div>
-              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>Background Colors</h3>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>{t('settings.backgroundColors')}</h3>
               <p className={`${text('sm')} text-muted-foreground mb-6`}>
-                Customize the background color for light and dark themes. Choose from carefully selected palettes that maintain readability and accessibility.
+                {t('settings.backgroundColorsDesc')}
               </p>
               <BackgroundColorSelector modal={true} />
             </div>
@@ -83,9 +83,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
         return (
           <div className="space-y-6">
             <div>
-              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>Primary Color</h3>
+              <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>{t('settings.primaryColor')}</h3>
               <p className={`${text('sm')} text-muted-foreground mb-6`}>
-                Select the primary color that will be used for buttons, links, highlights, and other interactive elements.
+                {t('settings.primaryColorDesc')}
               </p>
               <ColorSelector modal={true} />
             </div>
@@ -115,7 +115,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         <div className={`flex items-center justify-between flex-shrink-0 border-b border-border ${spacing(4)}`}>
           <div className="flex items-center gap-3">
             <Settings className={`${iconMd} text-primary`} />
-            <h2 className={`${text('xl')} font-semibold text-foreground`}>Settings</h2>
+            <h2 className={`${text('xl')} font-semibold text-foreground`}>{t('settings.title')}</h2>
           </div>
           <Button
             variant="ghost"
@@ -132,7 +132,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           {/* Sidebar Navigation */}
           <div className={`w-64 border-r border-border flex-shrink-0 flex flex-col`}>
             <div className={`${spacing(4)} border-b border-border flex-shrink-0`}>
-              <h3 className={`${text('sm')} font-medium text-muted-foreground`}>Settings</h3>
+              <h3 className={`${text('sm')} font-medium text-muted-foreground`}>{t('settings.title')}</h3>
             </div>
             <div className="flex-1 overflow-y-auto">
               <nav className={`space-y-2 ${spacing(4)}`}>
@@ -179,11 +179,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-primary rounded-full"></div>
             <span className={`${text('sm')} text-muted-foreground`}>
-              Settings are saved automatically
+              {t('settings.savedAutomatically')}
             </span>
           </div>
           <Button onClick={onClose} className={button}>
-            Done
+            {t('settings.done')}
           </Button>
         </div>
       </div>

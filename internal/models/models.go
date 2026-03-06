@@ -86,3 +86,30 @@ type TelemetryConfig struct {
 	WebhookURL     string `json:"webhook_url" db:"webhook_url"`
 	InstallationID string `json:"installation_id" db:"installation_id"`
 }
+
+// ===== VARIABLE SYSTEM =====
+
+type Variable struct {
+	ID        int       `json:"id"`
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Environment struct {
+	ID        int        `json:"id"`
+	ProjectID int        `json:"project_id"`
+	Name      string     `json:"name"`
+	IsActive  bool       `json:"is_active"`
+	Variables []Variable `json:"variables"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type ResponseCapture struct {
+	ID           int    `json:"id"`
+	RequestID    int    `json:"request_id"`
+	VariableName string `json:"variable_name"`
+	JSONPath     string `json:"json_path"`
+}

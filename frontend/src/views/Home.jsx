@@ -184,10 +184,10 @@ function Home() {
                       {project.name}
                     </h3>
                     <p className={`${text('sm')} text-muted-foreground line-clamp-2`}>
-                      {project.description || 'No description provided'}
+                      {project.description || t('project.noDescription')}
                     </p>
                     <p className={`${text('xs')} text-muted-foreground`}>
-                      Created {formatDate(project.created_at)}
+                      {t('project.created')} {formatDate(project.created_at)}
                     </p>
                   </div>
                 </div>

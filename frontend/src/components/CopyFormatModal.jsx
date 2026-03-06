@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, FileText, Terminal, Code, FileCode } from 'lucide-react';
 import { adapterFactory } from '../adapters/adapterFactory';
+import { useTranslation } from '../hooks/useTranslation';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { 
   oneLight,
@@ -8,6 +9,7 @@ import {
 } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [activeFormat, setActiveFormat] = useState('raw');
   const [formats, setFormats] = useState({});
@@ -144,7 +146,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">
-            Copy Request
+            {t('request.copyRequest')}
           </h3>
           <div className="flex items-center gap-2">
             <button
@@ -155,12 +157,12 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
               {copied ? (
                 <>
                   <Check className="h-4 w-4" />
-                  Copied!
+                  {t('common.copied')}
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4" />
-                  Copy
+                  {t('common.copy')}
                 </>
               )}
             </button>
@@ -204,7 +206,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">Loading formats...</p>
+                  <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
                 </div>
               </div>
             ) : (
@@ -233,7 +235,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
         {/* Footer */}
         <div className="p-4 border-t border-border bg-muted/30">
           <p className="text-sm text-muted-foreground">
-            Press <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded">Esc</kbd> to close
+            {t('common.press')} <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded">Esc</kbd> {t('common.toClose')}
           </p>
         </div>
       </div>

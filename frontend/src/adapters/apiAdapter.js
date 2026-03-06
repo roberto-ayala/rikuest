@@ -138,6 +138,71 @@ export class APIAdapter {
     return this.request(`/api/request/${requestID}/copy-all`);
   }
 
+  // ===== ENVIRONMENT METHODS =====
+  async getEnvironments(projectId) {
+    return this.request(`/api/project/${projectId}/environments`);
+  }
+
+  async createEnvironment(projectId, name) {
+    return this.request(`/api/project/${projectId}/environments`, {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+  }
+
+  async updateEnvironment(id, name) {
+    return this.request(`/api/environment/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name })
+    });
+  }
+
+  async deleteEnvironment(id) {
+    await this.request(`/api/environment/${id}`, { method: 'DELETE' });
+  }
+
+  async setActiveEnvironment(id, projectId) {
+    return this.request(`/api/environment/${id}/activate`, {
+      method: 'POST',
+      body: JSON.stringify({ project_id: projectId })
+    });
+  }
+
+  async deactivateAllEnvironments(projectId) {
+    return this.request(`/api/project/${projectId}/environments/deactivate`, {
+      method: 'POST'
+    });
+  }
+
+  async updateEnvironmentVariables(id, variables) {
+    return this.request(`/api/environment/${id}/variables`, {
+      method: 'PUT',
+      body: JSON.stringify(variables)
+    });
+  }
+
+  async getFolderVariables(folderId) {
+    return this.request(`/api/folder/${folderId}/variables`);
+  }
+
+  async updateFolderVariables(folderId, variables) {
+    return this.request(`/api/folder/${folderId}/variables`, {
+      method: 'PUT',
+      body: JSON.stringify(variables)
+    });
+  }
+
+  async getResponseCaptures(requestId) {
+    return this.request(`/api/request/${requestId}/captures`);
+  }
+
+  async updateResponseCaptures(requestId, captures) {
+    return this.request(`/api/request/${requestId}/captures`, {
+      method: 'PUT',
+      body: JSON.stringify(captures)
+    });
+  }
+
   // ===== CONFIG METHODS =====
   async getRequestTimeout() {
     // In web mode, get from localStorage or default to 300
