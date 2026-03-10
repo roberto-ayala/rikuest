@@ -15,12 +15,12 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
 
   // Get font size based on UI size configuration
   const getFontSize = () => {
-    // Extract font size from text.sm configuration
+    // Match Tailwind's rem sizes (text-xs=12, text-sm=14, text-base=16, text-lg=18)
     const textSm = config.text.sm;
-    if (textSm.includes('text-xs')) return 10;
-    if (textSm.includes('text-sm')) return 12;
-    if (textSm.includes('text-base')) return 14;
-    if (textSm.includes('text-lg')) return 16;
+    if (textSm.includes('text-xs')) return 12;
+    if (textSm.includes('text-sm')) return 14;
+    if (textSm.includes('text-base')) return 16;
+    if (textSm.includes('text-lg')) return 18;
     return 14; // default fallback
   };
 
