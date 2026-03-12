@@ -733,6 +733,7 @@ function RequestBuilder() {
           <Input
             value={requestData.url}
             onChange={(e) => updateRequestData({ url: e.target.value })}
+            onKeyDown={(e) => { if (e.key === 'Enter' && requestData.url?.trim() && !executing) handleExecuteRequest(); }}
             placeholder={t('request.urlPlaceholder')}
             className={`flex-1 ${input} not-box-shadow`}
           />
@@ -1185,7 +1186,7 @@ function RequestBuilder() {
                 )}
 
                 {activeResponseTab === 'raw' && (
-                  <div className="h-full overflow-y-auto p-4">
+                  <div className="h-full overflow-y-auto">
                     {currentResponse.raw_request ? (
                       <HighlightedCode
                         content={currentResponse.raw_request}

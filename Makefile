@@ -23,9 +23,16 @@ backend:
 # ===== NATIVE MODE (Wails with Go bindings) =====
 
 # Development mode - Native app with hot reload (Vite HMR + Go recompilation)
-# wails dev starts Vite automatically via wails.json frontend.dev setting
+# Starts Vite dev server in background, waits for it to be ready, then launches
+# wails dev pointing at the Vite server so HMR works inside the WebView.
 wails-dev: wails-deps
-	wails dev
+	@echo "Starting Vite dev server..."
+	@cd frontend && npm run dev & \
+	echo "Waiting for Vite on :5173..."; \
+	until curl -sf http://localhost:5173 > /dev/null 2>&1; do sleep 0.3; done; \
+	echo "Vite ready. Starting Wails..."; \
+	wails dev -frontenddevserverurl http://localhost:5173; \
+	kill $$(lsof -ti:5173) 2>/dev/null || true
 
 # Generate app icon from SVG (solo appicon.png)
 generate-icon:

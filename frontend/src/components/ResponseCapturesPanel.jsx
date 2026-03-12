@@ -1,20 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 import { useTranslation } from '../hooks/useTranslation';
+import { useUISize } from '../hooks/useUISize';
 
-function CaptureRow({ capture, onChange, onDelete }) {
+function CaptureRow({ capture, onChange, onDelete, inputClass, iconClass, textXs }) {
   return (
     <div className="flex items-center gap-2">
       <input
-        className="flex-1 h-7 px-2 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono"
+        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono`}
         placeholder="variableName"
         value={capture.variable_name}
         onChange={e => onChange({ ...capture, variable_name: e.target.value })}
       />
-      <span className="text-xs text-muted-foreground flex-shrink-0">=</span>
+      <span className={`${textXs} text-muted-foreground flex-shrink-0`}>=</span>
       <input
-        className="flex-1 h-7 px-2 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono"
+        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono`}
         placeholder="data.token"
         value={capture.json_path}
         onChange={e => onChange({ ...capture, json_path: e.target.value })}
@@ -23,7 +24,7 @@ function CaptureRow({ capture, onChange, onDelete }) {
         onClick={onDelete}
         className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
       >
-        <Trash2 size={13} />
+        <Trash2 className={iconClass} />
       </button>
     </div>
   );
@@ -31,6 +32,7 @@ function CaptureRow({ capture, onChange, onDelete }) {
 
 export default function ResponseCapturesPanel({ requestId }) {
   const { t } = useTranslation();
+  const { text, input, icon } = useUISize();
   const [captures, setCaptures] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -72,15 +74,15 @@ export default function ResponseCapturesPanel({ requestId }) {
 
   return (
     <div className="h-full overflow-y-auto p-4">
-      <p className="text-xs text-muted-foreground mb-3">
+      <p className={`${text('xs')} text-muted-foreground mb-3`}>
         {t('captures.description')}
       </p>
 
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-1 px-0.5">
-          <span className="flex-1 text-xs text-muted-foreground">{t('captures.variableName')}</span>
+          <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('captures.variableName')}</span>
           <span className="w-3" />
-          <span className="flex-1 text-xs text-muted-foreground">{t('captures.jsonPath')}</span>
+          <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('captures.jsonPath')}</span>
           <span className="w-5" />
         </div>
         {captures.map((c, i) => (
@@ -89,13 +91,16 @@ export default function ResponseCapturesPanel({ requestId }) {
             capture={c}
             onChange={updated => updateCapture(i, updated)}
             onDelete={() => removeCapture(i)}
+            inputClass={input}
+            iconClass={icon}
+            textXs={text('xs')}
           />
         ))}
         <button
           onClick={addCapture}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground py-1"
+          className={`flex items-center gap-1 ${text('xs')} text-muted-foreground hover:text-foreground py-1`}
         >
-          <Plus size={12} /> {t('captures.addRule')}
+          <Plus className={icon} /> {t('captures.addRule')}
         </button>
       </div>
     </div>
