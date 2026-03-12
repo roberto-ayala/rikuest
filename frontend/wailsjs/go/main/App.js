@@ -10,6 +10,10 @@ export function CopyRequest(arg1, arg2) {
   return window['go']['main']['App']['CopyRequest'](arg1, arg2);
 }
 
+export function CreateEnvironment(arg1, arg2) {
+  return window['go']['main']['App']['CreateEnvironment'](arg1, arg2);
+}
+
 export function CreateFolder(arg1) {
   return window['go']['main']['App']['CreateFolder'](arg1);
 }
@@ -20,6 +24,14 @@ export function CreateProject(arg1) {
 
 export function CreateRequest(arg1) {
   return window['go']['main']['App']['CreateRequest'](arg1);
+}
+
+export function DeactivateAllEnvironments(arg1) {
+  return window['go']['main']['App']['DeactivateAllEnvironments'](arg1);
+}
+
+export function DeleteEnvironment(arg1) {
+  return window['go']['main']['App']['DeleteEnvironment'](arg1);
 }
 
 export function DeleteFolder(arg1) {
@@ -40,6 +52,14 @@ export function DeleteRequestHistoryItem(arg1, arg2) {
 
 export function ExecuteRequest(arg1) {
   return window['go']['main']['App']['ExecuteRequest'](arg1);
+}
+
+export function GetEnvironments(arg1) {
+  return window['go']['main']['App']['GetEnvironments'](arg1);
+}
+
+export function GetFolderVariables(arg1) {
+  return window['go']['main']['App']['GetFolderVariables'](arg1);
 }
 
 export function GetFolders(arg1) {
@@ -70,6 +90,10 @@ export function GetRequests(arg1) {
   return window['go']['main']['App']['GetRequests'](arg1);
 }
 
+export function GetResponseCaptures(arg1) {
+  return window['go']['main']['App']['GetResponseCaptures'](arg1);
+}
+
 export function GetTelemetryEnabled() {
   return window['go']['main']['App']['GetTelemetryEnabled']();
 }
@@ -90,12 +114,28 @@ export function ReportUsageEvent(arg1, arg2) {
   return window['go']['main']['App']['ReportUsageEvent'](arg1, arg2);
 }
 
+export function SetActiveEnvironment(arg1, arg2) {
+  return window['go']['main']['App']['SetActiveEnvironment'](arg1, arg2);
+}
+
 export function SetTelemetryEnabled(arg1) {
   return window['go']['main']['App']['SetTelemetryEnabled'](arg1);
 }
 
+export function UpdateEnvironment(arg1, arg2) {
+  return window['go']['main']['App']['UpdateEnvironment'](arg1, arg2);
+}
+
+export function UpdateEnvironmentVariables(arg1, arg2) {
+  return window['go']['main']['App']['UpdateEnvironmentVariables'](arg1, arg2);
+}
+
 export function UpdateFolder(arg1) {
   return window['go']['main']['App']['UpdateFolder'](arg1);
+}
+
+export function UpdateFolderVariables(arg1, arg2) {
+  return window['go']['main']['App']['UpdateFolderVariables'](arg1, arg2);
 }
 
 export function UpdateProject(arg1) {
@@ -104,4 +144,8 @@ export function UpdateProject(arg1) {
 
 export function UpdateRequest(arg1) {
   return window['go']['main']['App']['UpdateRequest'](arg1);
+}
+
+export function UpdateResponseCaptures(arg1, arg2) {
+  return window['go']['main']['App']['UpdateResponseCaptures'](arg1, arg2);
 }

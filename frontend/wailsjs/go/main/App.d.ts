@@ -6,11 +6,17 @@ export function CopyAllRequestFormats(arg1:number):Promise<Record<string, string
 
 export function CopyRequest(arg1:number,arg2:string):Promise<string>;
 
+export function CreateEnvironment(arg1:number,arg2:string):Promise<models.Environment>;
+
 export function CreateFolder(arg1:models.Folder):Promise<models.Folder>;
 
 export function CreateProject(arg1:models.Project):Promise<models.Project>;
 
 export function CreateRequest(arg1:models.Request):Promise<models.Request>;
+
+export function DeactivateAllEnvironments(arg1:number):Promise<Array<models.Environment>>;
+
+export function DeleteEnvironment(arg1:number):Promise<void>;
 
 export function DeleteFolder(arg1:number):Promise<void>;
 
@@ -21,6 +27,10 @@ export function DeleteRequest(arg1:number):Promise<void>;
 export function DeleteRequestHistoryItem(arg1:number,arg2:number):Promise<void>;
 
 export function ExecuteRequest(arg1:number):Promise<models.RequestResponse>;
+
+export function GetEnvironments(arg1:number):Promise<Array<models.Environment>>;
+
+export function GetFolderVariables(arg1:number):Promise<Array<models.Variable>>;
 
 export function GetFolders(arg1:number):Promise<Array<models.Folder>>;
 
@@ -36,6 +46,8 @@ export function GetRequestHistory(arg1:number):Promise<Array<models.RequestHisto
 
 export function GetRequests(arg1:number):Promise<Array<models.Request>>;
 
+export function GetResponseCaptures(arg1:number):Promise<Array<models.ResponseCapture>>;
+
 export function GetTelemetryEnabled():Promise<boolean>;
 
 export function GetVersion():Promise<string>;
@@ -46,10 +58,20 @@ export function ReportError(arg1:string,arg2:string):Promise<void>;
 
 export function ReportUsageEvent(arg1:string,arg2:Record<string, any>):Promise<void>;
 
+export function SetActiveEnvironment(arg1:number,arg2:number):Promise<Array<models.Environment>>;
+
 export function SetTelemetryEnabled(arg1:boolean):Promise<void>;
 
+export function UpdateEnvironment(arg1:number,arg2:string):Promise<void>;
+
+export function UpdateEnvironmentVariables(arg1:number,arg2:Array<models.Variable>):Promise<void>;
+
 export function UpdateFolder(arg1:models.Folder):Promise<models.Folder>;
+
+export function UpdateFolderVariables(arg1:number,arg2:Array<models.Variable>):Promise<void>;
 
 export function UpdateProject(arg1:models.Project):Promise<models.Project>;
 
 export function UpdateRequest(arg1:models.Request):Promise<models.Request>;
+
+export function UpdateResponseCaptures(arg1:number,arg2:Array<models.ResponseCapture>):Promise<void>;

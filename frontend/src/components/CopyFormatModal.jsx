@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, FileText, Terminal, Code, FileCode } from 'lucide-react';
 import { adapterFactory } from '../adapters/adapterFactory';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { 
-  oneLight,
-  oneDark
-} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTranslation } from '../hooks/useTranslation';
+import { useShikiHighlighter } from '../hooks/useShikiHighlighter';
 
 const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
+  const { t } = useTranslation();
+  const { highlight, ready } = useShikiHighlighter();
   const [copied, setCopied] = useState(false);
   const [activeFormat, setActiveFormat] = useState('raw');
   const [formats, setFormats] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
-  // Use default theme based on dark/light mode
-  const getResponseTheme = () => {
-    return isDark ? oneDark : oneLight;
-  };
 
   // Load formats when modal opens
   useEffect(() => {
@@ -25,30 +19,15 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
     }
   }, [isOpen, requestId]);
 
-  // Listen for theme changes
-  useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-
-    return () => observer.disconnect();
-  }, []);
-
   // Load all formats for the request
   const loadFormats = async () => {
     if (!requestId) return;
-    
+
     setLoading(true);
     try {
       const adapter = await adapterFactory.getAdapter();
       const response = await adapter.copyAllRequestFormats(requestId);
-      
+
       // The response contains a 'formats' object with all formats
       setFormats(response.formats || response);
     } catch (error) {
@@ -78,7 +57,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
   const handleCopy = async () => {
     const content = formats[activeFormat];
     if (!content) return;
-    
+
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(content);
@@ -95,7 +74,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
         document.execCommand('copy');
         document.body.removeChild(textarea);
       }
-      
+
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -131,36 +110,39 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
     { id: 'python', label: 'Python Requests', icon: FileCode }
   ];
 
+  const content = formats[activeFormat] || '';
+  const html = ready ? highlight(content, getLanguage()) : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] m-4 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">
-            Copy Request
+            {t('request.copyRequest')}
           </h3>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              disabled={!formats[activeFormat] || loading}
+              disabled={!content || loading}
               className="flex items-center gap-2 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {copied ? (
                 <>
                   <Check className="h-4 w-4" />
-                  Copied!
+                  {t('common.copied')}
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4" />
-                  Copy
+                  {t('common.copy')}
                 </>
               )}
             </button>
@@ -204,27 +186,21 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">Loading formats...</p>
+                  <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
                 </div>
               </div>
             ) : (
               <div className="h-full overflow-y-auto">
-                <SyntaxHighlighter
-                  language={getLanguage()}
-                  style={getResponseTheme()}
-                  customStyle={{
-                    margin: 0,
-                    borderRadius: 0,
-                    fontSize: '0.875rem',
-                    backgroundColor: 'hsl(var(--background))',
-                    padding: '1rem'
-                  }}
-                  showLineNumbers={true}
-                  wrapLines={true}
-                  wrapLongLines={true}
-                >
-                  {formats[activeFormat] || ''}
-                </SyntaxHighlighter>
+                {html ? (
+                  <div
+                    className="shiki-wrapper text-sm"
+                    dangerouslySetInnerHTML={{ __html: html }}
+                  />
+                ) : (
+                  <pre className="text-sm p-4 font-mono whitespace-pre-wrap break-words">
+                    {content}
+                  </pre>
+                )}
               </div>
             )}
           </div>
@@ -233,7 +209,7 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
         {/* Footer */}
         <div className="p-4 border-t border-border bg-muted/30">
           <p className="text-sm text-muted-foreground">
-            Press <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded">Esc</kbd> to close
+            {t('common.press')} <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded">Esc</kbd> {t('common.toClose')}
           </p>
         </div>
       </div>

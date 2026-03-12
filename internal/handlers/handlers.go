@@ -1,13 +1,9 @@
 package handlers
 
 import (
-	"encoding/base64"
-	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -222,160 +218,10 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
-	request, err := h.services.Request.GetRequest(id)
+	response, err := h.services.Request.ExecuteRequest(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Request not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
-	start := time.Now()
-
-	// Get configured timeout, default to 5 minutes
-	timeout, err := h.services.Config.GetRequestTimeout()
-	if err != nil {
-		timeout = 300 * time.Second // Default to 5 minutes on error
-	}
-
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
-	// Build the complete URL with query parameters
-	finalURL := request.URL
-	if len(request.QueryParams) > 0 {
-		parsedURL, err := url.Parse(request.URL)
-		if err == nil {
-			queryValues := parsedURL.Query()
-
-			// Add query parameters from the request
-			for _, param := range request.QueryParams {
-				if param.Enabled && param.Key != "" {
-					queryValues.Add(param.Key, param.Value)
-				}
-			}
-
-			parsedURL.RawQuery = queryValues.Encode()
-			finalURL = parsedURL.String()
-		}
-	}
-
-	// Prepare the request body based on body type
-	var body io.Reader
-	var bodyString string
-
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		// Handle form data
-		formValues := url.Values{}
-		for _, item := range request.FormData {
-			if item.Key != "" {
-				formValues.Add(item.Key, item.Value)
-			}
-		}
-		bodyString = formValues.Encode()
-		body = strings.NewReader(bodyString)
-	} else if request.Body != "" {
-		// Handle regular body content
-		bodyString = request.Body
-		body = strings.NewReader(request.Body)
-	}
-
-	req, err := http.NewRequest(request.Method, finalURL, body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Set custom User-Agent header
-	req.Header.Set("User-Agent", "Rikuest/1.0 (HTTP API Client)")
-
-	// Set headers from the request
-	for key, value := range request.Headers {
-		req.Header.Set(key, value)
-	}
-
-	// Set authorization headers
-	switch request.AuthType {
-	case "bearer":
-		if request.BearerToken != "" {
-			req.Header.Set("Authorization", "Bearer "+request.BearerToken)
-		}
-	case "basic":
-		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
-			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
-			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-			req.Header.Set("Authorization", "Basic "+encodedAuth)
-		}
-	}
-
-	// Ensure Content-Type is set for form data if not already present
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-	}
-
-	resp, err := client.Do(req)
-	duration := time.Since(start)
-
-	// Generate raw request
-	rawRequestString := h.services.Format.BuildRawRequest(request)
-
-	var response models.RequestResponse
-
-	if err != nil {
-		// Handle network/connection errors as a response
-		statusText := getErrorStatusText(err.Error())
-		response = models.RequestResponse{
-			Status:     0,
-			StatusText: statusText,
-			Headers:    make(map[string]string),
-			Body:       err.Error(),
-			Duration:   duration.Milliseconds(),
-			Size:       int64(len(err.Error())),
-			RawRequest: rawRequestString,
-		}
-	} else {
-		defer resp.Body.Close()
-
-		responseBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			// Handle body read errors as a response
-			response = models.RequestResponse{
-				Status:     resp.StatusCode,
-				StatusText: resp.Status,
-				Headers:    make(map[string]string),
-				Body:       "Failed to read response body: " + err.Error(),
-				Duration:   duration.Milliseconds(),
-				Size:       0,
-				RawRequest: rawRequestString,
-			}
-		} else {
-			responseHeaders := make(map[string]string)
-			for key, values := range resp.Header {
-				responseHeaders[key] = strings.Join(values, ", ")
-			}
-
-			response = models.RequestResponse{
-				Status:     resp.StatusCode,
-				StatusText: resp.Status,
-				Headers:    responseHeaders,
-				Body:       string(responseBody),
-				Duration:   duration.Milliseconds(),
-				Size:       int64(len(responseBody)),
-				RawRequest: rawRequestString,
-			}
-		}
-	}
-
-	history := &models.RequestHistory{
-		RequestID: id,
-		Response:  response,
-	}
-
-	// Save to history (ignore errors to ensure response is always returned)
-	if err := h.services.Request.SaveRequestHistory(history); err != nil {
-		// Log the error but don't fail the request execution
-		println("Warning: Failed to save request history:", err.Error())
 	}
 
 	c.JSON(http.StatusOK, response)

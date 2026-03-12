@@ -29,7 +29,11 @@
     "error": "Error",
     "success": "Éxito",
     "warning": "Advertencia",
-    "info": "Información"
+    "info": "Información",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "press": "Presiona",
+    "toClose": "para cerrar"
   },
   "app": {
     "title": "Rikuest",
@@ -61,7 +65,12 @@
     "actions": "Acciones",
     "deleteProject": "Eliminar Proyecto",
     "deleteProjectConfirm": "¿Estás seguro de que quieres eliminar este proyecto?",
-    "deleteProjectWarning": "Esta acción no se puede deshacer"
+    "deleteProjectWarning": "Esta acción no se puede deshacer",
+    "noDescription": "Sin descripción",
+    "selectRequest": "Selecciona un request",
+    "selectRequestDesc": "Elige un request de la barra lateral o crea uno nuevo",
+    "noRequestsCreate": "Crea tu primera solicitud para comenzar",
+    "duplicate": "Duplicar"
   },
   "request": {
     "create": "Crear Nueva Solicitud",
@@ -88,7 +97,46 @@
     "copyPython": "Copiar Python",
     "copyAll": "Copiar Todos los Formatos",
     "deleteRequest": "Eliminar Solicitud",
-    "deleteRequestConfirm": "¿Estás seguro de que quieres eliminar"
+    "deleteRequestConfirm": "¿Estás seguro de que quieres eliminar",
+    "urlPlaceholder": "Ingresa la URL del request",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "historyTitle": "Historial de Solicitudes",
+    "noSelected": "Ningún request seleccionado",
+    "noResponse": "Sin Respuesta",
+    "noResponseDesc": "Envía un request para ver la respuesta aquí",
+    "executingTitle": "Ejecutando Request",
+    "executingDesc": "Por favor espera mientras se procesa el request...",
+    "loadingHistoryTitle": "Cargando Elemento del Historial",
+    "loadingHistoryDesc": "Cargando respuesta del historial...",
+    "rawNotAvailable": "Request raw no disponible",
+    "rawNotAvailableDesc": "Este puede ser un request más antiguo o el backend aún no soporta el registro de request raw",
+    "noHistory": "Sin historial de solicitudes",
+    "noHistoryDesc": "Ejecuta este request para ver su historial",
+    "deleteHistoryTitle": "Eliminar Elemento del Historial",
+    "deleteHistoryConfirm": "¿Estás seguro de que quieres eliminar este elemento del historial? Esta acción no se puede deshacer.",
+    "executed": "Ejecutado:",
+    "deleteHistoryItem": "Eliminar elemento del historial",
+    "paramName": "Nombre del parámetro",
+    "paramValue": "Valor del parámetro",
+    "addParam": "Agregar Parámetro",
+    "headerName": "Nombre del encabezado",
+    "headerValue": "Valor del encabezado",
+    "addHeader": "Agregar Encabezado",
+    "formKey": "Clave",
+    "formValue": "Valor",
+    "addFormField": "Agregar Campo",
+    "jsonPlaceholder": "Ingresa el cuerpo JSON",
+    "textPlaceholder": "Ingresa el cuerpo de texto",
+    "noAuth": "Sin Autenticación",
+    "token": "Token",
+    "tokenPlaceholder": "Ingresa el token bearer",
+    "username": "Usuario",
+    "usernamePlaceholder": "Ingresa el usuario",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Ingresa la contraseña",
+    "createRequest": "Crear Solicitud",
+    "copyRequest": "Copiar Solicitud"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -101,7 +149,12 @@
     "moveToRoot": "Mover a Raíz",
     "deleteFolder": "Eliminar Carpeta",
     "deleteFolderConfirm": "¿Estás seguro de que quieres eliminar la carpeta",
-    "deleteFolderWarning": "Todas las solicitudes en esta carpeta se moverán al nivel raíz."
+    "deleteFolderWarning": "Todas las solicitudes en esta carpeta se moverán al nivel raíz.",
+    "variables": "Variables",
+    "foldersAndRequests": "Carpetas y Solicitudes",
+    "createNew": "Crear Nuevo",
+    "createFolder": "Crear Carpeta",
+    "rename": "Renombrar"
   },
   "settings": {
     "title": "Configuración",
@@ -146,7 +199,14 @@
     "telemetryInfo": "Cuando está habilitada, se puede recopilar la siguiente información:",
     "telemetryInfo1": "Informes de errores con seguimientos de pila",
     "telemetryInfo2": "Eventos de uso (creación de proyectos, ejecución de solicitudes, etc.)",
-    "telemetryInfo3": "Métricas anónimas (recuentos de solicitudes, duración de sesión)"
+    "telemetryInfo3": "Métricas anónimas (recuentos de solicitudes, duración de sesión)",
+    "appLayout": "Diseño de la App",
+    "appLayoutDesc": "Elige cómo se organiza la interfaz de la aplicación. El diseño compacto coloca el encabezado en la barra lateral para más espacio de contenido.",
+    "backgroundColors": "Colores de Fondo",
+    "backgroundColorsDesc": "Personaliza el color de fondo para los temas claro y oscuro. Elige entre paletas cuidadosamente seleccionadas que mantienen la legibilidad y accesibilidad.",
+    "primaryColorDesc": "Selecciona el color primario que se usará para botones, enlaces, resaltados y otros elementos interactivos.",
+    "savedAutomatically": "La configuración se guarda automáticamente",
+    "done": "Listo"
   },
   "methods": {
     "GET": "GET",
@@ -182,6 +242,28 @@
     "notFound": "No Encontrado",
     "serverError": "Error del Servidor",
     "unknownError": "Error Desconocido"
+  },
+  "environment": {
+    "title": "Ambientes",
+    "newEnvironment": "Nuevo ambiente",
+    "setActive": "Activar",
+    "active": "Activo",
+    "createOrSelect": "Crea o selecciona un ambiente",
+    "variable": "Variable",
+    "value": "Valor",
+    "variablePlaceholder": "Nombre de variable",
+    "valuePlaceholder": "Valor",
+    "addVariable": "Agregar variable",
+    "saving": "Guardando…",
+    "folderVariables": "Variables de Carpeta",
+    "folderVariablesDesc": "Sobreescribir variables del ambiente para"
+  },
+  "captures": {
+    "tab": "Capturas",
+    "description": "Extrae valores de la respuesta JSON y guárdalos como variables en el ambiente activo. Usa dot.notation para rutas anidadas.",
+    "variableName": "Nombre de variable",
+    "jsonPath": "Ruta JSON",
+    "addRule": "Agregar regla de captura"
   },
   "openapi": {
     "title": "Importar desde OpenAPI",

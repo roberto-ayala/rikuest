@@ -128,6 +128,43 @@ func (db *DB) createTables() error {
 			event_hash TEXT PRIMARY KEY,
 			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS environments (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			project_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			is_active INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS environment_variables (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			environment_id INTEGER NOT NULL,
+			key TEXT NOT NULL,
+			value TEXT NOT NULL DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (environment_id) REFERENCES environments(id) ON DELETE CASCADE,
+			UNIQUE(environment_id, key)
+		)`,
+		`CREATE TABLE IF NOT EXISTS folder_variables (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			folder_id INTEGER NOT NULL,
+			key TEXT NOT NULL,
+			value TEXT NOT NULL DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+		)`,
+		`CREATE TABLE IF NOT EXISTS response_captures (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			request_id INTEGER NOT NULL,
+			variable_name TEXT NOT NULL,
+			json_path TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE
+		)`,
 	}
 
 	for _, query := range queries {
@@ -523,4 +560,250 @@ func (db *DB) CacheEventHash(eventHash string) error {
 	query := `INSERT OR REPLACE INTO telemetry_events_cache (event_hash, timestamp) VALUES (?, CURRENT_TIMESTAMP)`
 	_, err := db.Exec(query, eventHash)
 	return err
+}
+
+// ===== ENVIRONMENT & VARIABLE METHODS =====
+
+func (db *DB) CreateEnvironment(env *models.Environment) error {
+	query := `INSERT INTO environments (project_id, name, is_active) VALUES (?, ?, 0) RETURNING id, created_at, updated_at`
+	return db.QueryRow(query, env.ProjectID, env.Name).Scan(&env.ID, &env.CreatedAt, &env.UpdatedAt)
+}
+
+func (db *DB) GetEnvironments(projectID int) ([]models.Environment, error) {
+	rows, err := db.Query(
+		`SELECT id, project_id, name, is_active, created_at, updated_at FROM environments WHERE project_id = ? ORDER BY created_at ASC`,
+		projectID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var envs []models.Environment
+	for rows.Next() {
+		var e models.Environment
+		var isActive int
+		if err := rows.Scan(&e.ID, &e.ProjectID, &e.Name, &isActive, &e.CreatedAt, &e.UpdatedAt); err != nil {
+			return nil, err
+		}
+		e.IsActive = isActive == 1
+		envs = append(envs, e)
+	}
+
+	// Load variables for each environment
+	for i := range envs {
+		vars, err := db.getEnvironmentVariables(envs[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		envs[i].Variables = vars
+	}
+
+	if envs == nil {
+		envs = []models.Environment{}
+	}
+	return envs, nil
+}
+
+func (db *DB) GetActiveEnvironment(projectID int) (*models.Environment, error) {
+	var e models.Environment
+	var isActive int
+	err := db.QueryRow(
+		`SELECT id, project_id, name, is_active, created_at, updated_at FROM environments WHERE project_id = ? AND is_active = 1`,
+		projectID,
+	).Scan(&e.ID, &e.ProjectID, &e.Name, &isActive, &e.CreatedAt, &e.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	e.IsActive = true
+	vars, err := db.getEnvironmentVariables(e.ID)
+	if err != nil {
+		return nil, err
+	}
+	e.Variables = vars
+	return &e, nil
+}
+
+func (db *DB) getEnvironmentVariables(environmentID int) ([]models.Variable, error) {
+	rows, err := db.Query(
+		`SELECT id, key, value, created_at, updated_at FROM environment_variables WHERE environment_id = ? ORDER BY key ASC`,
+		environmentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vars []models.Variable
+	for rows.Next() {
+		var v models.Variable
+		if err := rows.Scan(&v.ID, &v.Key, &v.Value, &v.CreatedAt, &v.UpdatedAt); err != nil {
+			return nil, err
+		}
+		vars = append(vars, v)
+	}
+	if vars == nil {
+		vars = []models.Variable{}
+	}
+	return vars, nil
+}
+
+func (db *DB) UpdateEnvironmentName(id int, name string) error {
+	_, err := db.Exec(`UPDATE environments SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, name, id)
+	return err
+}
+
+func (db *DB) DeleteEnvironment(id int) error {
+	_, err := db.Exec(`DELETE FROM environments WHERE id = ?`, id)
+	return err
+}
+
+func (db *DB) SetActiveEnvironment(projectID, environmentID int) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`UPDATE environments SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?`, projectID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE environments SET is_active = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, environmentID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (db *DB) DeactivateAllEnvironments(projectID int) error {
+	_, err := db.Exec(`UPDATE environments SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?`, projectID)
+	return err
+}
+
+// UpdateEnvironmentVariables replaces all variables for an environment (batch replace).
+func (db *DB) UpdateEnvironmentVariables(environmentID int, variables []models.Variable) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM environment_variables WHERE environment_id = ?`, environmentID); err != nil {
+		return err
+	}
+	for _, v := range variables {
+		if _, err := tx.Exec(
+			`INSERT INTO environment_variables (environment_id, key, value) VALUES (?, ?, ?)`,
+			environmentID, v.Key, v.Value,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// UpsertEnvironmentVariable adds or updates a single variable (used by response capture).
+func (db *DB) UpsertEnvironmentVariable(environmentID int, key, value string) error {
+	_, err := db.Exec(`
+		INSERT INTO environment_variables (environment_id, key, value)
+		VALUES (?, ?, ?)
+		ON CONFLICT(environment_id, key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+	`, environmentID, key, value, value)
+	return err
+}
+
+// GetFolderVariables returns variables for a folder.
+func (db *DB) GetFolderVariables(folderID int) ([]models.Variable, error) {
+	rows, err := db.Query(
+		`SELECT id, key, value, created_at, updated_at FROM folder_variables WHERE folder_id = ? ORDER BY key ASC`,
+		folderID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vars []models.Variable
+	for rows.Next() {
+		var v models.Variable
+		if err := rows.Scan(&v.ID, &v.Key, &v.Value, &v.CreatedAt, &v.UpdatedAt); err != nil {
+			return nil, err
+		}
+		vars = append(vars, v)
+	}
+	if vars == nil {
+		vars = []models.Variable{}
+	}
+	return vars, nil
+}
+
+// UpdateFolderVariables replaces all variables for a folder (batch replace).
+func (db *DB) UpdateFolderVariables(folderID int, variables []models.Variable) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM folder_variables WHERE folder_id = ?`, folderID); err != nil {
+		return err
+	}
+	for _, v := range variables {
+		if _, err := tx.Exec(
+			`INSERT INTO folder_variables (folder_id, key, value) VALUES (?, ?, ?)`,
+			folderID, v.Key, v.Value,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// GetResponseCaptures returns capture rules for a request.
+func (db *DB) GetResponseCaptures(requestID int) ([]models.ResponseCapture, error) {
+	rows, err := db.Query(
+		`SELECT id, request_id, variable_name, json_path FROM response_captures WHERE request_id = ? ORDER BY id ASC`,
+		requestID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var captures []models.ResponseCapture
+	for rows.Next() {
+		var c models.ResponseCapture
+		if err := rows.Scan(&c.ID, &c.RequestID, &c.VariableName, &c.JSONPath); err != nil {
+			return nil, err
+		}
+		captures = append(captures, c)
+	}
+	if captures == nil {
+		captures = []models.ResponseCapture{}
+	}
+	return captures, nil
+}
+
+// UpdateResponseCaptures replaces all capture rules for a request (batch replace).
+func (db *DB) UpdateResponseCaptures(requestID int, captures []models.ResponseCapture) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM response_captures WHERE request_id = ?`, requestID); err != nil {
+		return err
+	}
+	for _, c := range captures {
+		if _, err := tx.Exec(
+			`INSERT INTO response_captures (request_id, variable_name, json_path) VALUES (?, ?, ?)`,
+			requestID, c.VariableName, c.JSONPath,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

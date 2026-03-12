@@ -16,16 +16,17 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { 
-  Folder, 
-  FolderOpen, 
-  FileText, 
-  Plus, 
+import {
+  Folder,
+  FolderOpen,
+  FileText,
+  Plus,
   MoreVertical,
   ChevronRight,
   ChevronDown,
   Edit3,
-  Trash2
+  Trash2,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -37,6 +38,7 @@ import { useRequestStore } from '../stores/requestStore';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
+import FolderVariablesModal from './FolderVariablesModal';
 
 // Root Drop Zone Component
 function RootDropZone() {
@@ -110,6 +112,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   const [showRenameFolderDialog, setShowRenameFolderDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showFolderMenu, setShowFolderMenu] = useState(false);
+  const [showFolderVariables, setShowFolderVariables] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -359,15 +362,15 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   const getMethodColor = (method) => {
     const colors = {
-      'GET': 'bg-blue-500',
-      'POST': 'bg-green-500',
-      'PUT': 'bg-orange-500',
-      'DELETE': 'bg-red-500',
-      'PATCH': 'bg-purple-500',
-      'HEAD': 'bg-gray-500',
-      'OPTIONS': 'bg-gray-500'
+      'GET': 'text-blue-500',
+      'POST': 'text-green-500',
+      'PUT': 'text-orange-500',
+      'DELETE': 'text-red-500',
+      'PATCH': 'text-purple-500',
+      'HEAD': 'text-gray-400',
+      'OPTIONS': 'text-gray-400'
     };
-    return colors[method] || 'bg-gray-500';
+    return colors[method] || 'text-gray-400';
   };
   
   const folderTree = getFolderTree();
@@ -398,7 +401,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {/* New Folder Button */}
       <div className="flex items-center justify-between px-2 py-1 mb-2">
         <span className={`${text('sm')} font-medium text-muted-foreground`}>
-          Folders & Requests
+          {t('folder.foldersAndRequests')}
         </span>
         <Button
           variant="ghost"
@@ -408,7 +411,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             setShowCreateMenu(true);
           }}
           className={`${button} h-6 w-6 p-0`}
-          title="Create New"
+          title={t('folder.createNew')}
         >
           <Plus className={icon} />
         </Button>
@@ -436,38 +439,17 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               >
                 {/* Render requests in this folder */}
                 {requestsByFolder.folders[folder.id] && (
-                  <div className="ml-4 space-y-1 mt-1">
-                    {/* Drop zone for inserting at the beginning of folder */}
-                    <div 
-                      className={`h-1 transition-all duration-200 ${
-                        activeId && !activeId.toString().includes(`folder-${folder.id}`) 
-                          ? 'hover:h-2 hover:bg-primary/20 hover:border-dashed hover:border-primary rounded' 
-                          : ''
-                      }`}
-                    />
-                    
-                    {requestsByFolder.folders[folder.id].map((request, index) => (
-                      <div key={request.id} className="relative">
-                        <RequestTreeItem
-                          request={request}
-                          isSelected={currentRequest?.id === request.id}
-                          onSelect={onSelectRequest}
-                          getMethodColor={getMethodColor}
-                          isBeingDragged={activeId === `request-${request.id}`}
-                          onShowMenu={onShowRequestMenu}
-                        />
-                        
-                        {/* Drop zone between requests */}
-                        {index < requestsByFolder.folders[folder.id].length - 1 && (
-                          <div 
-                            className={`h-1 transition-all duration-200 ${
-                              activeId && activeId !== `request-${request.id}` 
-                                ? 'hover:h-2 hover:bg-primary/20 hover:border-dashed hover:border-primary rounded' 
-                                : ''
-                            }`}
-                          />
-                        )}
-                      </div>
+                  <div className="ml-4 mt-0.5">
+                    {requestsByFolder.folders[folder.id].map((request) => (
+                      <RequestTreeItem
+                        key={request.id}
+                        request={request}
+                        isSelected={currentRequest?.id === request.id}
+                        onSelect={onSelectRequest}
+                        getMethodColor={getMethodColor}
+                        isBeingDragged={activeId === `request-${request.id}`}
+                        onShowMenu={onShowRequestMenu}
+                      />
                     ))}
                   </div>
                 )}
@@ -475,28 +457,16 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             ))}
             
             {/* Render root level requests */}
-            {requestsByFolder.root.map((request, index) => (
-              <div key={request.id} className="relative">
-                <RequestTreeItem
-                  request={request}
-                  isSelected={currentRequest?.id === request.id}
-                  onSelect={onSelectRequest}
-                  getMethodColor={getMethodColor}
-                  isBeingDragged={activeId === `request-${request.id}`}
-                  onShowMenu={onShowRequestMenu}
-                />
-                
-                {/* Drop zone between root requests */}
-                {index < requestsByFolder.root.length - 1 && (
-                  <div 
-                    className={`h-1 transition-all duration-200 ${
-                      activeId && activeId !== `request-${request.id}` 
-                        ? 'hover:h-2 hover:bg-primary/20 hover:border-dashed hover:border-primary rounded' 
-                        : ''
-                    }`}
-                  />
-                )}
-              </div>
+            {requestsByFolder.root.map((request) => (
+              <RequestTreeItem
+                key={request.id}
+                request={request}
+                isSelected={currentRequest?.id === request.id}
+                onSelect={onSelectRequest}
+                getMethodColor={getMethodColor}
+                isBeingDragged={activeId === `request-${request.id}`}
+                onShowMenu={onShowRequestMenu}
+              />
             ))}
           </div>
         </SortableContext>
@@ -528,12 +498,12 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {showNewFolderDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>Create Folder</h3>
-            
+            <h3 className={`${text('base')} font-semibold mb-3`}>{t('folder.createFolder')}</h3>
+
             <Input
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Folder name"
+              placeholder={t('folder.folderNamePlaceholder')}
               className={`w-full ${input} mb-4`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -555,14 +525,14 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                 }}
                 className={button}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button 
+              <Button
                 onClick={handleCreateFolder}
                 disabled={!newFolderName.trim()}
                 className={button}
               >
-                Create
+                {t('common.create')}
               </Button>
             </div>
           </div>
@@ -585,7 +555,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               }}
             >
               <FileText className={iconMd} />
-              New Request
+              {t('navigation.newRequest')}
             </button>
             <button
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
@@ -596,31 +566,47 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               }}
             >
               <Edit3 className={iconMd} />
-              Rename
+              {t('folder.rename')}
+            </button>
+            <button
+              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
+              onClick={() => {
+                setShowFolderVariables(true);
+                setShowFolderMenu(false);
+              }}
+            >
+              <SlidersHorizontal className={iconMd} />
+              {t('folder.variables')}
             </button>
             <button
               className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteFolder}
             >
               <Trash2 className={iconMd} />
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         </div>
       )}
+
+      <FolderVariablesModal
+        folder={selectedFolder}
+        isOpen={showFolderVariables}
+        onClose={() => setShowFolderVariables(false)}
+      />
       
       {/* New Request in Folder Dialog */}
       {showNewRequestDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
             <h3 className={`${text('base')} font-semibold mb-3`}>
-              New Request {selectedFolder ? `in ${selectedFolder.name}` : ''}
+              {t('navigation.newRequest')}{selectedFolder ? ` in ${selectedFolder.name}` : ''}
             </h3>
-            
+
             <Input
               value={newRequestName}
               onChange={(e) => setNewRequestName(e.target.value)}
-              placeholder="Request name"
+              placeholder={t('request.requestNamePlaceholder')}
               className={`w-full ${input} mb-4`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -644,14 +630,14 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                 }}
                 className={button}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button 
+              <Button
                 onClick={handleCreateRequestInFolder}
                 disabled={!newRequestName.trim()}
                 className={button}
               >
-                Create
+                {t('common.create')}
               </Button>
             </div>
           </div>
@@ -663,13 +649,13 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
             <h3 className={`${text('base')} font-semibold mb-3`}>
-              Rename Folder
+              {t('folder.rename')} {t('common.folder')}
             </h3>
-            
+
             <Input
               value={renameFolderName}
               onChange={(e) => setRenameFolderName(e.target.value)}
-              placeholder="Folder name"
+              placeholder={t('folder.folderNamePlaceholder')}
               className={`w-full ${input} mb-4`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -693,14 +679,14 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                 }}
                 className={button}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button 
+              <Button
                 onClick={handleRenameFolder}
                 disabled={!renameFolderName.trim()}
                 className={button}
               >
-                Rename
+                {t('folder.rename')}
               </Button>
             </div>
           </div>
@@ -723,7 +709,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               }}
             >
               <Folder className={`${iconMd} text-primary`} />
-              <span>New Folder</span>
+              <span>{t('navigation.newFolder')}</span>
             </button>
             <button
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
@@ -734,7 +720,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               }}
             >
               <FileText className={iconMd} />
-              <span>New Request</span>
+              <span>{t('navigation.newRequest')}</span>
             </button>
           </div>
         </div>

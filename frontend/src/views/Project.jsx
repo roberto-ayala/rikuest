@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -8,6 +8,7 @@ import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
 import { useFolderStore } from '../stores/folderStore';
 import { useUIStore } from '../stores/uiStore';
+import { useEnvironmentStore } from '../stores/environmentStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import ThemeSelector from '../components/ThemeSelector';
@@ -15,6 +16,7 @@ import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
+import EnvironmentManager from '../components/EnvironmentManager';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -36,6 +38,8 @@ function Project({ layout, onNewProject, onSettings }) {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
   const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
+  const [showEnvManager, setShowEnvManager] = useState(false);
+  const { activeEnvironment } = useEnvironmentStore();
   const [newRequest, setNewRequest] = useState({
     name: '',
     method: 'GET',
@@ -299,7 +303,7 @@ function Project({ layout, onNewProject, onSettings }) {
                 onClick={onNewProject}
                 variant="ghost"
                 className={iconButton}
-                title="New Project"
+                title={t('navigation.newProject')}
               >
                 <Plus className={icon} />
               </Button>
@@ -308,7 +312,7 @@ function Project({ layout, onNewProject, onSettings }) {
                 variant="ghost"
                 onClick={onSettings}
                 className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-                title="Settings"
+                title={t('common.settings')}
               >
                 <Settings className={icon} />
               </Button>
@@ -333,7 +337,7 @@ function Project({ layout, onNewProject, onSettings }) {
                 {currentProject?.name}
               </h1>
               <p className={`${text('sm')} text-muted-foreground truncate`}>
-                {currentProject?.description || 'No description'}
+                {currentProject?.description || t('project.noDescription')}
               </p>
             </div>
             <Button
@@ -348,8 +352,23 @@ function Project({ layout, onNewProject, onSettings }) {
             >
               <Upload className={icon} />
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowEnvManager(true)}
+              className={`${iconButton} ${activeEnvironment ? 'text-green-600 dark:text-green-400 border-green-500/40' : ''}`}
+              title={t('environment.title')}
+            >
+              <Layers className={icon} />
+            </Button>
           </div>
-          
+          {activeEnvironment && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                {activeEnvironment.name}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Folder Tree */}
@@ -395,13 +414,13 @@ function Project({ layout, onNewProject, onSettings }) {
               <div>
                 {!loading && requests.length === 0 ? (
                   <>
-                    <h3 className={`${text('lg')} font-medium text-foreground`}>No requests yet</h3>
-                    <p className={`${text('sm')} text-muted-foreground`}>Create your first request to get started</p>
+                    <h3 className={`${text('lg')} font-medium text-foreground`}>{t('request.noRequests')}</h3>
+                    <p className={`${text('sm')} text-muted-foreground`}>{t('project.noRequestsCreate')}</p>
                   </>
                 ) : (
                   <>
-                    <h3 className={`${text('lg')} font-medium text-foreground`}>Select a request</h3>
-                    <p className={`${text('sm')} text-muted-foreground`}>Choose a request from the sidebar or create a new one</p>
+                    <h3 className={`${text('lg')} font-medium text-foreground`}>{t('project.selectRequest')}</h3>
+                    <p className={`${text('sm')} text-muted-foreground`}>{t('project.selectRequestDesc')}</p>
                   </>
                 )}
               </div>
@@ -414,22 +433,22 @@ function Project({ layout, onNewProject, onSettings }) {
       {showRequestDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(6)} rounded-lg shadow-lg border border-border w-full max-w-lg`}>
-            <h2 className={`${text('lg')} font-semibold mb-4`}>Create New Request</h2>
-            
+            <h2 className={`${text('lg')} font-semibold mb-4`}>{t('request.create')}</h2>
+
             <div className="space-y-4">
               <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>Request Name</label>
+                <label className={`${text('sm')} font-medium mb-2 block`}>{t('request.requestName')}</label>
                 <Input
                   value={newRequest.name}
                   onChange={(e) => setNewRequest({...newRequest, name: e.target.value})}
-                  placeholder="Enter request name"
+                  placeholder={t('request.requestNamePlaceholder')}
                   className={`w-full ${input}`}
                 />
               </div>
               
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={`${text('sm')} font-medium mb-2 block`}>Method</label>
+                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.method')}</label>
                   <select
                     value={newRequest.method}
                     onChange={(e) => setNewRequest({...newRequest, method: e.target.value})}
@@ -445,11 +464,11 @@ function Project({ layout, onNewProject, onSettings }) {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className={`${text('sm')} font-medium mb-2 block`}>URL</label>
+                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.url')}</label>
                   <Input
                     value={newRequest.url}
                     onChange={(e) => setNewRequest({...newRequest, url: e.target.value})}
-                    placeholder="https://api.example.com/endpoint"
+                    placeholder={t('request.requestUrlPlaceholder')}
                     className={`w-full ${input}`}
                   />
                 </div>
@@ -458,10 +477,10 @@ function Project({ layout, onNewProject, onSettings }) {
 
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="ghost" onClick={handleCancelCreateRequest} className={button}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleCreateRequest} disabled={!newRequest.name.trim()} className={button}>
-                Create Request
+                {t('request.createRequest')}
               </Button>
             </div>
           </div>
@@ -481,21 +500,21 @@ function Project({ layout, onNewProject, onSettings }) {
               onClick={handleDuplicateRequest}
             >
               <Copy className={iconMd} />
-              Duplicate
+              {t('project.duplicate')}
             </button>
             <button
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={handleCopyRequest}
             >
               <Copy className={iconMd} />
-              Copy Request
+              {t('request.copyRequest')}
             </button>
             <button
               className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteRequest}
             >
               <Trash2 className={iconMd} />
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         </div>
@@ -524,6 +543,13 @@ function Project({ layout, onNewProject, onSettings }) {
         isOpen={showOpenAPIModal}
         onClose={() => setShowOpenAPIModal(false)}
         projectId={projectId}
+      />
+
+      {/* Environment Manager */}
+      <EnvironmentManager
+        projectId={projectId}
+        isOpen={showEnvManager}
+        onClose={() => setShowEnvManager(false)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Plus, Trash2, Loader2, BarChart3, Clock, History, X, Timer, HardDrive, Calendar, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -6,186 +6,52 @@ import { Textarea } from './ui/Textarea';
 import JsonEditor from './JsonEditor';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
-import { useUIStore } from '../stores/uiStore';
-import hljs from 'highlight.js';
+import { useTranslation } from '../hooks/useTranslation';
+import { useEnvironmentStore } from '../stores/environmentStore';
+import { useShikiHighlighter } from '../hooks/useShikiHighlighter';
+import ResponseCapturesPanel from './ResponseCapturesPanel';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 
-// Optimized code highlighting component using highlight.js
-const HighlightedCode = React.memo(({ content, language, formatJson, textSize, config }) => {
-  const codeRef = useRef(null);
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
-  // Subscribe to store changes to get background color settings
-  const { theme, backgroundColorLight, backgroundColorDark, getBackgroundColors } = useUIStore();
-  
-  // Listen for theme changes
-  useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
-      });
-    });
+const HighlightedCode = React.memo(({ content, language, formatJson, textSize, config, showLineNumbers }) => {
+  const { highlight, ready } = useShikiHighlighter();
 
-    observer.observe(document.documentElement, { attributes: true });
-    return () => observer.disconnect();
-  }, []);
-  
-  // Helper to convert HSL to hex
-  const hslToHex = useCallback((h, s, l) => {
-    s /= 100;
-    l /= 100;
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c / 2;
-    let r = 0, g = 0, b = 0;
-    
-    if (0 <= h && h < 60) {
-      r = c; g = x; b = 0;
-    } else if (60 <= h && h < 120) {
-      r = x; g = c; b = 0;
-    } else if (120 <= h && h < 180) {
-      r = 0; g = c; b = x;
-    } else if (180 <= h && h < 240) {
-      r = 0; g = x; b = c;
-    } else if (240 <= h && h < 300) {
-      r = x; g = 0; b = c;
-    } else if (300 <= h && h < 360) {
-      r = c; g = 0; b = x;
-    }
-    
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-    
-    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-  }, []);
-  
-  // Get app background color from configuration - directly from settings
-  const backgroundColor = useMemo(() => {
-    if (typeof window === 'undefined') return isDark ? '#020617' : '#ffffff';
-    
-    // Use isDark directly (it reflects the actual DOM state)
-    const effectiveTheme = isDark ? 'dark' : 'light';
-    
-    // Get background colors and find current selection from settings
-    const backgroundColors = getBackgroundColors();
-    const currentBgId = isDark ? backgroundColorDark : backgroundColorLight;
-    const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
-    
-    // Return the exact color from settings configuration
-    if (currentBgConfig && currentBgConfig.preview) {
-      return currentBgConfig.preview;
-    }
-    
-    // Fallback to CSS variable if no background selection
-    const root = getComputedStyle(document.documentElement);
-    let bgColor = root.getPropertyValue('--background').trim();
-    
-    if (bgColor) {
-      // Handle HSL format: "220 14% 96%" or "hsl(220, 14%, 96%)"
-      if (bgColor.includes(' ')) {
-        // Remove any hsl() wrapper if present
-        bgColor = bgColor.replace(/^hsl\(|\)$/g, '');
-        const values = bgColor.split(/[\s,]+/).map(v => v.replace('%', ''));
-        
-        if (values.length >= 3) {
-          const h = parseFloat(values[0]);
-          const s = parseFloat(values[1]);
-          const l = parseFloat(values[2]);
-          return hslToHex(h, s, l);
-        }
-      }
-      
-      // Handle hex colors directly
-      if (bgColor.startsWith('#')) {
-        return bgColor;
-      }
-      
-      // Handle rgb format
-      if (bgColor.startsWith('rgb')) {
-        const match = bgColor.match(/\d+/g);
-        if (match && match.length >= 3) {
-          const r = parseInt(match[0]);
-          const g = parseInt(match[1]);
-          const b = parseInt(match[2]);
-          return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-        }
-      }
-    }
-    
-    // Fallback colors - use default dark background
-    return isDark ? '#020617' : '#ffffff';
-  }, [isDark, backgroundColorLight, backgroundColorDark, getBackgroundColors, hslToHex]);
-
-  
-  // Memoize the highlighted HTML
-  const highlightedContent = useMemo(() => {
-    if (!content) return '';
-    
-    const processedContent = language === 'json' ? formatJson(content) : content;
-    
-    if (language === 'text' || !language) {
-      return processedContent;
-    }
-    
-    try {
-      // Use highlight.js to highlight the code
-      // Map language names to highlight.js supported languages
-      let hljsLanguage = language;
-      if (language === 'javascript') hljsLanguage = 'js';
-      if (language === 'http') hljsLanguage = 'http';
-      
-      const highlighted = hljs.highlight(processedContent, { 
-        language: hljsLanguage,
-        ignoreIllegals: true
-      });
-      return highlighted.value;
-    } catch (error) {
-      // If highlighting fails, return plain text
-      return processedContent;
-    }
-  }, [content, language, formatJson]);
-  
-  // Apply highlighting when content changes
-  useEffect(() => {
-    if (codeRef.current && language !== 'text' && language && highlightedContent) {
-      codeRef.current.innerHTML = highlightedContent;
-    }
-  }, [highlightedContent, language]);
-  
-  const fontSize = config.text.sm.includes('text-xs') ? '0.75rem' : 
+  const fontSize = config.text.sm.includes('text-xs') ? '0.75rem' :
                    config.text.sm.includes('text-sm') ? '0.875rem' :
                    config.text.sm.includes('text-base') ? '1rem' : '1.125rem';
-  
+
+  const processedContent = language === 'json' ? formatJson(content) : (content || '');
+
   if (language === 'text' || !language) {
     return (
       <div className="h-full overflow-y-auto">
-        <pre 
-          className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono whitespace-pre-wrap break-words`}
-          style={{ fontSize, backgroundColor }}
+        <pre
+          className={`${textSize} p-4 overflow-x-auto font-mono whitespace-pre-wrap break-words`}
+          style={{ fontSize }}
         >
           {content}
         </pre>
       </div>
     );
   }
-  
+
+  const html = ready ? highlight(processedContent, language, { lineNumbers: showLineNumbers }) : null;
+
   return (
-    <div className={`h-full overflow-y-auto hljs-container ${isDark ? 'hljs-theme-dark' : 'hljs-theme-light'}`}>
-      <pre 
-        className={`${textSize} p-4 rounded-lg overflow-x-auto font-mono`}
-        style={{ 
-          fontSize, 
-          backgroundColor,
-          ['--hljs-bg']: backgroundColor
-        }}
-      >
-        <code 
-          ref={codeRef}
-          className={`hljs language-${language}`}
+    <div className="h-full overflow-y-auto">
+      {html ? (
+        <div
+          className={`shiki-wrapper${showLineNumbers ? ' line-numbers' : ''}`}
+          style={{ fontSize }}
+          dangerouslySetInnerHTML={{ __html: html }}
         />
-      </pre>
+      ) : (
+        <pre
+          className={`${textSize} p-4 overflow-x-auto font-mono whitespace-pre-wrap`}
+          style={{ fontSize }}
+        >
+          {processedContent}
+        </pre>
+      )}
     </div>
   );
 });
@@ -195,6 +61,8 @@ HighlightedCode.displayName = 'HighlightedCode';
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, updateRequest, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
   const { text, spacing, button, input, select, tab: tabStyle, theme, config } = useUISize();
+  const { t } = useTranslation();
+  const { fetchEnvironments } = useEnvironmentStore();
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
   
 
@@ -707,10 +575,14 @@ function RequestBuilder() {
   // Execute request
   const handleExecuteRequest = async () => {
     if (!requestData.id) return;
-    
+
     try {
       await executeRequest(requestData.id);
       loadHistory();
+      // Refresh active environment to reflect any response captures
+      if (currentRequest?.project_id) {
+        fetchEnvironments(currentRequest.project_id);
+      }
     } catch (error) {
       console.error('Failed to execute request:', error);
     }
@@ -805,18 +677,19 @@ function RequestBuilder() {
   };
 
   const requestTabs = [
-    { 
-      id: 'params', 
-      label: 'Params', 
-      count: requestData.query_params.filter(p => p.key && p.value).length || null 
+    {
+      id: 'params',
+      label: 'Params',
+      count: requestData.query_params.filter(p => p.key && p.value).length || null
     },
-    { 
-      id: 'headers', 
-      label: 'Headers', 
-      count: requestData.headers_array.filter(h => h.key && h.value).length || null 
+    {
+      id: 'headers',
+      label: 'Headers',
+      count: requestData.headers_array.filter(h => h.key && h.value).length || null
     },
     { id: 'body', label: 'Body' },
-    { id: 'auth', label: 'Authorization' }
+    { id: 'auth', label: 'Authorization' },
+    { id: 'captures', label: 'Captures' },
   ];
 
   const responseTabs = [
@@ -826,15 +699,15 @@ function RequestBuilder() {
   ];
 
   const bodyTypes = [
-    { id: 'none', label: 'None' },
+    { id: 'none', label: t('bodyTypes.none') },
     { id: 'json', label: 'JSON' },
-    { id: 'text', label: 'Text' },
-    { id: 'form', label: 'Form Data' }
+    { id: 'text', label: t('bodyTypes.text') },
+    { id: 'form', label: t('bodyTypes.form') }
   ];
 
   if (!currentRequest) {
     return <div className="flex-1 flex items-center justify-center">
-      <p className="text-muted-foreground">No request selected</p>
+      <p className="text-muted-foreground">{t('request.noSelected')}</p>
     </div>;
   }
 
@@ -860,7 +733,8 @@ function RequestBuilder() {
           <Input
             value={requestData.url}
             onChange={(e) => updateRequestData({ url: e.target.value })}
-            placeholder="Enter request URL"
+            onKeyDown={(e) => { if (e.key === 'Enter' && requestData.url?.trim() && !executing) handleExecuteRequest(); }}
+            placeholder={t('request.urlPlaceholder')}
             className={`flex-1 ${input} not-box-shadow`}
           />
           
@@ -872,12 +746,12 @@ function RequestBuilder() {
             {executing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Sending...
+                {t('request.sending')}
               </>
             ) : (
               <>
                 <Send className="h-4 w-4 mr-2" />
-                Send
+                {t('request.send')}
               </>
             )}
           </Button>
@@ -887,7 +761,7 @@ function RequestBuilder() {
           <Input
             value={requestData.name}
             onChange={(e) => updateRequestData({ name: e.target.value })}
-            placeholder="Request name"
+            placeholder={t('request.requestNamePlaceholder')}
             className={`${text('lg')} font-medium bg-transparent border-none p-0 h-auto focus-visible:ring-0 shadow-none flex-1 mr-3`}
           />
           
@@ -896,7 +770,7 @@ function RequestBuilder() {
             size="sm"
             onClick={() => setIsHistoryDrawerOpen(true)}
             className="h-8 w-8 p-0 hover:bg-muted flex-shrink-0"
-            title="Request History"
+            title={t('request.historyTitle')}
           >
             <History className="h-4 w-4" />
           </Button>
@@ -966,7 +840,7 @@ function RequestBuilder() {
                           newParams[index].key = e.target.value;
                           updateRequestData({ query_params: newParams });
                         }}
-                        placeholder="Parameter name"
+                        placeholder={t('request.paramName')}
                         className={`flex-1 ${input}`}
                       />
                       <Input
@@ -976,7 +850,7 @@ function RequestBuilder() {
                           newParams[index].value = e.target.value;
                           updateRequestData({ query_params: newParams });
                         }}
-                        placeholder="Parameter value"
+                        placeholder={t('request.paramValue')}
                         className={`flex-1 ${input}`}
                       />
                       <Button
@@ -991,7 +865,7 @@ function RequestBuilder() {
                   
                   <Button variant="ghost" onClick={addQueryParam} className={`w-full ${button}`}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Parameter
+                    {t('request.addParam')}
                   </Button>
                 </div>
               </div>
@@ -1010,7 +884,7 @@ function RequestBuilder() {
                           newHeadersArray[index] = { ...header, key: e.target.value };
                           updateHeadersFromArray(newHeadersArray);
                         }}
-                        placeholder="Header name"
+                        placeholder={t('request.headerName')}
                         className={`flex-1 ${input}`}
                       />
                       <Input
@@ -1020,7 +894,7 @@ function RequestBuilder() {
                           newHeadersArray[index] = { ...header, value: e.target.value };
                           updateHeadersFromArray(newHeadersArray);
                         }}
-                        placeholder="Header value"
+                        placeholder={t('request.headerValue')}
                         className={`flex-1 ${input}`}
                       />
                       <Button
@@ -1035,7 +909,7 @@ function RequestBuilder() {
                   
                   <Button variant="ghost" onClick={addHeader} className={`w-full ${button}`}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Header
+                    {t('request.addHeader')}
                   </Button>
                 </div>
               </div>
@@ -1074,7 +948,7 @@ function RequestBuilder() {
                               newFormData[index] = { ...item, key: e.target.value };
                               updateRequestData({ form_data: newFormData });
                             }}
-                            placeholder="Key"
+                            placeholder={t('request.formKey')}
                             className={`flex-1 ${input}`}
                           />
                           <Input
@@ -1084,7 +958,7 @@ function RequestBuilder() {
                               newFormData[index] = { ...item, value: e.target.value };
                               updateRequestData({ form_data: newFormData });
                             }}
-                            placeholder="Value"
+                            placeholder={t('request.formValue')}
                             className={`flex-1 ${input}`}
                           />
                           <Button
@@ -1099,7 +973,7 @@ function RequestBuilder() {
                       
                       <Button variant="ghost" onClick={addFormDataItem} className={`w-full ${button}`}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Form Field
+                        {t('request.addFormField')}
                       </Button>
                     </div>
                   )}
@@ -1109,7 +983,7 @@ function RequestBuilder() {
                       <JsonEditor
                         value={requestData.body}
                         onChange={(e) => updateRequestData({ body: e.target.value })}
-                        placeholder="Enter JSON body"
+                        placeholder={t('request.jsonPlaceholder')}
                       />
                     </div>
                   )}
@@ -1118,12 +992,17 @@ function RequestBuilder() {
                     <Textarea
                       value={requestData.body}
                       onChange={(e) => updateRequestData({ body: e.target.value })}
-                      placeholder="Enter text body"
+                      placeholder={t('request.textPlaceholder')}
                       className={`min-h-[200px] font-mono ${text('sm')} resize-none ${input}`}
                     />
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Captures Tab */}
+            {activeRequestTab === 'captures' && (
+              <ResponseCapturesPanel requestId={requestData.id} />
             )}
 
             {/* Auth Tab */}
@@ -1135,18 +1014,18 @@ function RequestBuilder() {
                     onChange={(e) => updateRequestData({ auth_type: e.target.value })}
                     className={`w-full ${select}`}
                   >
-                    <option value="none">No Auth</option>
-                    <option value="bearer">Bearer Token</option>
-                    <option value="basic">Basic Auth</option>
+                    <option value="none">{t('request.noAuth')}</option>
+                    <option value="bearer">{t('auth.bearer')}</option>
+                    <option value="basic">{t('auth.basic')}</option>
                   </select>
 
                   {requestData.auth_type === 'bearer' && (
                     <div className="space-y-3">
-                      <label className={`${text('sm')} font-medium`}>Token</label>
+                      <label className={`${text('sm')} font-medium`}>{t('request.token')}</label>
                       <Input
                         value={requestData.bearer_token}
                         onChange={(e) => updateRequestData({ bearer_token: e.target.value })}
-                        placeholder="Enter bearer token"
+                        placeholder={t('request.tokenPlaceholder')}
                         className={input}
                       />
                     </div>
@@ -1155,25 +1034,25 @@ function RequestBuilder() {
                   {requestData.auth_type === 'basic' && (
                     <div className="space-y-3">
                       <div>
-                        <label className={`${text('sm')} font-medium`}>Username</label>
+                        <label className={`${text('sm')} font-medium`}>{t('request.username')}</label>
                         <Input
                           value={requestData.basic_auth.username}
-                          onChange={(e) => updateRequestData({ 
+                          onChange={(e) => updateRequestData({
                             basic_auth: { ...requestData.basic_auth, username: e.target.value }
                           })}
-                          placeholder="Enter username"
+                          placeholder={t('request.usernamePlaceholder')}
                           className={input}
                         />
                       </div>
                       <div>
-                        <label className={`${text('sm')} font-medium`}>Password</label>
+                        <label className={`${text('sm')} font-medium`}>{t('request.password')}</label>
                         <Input
                           value={requestData.basic_auth.password}
-                          onChange={(e) => updateRequestData({ 
+                          onChange={(e) => updateRequestData({
                             basic_auth: { ...requestData.basic_auth, password: e.target.value }
                           })}
                           type="password"
-                          placeholder="Enter password"
+                          placeholder={t('request.passwordPlaceholder')}
                           className={input}
                         />
                       </div>
@@ -1205,8 +1084,8 @@ function RequestBuilder() {
                   <BarChart3 className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className={`${text('lg')} font-medium text-foreground`}>Loading History Item</h3>
-                  <p className={`${text('sm')} text-muted-foreground`}>Loading response from history...</p>
+                  <h3 className={`${text('lg')} font-medium text-foreground`}>{t('request.loadingHistoryTitle')}</h3>
+                  <p className={`${text('sm')} text-muted-foreground`}>{t('request.loadingHistoryDesc')}</p>
                 </div>
               </div>
             </div>
@@ -1217,8 +1096,8 @@ function RequestBuilder() {
                   <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
                 </div>
                 <div>
-                  <h3 className={`${text('lg')} font-medium text-foreground`}>Executing Request</h3>
-                  <p className={`${text('sm')} text-muted-foreground`}>Please wait while the request is being processed...</p>
+                  <h3 className={`${text('lg')} font-medium text-foreground`}>{t('request.executingTitle')}</h3>
+                  <p className={`${text('sm')} text-muted-foreground`}>{t('request.executingDesc')}</p>
                 </div>
               </div>
             </div>
@@ -1229,8 +1108,8 @@ function RequestBuilder() {
                   <BarChart3 className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className={`${text('lg')} font-medium text-foreground`}>No Response</h3>
-                  <p className={`${text('sm')} text-muted-foreground`}>Send a request to see the response here</p>
+                  <h3 className={`${text('lg')} font-medium text-foreground`}>{t('request.noResponse')}</h3>
+                  <p className={`${text('sm')} text-muted-foreground`}>{t('request.noResponseDesc')}</p>
                 </div>
               </div>
             </div>
@@ -1289,6 +1168,7 @@ function RequestBuilder() {
                     formatJson={formatJson}
                     textSize={text('sm')}
                     config={config}
+                    showLineNumbers
                   />
                 )}
 
@@ -1306,7 +1186,7 @@ function RequestBuilder() {
                 )}
 
                 {activeResponseTab === 'raw' && (
-                  <div className="h-full overflow-y-auto p-4">
+                  <div className="h-full overflow-y-auto">
                     {currentResponse.raw_request ? (
                       <HighlightedCode
                         content={currentResponse.raw_request}
@@ -1320,8 +1200,8 @@ function RequestBuilder() {
                         <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
                           <Send className="h-6 w-6 text-muted-foreground" />
                         </div>
-                        <p className={`${text('sm')} text-muted-foreground`}>Raw request not available</p>
-                        <p className={`${text('xs')} text-muted-foreground`}>This might be an older request or the backend doesn't support raw request logging yet</p>
+                        <p className={`${text('sm')} text-muted-foreground`}>{t('request.rawNotAvailable')}</p>
+                        <p className={`${text('xs')} text-muted-foreground`}>{t('request.rawNotAvailableDesc')}</p>
                       </div>
                     )}
                   </div>
@@ -1348,7 +1228,7 @@ function RequestBuilder() {
             <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
               <div className="flex items-center gap-2">
                 <History className="h-5 w-5 text-muted-foreground" />
-                <h3 className={`${text('lg')} font-semibold text-foreground`}>Request History</h3>
+                <h3 className={`${text('lg')} font-semibold text-foreground`}>{t('request.historyTitle')}</h3>
               </div>
               <Button
                 variant="ghost"
@@ -1365,8 +1245,8 @@ function RequestBuilder() {
               {history.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                  <p className={`${text('sm')} text-muted-foreground mb-2`}>No request history</p>
-                  <p className={`${text('xs')} text-muted-foreground`}>Execute this request to see its history</p>
+                  <p className={`${text('sm')} text-muted-foreground mb-2`}>{t('request.noHistory')}</p>
+                  <p className={`${text('xs')} text-muted-foreground`}>{t('request.noHistoryDesc')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1403,7 +1283,7 @@ function RequestBuilder() {
                           handleDeleteHistoryItem(item.id, item);
                         }}
                         className="absolute top-2 right-2 p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 dark:hover:text-red-400 transition-all duration-200 shadow-sm border border-red-200 dark:border-red-800 bg-white dark:bg-card opacity-95 hover:opacity-100"
-                        title="Delete history item"
+                        title={t('request.deleteHistoryItem')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -1433,18 +1313,18 @@ function RequestBuilder() {
               </div>
               <div className="flex-1">
                 <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>
-                  Delete History Item
+                  {t('request.deleteHistoryTitle')}
                 </h3>
                 <p className={`${text('sm')} text-muted-foreground mb-4`}>
-                  Are you sure you want to delete this history item? This action cannot be undone.
+                  {t('request.deleteHistoryConfirm')}
                 </p>
                 <div className={`${text('xs')} text-muted-foreground p-2 bg-muted rounded border mb-4`}>
                   <div className="flex justify-between items-center mb-1">
-                    <span>Executed:</span>
+                    <span>{t('request.executed')}</span>
                     <span>{new Date(deleteConfirmation.historyItem.executed_at).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Status:</span>
+                    <span>{t('common.status')}:</span>
                     <span className={`font-medium ${getHistoryStatusColor(deleteConfirmation.historyItem.response.status)}`}>
                       {deleteConfirmation.historyItem.response.status}
                     </span>
@@ -1456,14 +1336,14 @@ function RequestBuilder() {
                     size="sm"
                     onClick={cancelDeleteHistoryItem}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={confirmDeleteHistoryItem}
                   >
-                    Delete
+                    {t('common.delete')}
                   </Button>
                 </div>
               </div>

@@ -1,19 +1,13 @@
-.PHONY: build dev clean frontend backend wails-build wails-dev wails-init wails-deps install-wails web-dev web-build
+.PHONY: build dev clean frontend backend wails-build wails-dev wails-deps install-wails
 
 # ===== WEB MODE (HTTP REST API) =====
 
-# Development mode - Web with HTTP REST API
-web-dev: dev
-
-# Traditional development mode with HTTP REST API (watch changes)
+# Development mode - Web with HTTP REST API (watch changes)
 dev:
 	gow run ./cmd/server/main.go
 
 frontend-dev:
 	cd frontend && npm run dev
-
-# Build web app (traditional HTTP REST API + frontend)
-web-build: build
 
 # Build everything (traditional web app)
 build: frontend backend
@@ -28,9 +22,17 @@ backend:
 
 # ===== NATIVE MODE (Wails with Go bindings) =====
 
-# Development mode - Native app with Wails bindings
-wails-dev: wails-deps frontend
-	wails dev
+# Development mode - Native app with hot reload (Vite HMR + Go recompilation)
+# Starts Vite dev server in background, waits for it to be ready, then launches
+# wails dev pointing at the Vite server so HMR works inside the WebView.
+wails-dev: wails-deps
+	@echo "Starting Vite dev server..."
+	@cd frontend && npm run dev & \
+	echo "Waiting for Vite on :5173..."; \
+	until curl -sf http://localhost:5173 > /dev/null 2>&1; do sleep 0.3; done; \
+	echo "Vite ready. Starting Wails..."; \
+	wails dev -frontenddevserverurl http://localhost:5173; \
+	kill $$(lsof -ti:5173) 2>/dev/null || true
 
 # Generate app icon from SVG (solo appicon.png)
 generate-icon:
@@ -63,13 +65,9 @@ deps:
 run:
 	./bin/rikuest
 
-# Initialize Wails project (run once)
-wails-init:
-	wails init -n rikuest -t vanilla -d .
-
 # Install Wails CLI
 install-wails:
-	go install github.com/wails-io/wails/v2/cmd/wails@latest
+	go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 # Install Wails dependencies and ensure Go modules are updated
 wails-deps:

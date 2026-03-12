@@ -15,6 +15,8 @@ export default defineConfig({
     'global': 'globalThis',
   },
   server: {
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

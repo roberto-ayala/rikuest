@@ -115,6 +115,51 @@ export class WailsAdapter {
     return { formats };
   }
 
+  // ===== ENVIRONMENT METHODS =====
+  async getEnvironments(projectId) {
+    return await this.app.GetEnvironments(projectId);
+  }
+
+  async createEnvironment(projectId, name) {
+    return await this.app.CreateEnvironment(projectId, name);
+  }
+
+  async updateEnvironment(id, name) {
+    await this.app.UpdateEnvironment(id, name);
+  }
+
+  async deleteEnvironment(id) {
+    await this.app.DeleteEnvironment(id);
+  }
+
+  async setActiveEnvironment(id, projectId) {
+    return await this.app.SetActiveEnvironment(projectId, id);
+  }
+
+  async deactivateAllEnvironments(projectId) {
+    return await this.app.DeactivateAllEnvironments(projectId);
+  }
+
+  async updateEnvironmentVariables(id, variables) {
+    await this.app.UpdateEnvironmentVariables(id, variables || []);
+  }
+
+  async getFolderVariables(folderId) {
+    return await this.app.GetFolderVariables(folderId);
+  }
+
+  async updateFolderVariables(folderId, variables) {
+    await this.app.UpdateFolderVariables(folderId, variables || []);
+  }
+
+  async getResponseCaptures(requestId) {
+    return await this.app.GetResponseCaptures(requestId);
+  }
+
+  async updateResponseCaptures(requestId, captures) {
+    await this.app.UpdateResponseCaptures(requestId, captures || []);
+  }
+
   // ===== CONFIG METHODS =====
   async getRequestTimeout() {
     return await this.app.GetRequestTimeout();
