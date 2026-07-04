@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -71,7 +72,7 @@ func (s *RequestService) MoveRequest(requestID int, folderID *int, position int)
 	return s.db.MoveRequest(requestID, folderID, position)
 }
 
-func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
+func (s *RequestService) ExecuteRequest(ctx context.Context, requestID int) (*models.RequestResponse, error) {
 	request, err := s.GetRequest(requestID)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 		request = s.resolver.ResolveRequest(request, vars)
 	}
 
-	response, err := s.executeHTTPRequest(request)
+	response, err := s.executeHTTPRequest(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 	return response, nil
 }
 
-func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.RequestResponse, error) {
+func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models.Request) (*models.RequestResponse, error) {
 	start := time.Now()
 
 	// Get configured timeout, default to 5 minutes
@@ -156,7 +157,7 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 		body = strings.NewReader(request.Body)
 	}
 
-	req, err := http.NewRequest(request.Method, finalURL, body)
+	req, err := http.NewRequestWithContext(ctx, request.Method, finalURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,7 +27,7 @@ func TestExecuteHTTPRequestBasics(t *testing.T) {
 	defer server.Close()
 
 	svc := newRequestService(t)
-	resp, err := svc.executeHTTPRequest(&models.Request{
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{
 		Method:      "GET",
 		URL:         server.URL + "/path",
 		Headers:     map[string]string{"X-In": "abc"},
@@ -72,7 +73,7 @@ func TestExecuteHTTPRequestFormBody(t *testing.T) {
 	defer server.Close()
 
 	svc := newRequestService(t)
-	_, err := svc.executeHTTPRequest(&models.Request{
+	_, err := svc.executeHTTPRequest(context.Background(), &models.Request{
 		Method:   "POST",
 		URL:      server.URL,
 		BodyType: "form",
@@ -92,7 +93,7 @@ func TestExecuteHTTPRequestFormBody(t *testing.T) {
 func TestExecuteHTTPRequestConnectionErrorBecomesResponse(t *testing.T) {
 	svc := newRequestService(t)
 	// Port 1 is virtually guaranteed to refuse connections
-	resp, err := svc.executeHTTPRequest(&models.Request{Method: "GET", URL: "http://127.0.0.1:1/"})
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{Method: "GET", URL: "http://127.0.0.1:1/"})
 	if err != nil {
 		t.Fatalf("connection errors must be returned as a response, got err: %v", err)
 	}
@@ -101,6 +102,27 @@ func TestExecuteHTTPRequestConnectionErrorBecomesResponse(t *testing.T) {
 	}
 	if resp.StatusText == "" || resp.Body == "" {
 		t.Error("error response should carry status text and body")
+	}
+}
+
+func TestExecuteHTTPRequestHonorsContextCancellation(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release // hold the request open until the test finishes
+	}))
+	defer server.Close()
+	defer close(release)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go cancel()
+
+	svc := newRequestService(t)
+	resp, err := svc.executeHTTPRequest(ctx, &models.Request{Method: "GET", URL: server.URL})
+	if err != nil {
+		t.Fatalf("cancellation must surface as an error response, got err: %v", err)
+	}
+	if resp.Status != 0 {
+		t.Errorf("Status = %d; want 0 for cancelled request", resp.Status)
 	}
 }
 
@@ -117,7 +139,7 @@ func TestExecuteHTTPRequestTruncatesLargeBodies(t *testing.T) {
 	defer server.Close()
 
 	svc := newRequestService(t)
-	resp, err := svc.executeHTTPRequest(&models.Request{Method: "GET", URL: server.URL})
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{Method: "GET", URL: server.URL})
 	if err != nil {
 		t.Fatalf("executeHTTPRequest: %v", err)
 	}

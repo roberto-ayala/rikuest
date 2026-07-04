@@ -187,7 +187,7 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
-	response, err := h.services.Request.ExecuteRequest(id)
+	response, err := h.services.Request.ExecuteRequest(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

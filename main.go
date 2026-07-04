@@ -175,7 +175,7 @@ func (a *App) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 }
 
 func (a *App) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
-	response, err := a.services.Request.ExecuteRequest(requestID)
+	response, err := a.services.Request.ExecuteRequest(a.ctx, requestID)
 	if err != nil {
 		a.services.Telemetry.ReportError(err, string(debug.Stack()))
 		return nil, err
