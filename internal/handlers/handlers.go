@@ -30,6 +30,11 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		return
 	}
 
+	h.services.Telemetry.ReportUsageEvent("project_created", map[string]interface{}{
+		"project_id":   project.ID,
+		"project_name": project.Name,
+	})
+
 	c.JSON(http.StatusCreated, project)
 }
 
@@ -193,6 +198,12 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
+	h.services.Telemetry.ReportUsageEvent("request_executed", map[string]interface{}{
+		"request_id": id,
+		"status":     response.Status,
+		"duration":   response.Duration,
+	})
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -245,6 +256,12 @@ func (h *Handler) CreateFolder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.services.Telemetry.ReportUsageEvent("folder_created", map[string]interface{}{
+		"folder_id":   folder.ID,
+		"folder_name": folder.Name,
+		"project_id":  folder.ProjectID,
+	})
 
 	c.JSON(http.StatusCreated, folder)
 }

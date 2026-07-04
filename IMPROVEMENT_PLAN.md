@@ -57,24 +57,19 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 ## Fase 3 — Refactor arquitectónico
 
-### Backend
+### Backend ✅ COMPLETADO
 
-19. **Deduplicar código triplicado/duplicado:**
-    - `buildRawRequest` (request_service.go:250-348) ≈ `FormatService.BuildRawRequest` (format_service.go:55-154) → una sola implementación.
-    - `getErrorStatusText` existe 3 veces (request_service.go:351, handlers.go:19 —código muerto—, y el propio servicio).
-    - `sendEventSync`/`sendEvent` en telemetry_service.go (498 LOC, ~90% idénticas) → extraer `buildDiscordPayload`.
+19. **Deduplicar código.** ✅ `buildRawRequest` unificado en FormatService; `errorStatusText` única (copia muerta de handlers eliminada); telemetría con `deliver()` + `buildDiscordPayload()` compartidos (además se protegió el slice `installationID[:8]` y se eliminó la goroutine huérfana de la re-creación del servicio en main.go).
 
-20. **Introducir `context.Context` de extremo a extremo.**
-    Ningún método de servicios/BD lo acepta; no hay cancelación ni deadlines. Empezar por `ExecuteRequest` (cancelar peticiones en curso) y propagar hacia abajo.
+20. **`context.Context` en la ruta de ejecución.** ✅ `ExecuteRequest(ctx, id)` + `http.NewRequestWithContext`; HTTP pasa el contexto de gin (desconexión del cliente cancela la petición saliente), Wails pasa el contexto de ciclo de vida. Con test de cancelación. Pendiente (menor): propagar ctx al resto de métodos CRUD/BD.
 
-21. **Dividir `database.go` (809 LOC)** en repositorios por agregado (`project_repo.go`, `request_repo.go`, `environment_repo.go`, `telemetry_repo.go`). De paso, arreglar el N+1 de `GetEnvironments` (carga variables en bucle).
+21. **Dividir `database.go`.** ✅ 7 archivos por agregado (project/request/folder/environment/capture/telemetry/settings_repo.go); database.go conserva solo conexión, schema y migraciones. N+1 de `GetEnvironments` resuelto con un único JOIN.
 
-22. **Resolver la cadena de carpetas padre en variables.**
-    `variable_resolver.go` solo consulta la carpeta inmediata pese a que las carpetas son un árbol (`parent_id`): las variables de carpetas ancestras se ignoran silenciosamente. Definir y documentar la precedencia: env < carpetas ancestras < carpeta inmediata.
+22. **Cadena de carpetas ancestras.** ✅ CTE recursivo `GetFolderAncestry`; precedencia documentada y testeada: env < ancestros (root primero) < carpeta inmediata.
 
-23. **Eliminar el wiring `SetCollaborators`** (services.go:23): reordenar la construcción para inyectar dependencias por constructor y quitar los nil-guards.
+23. **Inyección por constructor.** ✅ `NewRequestService(db, resolver, capture)`; `SetCollaborators` y nil-guards eliminados.
 
-24. **Paridad HTTP/Wails:** la telemetría solo se emite en modo Wails y las respuestas de create difieren (Wails re-consulta, HTTP no). Definir una interfaz-fachada común que ambos entrypoints consuman para que no puedan divergir.
+24. **Paridad HTTP/Wails.** ✅ Los handlers HTTP ahora emiten los mismos eventos de telemetría que Wails (project_created, folder_created, request_executed); eliminados los re-fetch de Wails tras create (RETURNING ya devuelve el modelo completo) — ambas rutas devuelven lo mismo. Pendiente (menor): interfaz-fachada formal que fuerce la paridad en compilación.
 
 ### Frontend
 

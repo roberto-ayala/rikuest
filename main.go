@@ -124,8 +124,8 @@ func (a *App) CreateProject(project models.Project) (*models.Project, error) {
 		"project_id":   project.ID,
 		"project_name": project.Name,
 	})
-	// Return the created project with ID
-	return a.services.Project.GetProject(project.ID)
+	// CreateProject fully populates the struct via RETURNING; no re-fetch needed
+	return &project, nil
 }
 
 func (a *App) UpdateProject(project models.Project) (*models.Project, error) {
@@ -155,7 +155,8 @@ func (a *App) CreateRequest(request models.Request) (*models.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.services.Request.GetRequest(request.ID)
+	// CreateRequest fully populates the struct via RETURNING; no re-fetch needed
+	return &request, nil
 }
 
 func (a *App) UpdateRequest(request models.Request) (*models.Request, error) {
