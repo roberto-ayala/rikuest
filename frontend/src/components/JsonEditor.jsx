@@ -149,9 +149,8 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
           'editor.background': backgroundColor,
         }
       });
-    } catch (error) {
+    } catch {
       // Theme might already be defined, that's okay
-      console.debug('Theme definition:', error);
     }
     
     return themeName;

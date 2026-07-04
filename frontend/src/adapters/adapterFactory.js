@@ -5,8 +5,6 @@ class AdapterFactory {
   constructor() {
     this.adapter = null;
     this.initialized = false;
-    
-    console.log('AdapterFactory constructor called - waiting for first usage');
   }
 
   async getAdapter() {
@@ -23,19 +21,13 @@ class AdapterFactory {
 
     // Try to detect Wails by checking if Go bindings are actually available
     const isWails = await this.detectWailsEnvironment();
-    
-    console.log('Adapter Factory initializing...', {
-      selectedAdapter: isWails ? 'WailsAdapter' : 'APIAdapter'
-    });
 
     if (isWails) {
       // Use Wails native bindings
       this.adapter = new WailsAdapter();
-      console.log('Using Wails native adapter');
     } else {
       // Use HTTP REST API
       this.adapter = new APIAdapter();
-      console.log('Using HTTP REST API adapter');
     }
 
     this.initialized = true;
@@ -60,11 +52,9 @@ class AdapterFactory {
       // Use a simple method that should always be available
       const testMethod = window.go.main.App.GetProjects;
       if (typeof testMethod === 'function') {
-        console.log('Wails Go bindings detected and verified');
         return true;
       }
-    } catch (error) {
-      console.log('Wails Go bindings detected but not functional:', error);
+    } catch {
       return false;
     }
 

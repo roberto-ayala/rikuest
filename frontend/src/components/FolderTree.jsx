@@ -151,7 +151,6 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   useEffect(() => {
     if (projectId) {
-      console.log('Fetching folders for project:', projectId);
       fetchFolders(projectId);
       // Reload expanded folders when project changes
       setExpandedFolders(loadExpandedFolders());
@@ -327,7 +326,6 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     const position = calculateNewPosition(activeItem.id, overId_clean);
     
     try {
-      console.log('Moving request', activeItem.id, 'to folder', targetFolderId, 'at position', position);
       await moveRequest(activeItem.id, targetFolderId, position);
       // Refresh requests to reflect the change
       if (onRequestMoved) {

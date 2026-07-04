@@ -9,10 +9,7 @@ const LanguageSelector = () => {
   const { icon, iconButton, menuItem } = useUISize();
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log('LanguageSelector rendered:', { currentLanguage, availableLanguages });
-
   const handleLanguageChange = (languageCode) => {
-    console.log('Changing language to:', languageCode);
     changeLanguage(languageCode);
     setIsOpen(false);
   };

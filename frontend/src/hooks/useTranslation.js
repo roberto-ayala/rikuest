@@ -90,12 +90,10 @@ export const useTranslation = () => {
 
   // Save language preference
   const changeLanguage = useCallback((languageCode) => {
-    console.log('Changing language to:', languageCode);
     if (LANGUAGES[languageCode]) {
       setCurrentLanguage(languageCode);
       setLanguage(languageCode);
       localStorage.setItem('rikuest-language', languageCode);
-      console.log('Language changed successfully');
     }
   }, [setLanguage]);
 

@@ -7,12 +7,10 @@ export const useFolderStore = create((set, get) => ({
   error: null,
   
   fetchFolders: async (projectId) => {
-    console.log('folderStore: fetchFolders called for projectId:', projectId);
     set({ loading: true, error: null });
     try {
       const adapter = await adapterFactory.getAdapter();
       const folders = await adapter.getFolders(projectId);
-      console.log('folderStore: received folders response:', folders);
       set({ folders: folders || [], loading: false });
     } catch (error) {
       console.error('folderStore: Failed to fetch folders:', error);
@@ -24,13 +22,11 @@ export const useFolderStore = create((set, get) => ({
   },
   
   createFolder: async (folderData) => {
-    console.log('folderStore: createFolder called with data:', folderData);
     set({ loading: true, error: null });
     try {
       const adapter = await adapterFactory.getAdapter();
       const newFolder = await adapter.createFolder(folderData);
-      console.log('folderStore: created new folder:', newFolder);
-      
+
       set((state) => ({
         folders: [...state.folders, newFolder],
         loading: false

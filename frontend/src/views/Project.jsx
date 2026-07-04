@@ -263,8 +263,6 @@ function Project({ layout, onNewProject, onSettings }) {
     // Close menus
     setShowMenu(false);
     setSelectedRequest(null);
-    
-    console.log('✅ Opening copy request modal');
   };
 
   const handleCloseMenus = () => {
