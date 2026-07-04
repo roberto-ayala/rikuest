@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Buffer } from 'buffer';
 import './index.css';
 import App from './App.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ThemeProvider from './components/ThemeProvider.jsx';
 import { setupErrorHandlers } from './utils/errorHandler.js';
 
@@ -18,10 +19,12 @@ setupErrorHandlers();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

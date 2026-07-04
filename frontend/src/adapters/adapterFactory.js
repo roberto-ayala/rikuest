@@ -22,6 +22,24 @@ class AdapterFactory {
     // Try to detect Wails by checking if Go bindings are actually available
     const isWails = await this.detectWailsEnvironment();
 
+    // Dev-only guard: both adapters must expose the same method set, since
+    // stores are written against a single implicit contract.
+    if (import.meta.env.DEV) {
+      const methodsOf = (cls) =>
+        Object.getOwnPropertyNames(cls.prototype).filter(
+          (m) => m !== 'constructor' && m !== 'request'
+        );
+      const apiMethods = methodsOf(APIAdapter);
+      const wailsMethods = methodsOf(WailsAdapter);
+      const missing = [
+        ...apiMethods.filter((m) => !wailsMethods.includes(m)).map((m) => `WailsAdapter.${m}`),
+        ...wailsMethods.filter((m) => !apiMethods.includes(m)).map((m) => `APIAdapter.${m}`),
+      ];
+      if (missing.length > 0) {
+        console.warn('Adapter parity broken, missing:', missing);
+      }
+    }
+
     if (isWails) {
       // Use Wails native bindings
       this.adapter = new WailsAdapter();

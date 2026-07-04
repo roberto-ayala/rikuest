@@ -323,8 +323,8 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       targetFolderId = overItem?.folder_id || null;
     }
     
-    const position = calculateNewPosition(activeItem.id, overId_clean);
-    
+    const position = calculateNewPosition(targetFolderId, overType === 'request' ? overItem : null);
+
     try {
       await moveRequest(activeItem.id, targetFolderId, position);
       // Refresh requests to reflect the change
@@ -352,10 +352,17 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     return null;
   };
   
-  const calculateNewPosition = (activeId, overId) => {
-    // Simple position calculation - in a real implementation,
-    // you would calculate based on drop position
-    return Date.now() % 1000;
+  const calculateNewPosition = (targetFolderId, overRequest) => {
+    // Dropped on a request: take its slot (ties broken by created_at)
+    if (overRequest) {
+      return overRequest.position ?? 0;
+    }
+    // Dropped into a folder or the root: append after the last sibling
+    const siblings = requests.filter(
+      (r) => (r.folder_id ?? null) === (targetFolderId ?? null)
+    );
+    if (siblings.length === 0) return 0;
+    return Math.max(...siblings.map((r) => r.position ?? 0)) + 1;
   };
   
   const getMethodColor = (method) => {
