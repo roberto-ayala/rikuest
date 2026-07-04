@@ -5,114 +5,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Backend (Go)
-- `make dev` - Start development server (runs backend on :8080)
-- `go run ./cmd/server/main.go` - Alternative way to start backend
+- `make dev` - Start development server on :8080 (uses `gow`, a file-watcher — must be installed)
 - `make backend` - Build Go binary to `bin/rikuest`
-- `go build -o bin/rikuest ./cmd/server` - Alternative build command
 
 ### Frontend (React)
-- `cd frontend && npm run dev` - Start frontend dev server with hot reload (proxies API to backend)
-- `cd frontend && npm run build` - Build frontend for production
-- `cd frontend && npm install` - Install frontend dependencies
+- `cd frontend && npm run dev` - Dev server with hot reload (port 5173, proxies /api to :8080)
+- `cd frontend && npm run build` - Production build
+- `cd frontend && npm run lint` - ESLint (flat config, eslint.config.js)
 
 ### Full Application
-- `make build` - Build both frontend and backend (creates single binary with embedded frontend)
+- `make build` - Build both frontend and backend (single binary with embedded frontend)
 - `make deps` - Install all dependencies (Go modules + npm packages)
 - `make clean` - Remove build artifacts and database
-- `make run` - Run the built binary
-- `./bin/rikuest` - Run the application after building
+- `./bin/rikuest` - Run after building
 
 ### Native Desktop Application (Wails)
 - `make install-wails` - Install Wails CLI (run once)
-- `make wails-dev` - Start native app in development mode with hot-reload
+- `make wails-dev` - Native app in dev mode with hot reload
 - `make wails-build` - Build native app for current platform
-- `make wails-build-prod` - Build native app for Windows, macOS, and Linux
-- `make wails-deps` - Install Wails dependencies and update Go modules
+- `make wails-build-prod` - Build for Windows, macOS, and Linux
 - `make wails-clean` - Clean all build artifacts including Wails
-- `make wails-package` - Build and list native applications for all platforms
 
 ## Architecture Overview
 
-### Technology Stack
-- **Backend**: Go 1.21+ with Gin web framework
-- **Frontend**: React with Vite, Zustand for state management
-- **Database**: SQLite with local file storage (`rikuest.db`)
-- **UI Components**: Tailwind CSS, Headless UI, custom React components
-- **HTTP Client**: Axios for API calls
+REST API client (Postman/Insomnia-style). Go 1.22 + Gin backend, React 19 + Vite + Zustand frontend, SQLite. Runs in two modes sharing the same services layer:
+- **Web mode**: `cmd/server/main.go` serves the API on :8080 + embedded frontend
+- **Native mode (Wails)**: root `main.go` binds services directly to the frontend
 
-### Application Structure
-This is a REST API client application (similar to Postman/Insomnia) with a Go backend serving a React frontend.
+### Backend (`/internal`)
+- `internal/services/` - Business logic lives here: project, request, folder, environment, variable_resolver, response_capture, format, telemetry, config
+- `internal/handlers/` - Gin HTTP handlers (web mode only), thin wrappers over services
+- `internal/database/` - SQLite; complex fields (headers, auth, form data) stored as JSON
+- `internal/models/` - Shared data models
 
-#### Backend Architecture (`/internal`)
-- **`cmd/server/main.go`** - Application entry point with Gin router setup
-- **`internal/database/`** - SQLite operations with JSON serialization for complex fields
-- **`internal/handlers/`** - HTTP request handlers for REST API endpoints
-- **`internal/models/`** - Data models for Projects, Requests, and Response history
+### Frontend (`/frontend/src`)
+- `adapters/` - adapterFactory picks apiAdapter (HTTP) or wailsAdapter (native bindings); all store calls go through this layer — never call axios or Wails bindings directly
+- `stores/` - 6 Zustand stores: project, request, folder, environment, telemetry, ui
+- `hooks/useTranslation.js` - Custom i18n (NOT react-i18next); locales in `locales/{en,es,fr}.json`, language persisted in localStorage key `rikuest-language`
+- `components/`, `views/` - UI (Tailwind, Headless UI, Monaco editor for bodies)
 
-#### Frontend Architecture (`/frontend/src`)
-- **`stores/`** - Zustand stores for projects and requests state management
-- **`views/`** - Page components (Home.jsx, Project.jsx)
-- **`components/`** - UI components including RequestBuilder.jsx and ui/ components
-- **Vite config** - Proxy setup to backend API during development
+### Database
+Tables: projects, folders (nested via parent_id), requests, request_history, environments, environment_variables, folder_variables, response_captures, settings, telemetry_config, telemetry_events_cache. Foreign keys with ON DELETE CASCADE; JSON-serialized complex fields.
 
-### Key Patterns
+**Two DB locations**:
+- Web/server mode: `./rikuest.db` in the working directory (gitignored)
+- Wails mode: OS app-data dir via `getAppDataDir()` in root `main.go` (XDG_DATA_HOME on Linux)
 
-#### Database Layer
-- Uses SQLite with manual table creation and migrations
-- JSON serialization for complex fields (headers, query params, form data, auth)
-- Automatic timestamps with `CURRENT_TIMESTAMP`
-- Foreign key constraints with `ON DELETE CASCADE`
+### API Endpoints
+All routes under `/api`, registered in `cmd/server/main.go` — read that file for the current list (projects, folders, requests + execute/history/move/copy/captures, environments + variables/activate).
 
-#### API Layer
-- RESTful endpoints with `/api` prefix
-- Consistent error handling with JSON responses
-- Request execution with 30-second timeout
-- Response history tracking (last 10 executions per request)
-
-#### Frontend State Management
-- Zustand stores handle API communication
-- Async actions with error handling
-- Loading states for UI feedback
-- Current item tracking (currentProject, currentRequest)
-- React Router for client-side routing
+## Gotchas
+- Telemetry is opt-in and disabled by default. It only sends events to Discord when the user enables it AND the `RIKUEST_DISCORD_WEBHOOK` env var (read in `internal/config/config.go`) or a webhook in `telemetry_config` provides a URL.
+- No tests are configured (Go or JS). ESLint is the only automated check.
 
 ## Development Workflow
 
 **IMPORTANT: DO NOT START OR RESTART SERVICES**
 The development services (frontend and backend) are already running and automatically reload on code changes. Never use `make dev`, `npm run dev`, or any other command to start services. Changes are applied automatically through hot reload.
-
-### Frontend Development
-1. Backend is already running on :8080
-2. Frontend is already running with hot reload enabled (proxies API calls to backend)
-3. All code changes are automatically applied - no restart needed
-
-### Production Build
-1. `make build` creates single binary with embedded frontend
-2. Serves static files from embedded `frontend/dist`
-3. API routes on `/api/*`, SPA routing handled by fallback to `index.html`
-
-### Database Schema
-- **projects**: id, name, description, timestamps
-- **requests**: project association, HTTP details, complex fields as JSON
-- **request_history**: execution results with response data
-
-## API Endpoints
-
-### Projects
-- `POST /api/projects` - Create project
-- `GET /api/projects` - List all projects
-- `GET /api/project/:id` - Get single project
-- `PUT /api/project/:id` - Update project
-- `DELETE /api/project/:id` - Delete project
-- `GET /api/project/:id/requests` - Get requests in project
-
-### Requests
-- `POST /api/requests` - Create request
-- `GET /api/request/:id` - Get single request
-- `PUT /api/request/:id` - Update request
-- `DELETE /api/request/:id` - Delete request
-- `POST /api/request/:id/execute` - Execute HTTP request
-- `GET /api/request/:id/history` - Get execution history
-
-## Testing & Quality
-No specific test framework is configured. When adding tests, examine the existing structure and choose appropriate Go testing tools.
