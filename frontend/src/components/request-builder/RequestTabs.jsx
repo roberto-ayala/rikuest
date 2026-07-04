@@ -176,6 +176,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
     { id: 'body', label: t('request.tabBody') },
     { id: 'auth', label: t('request.tabAuthorization') },
     { id: 'captures', label: t('request.tabCaptures') },
+    { id: 'settings', label: t('request.tabSettings') },
   ];
 
   const bodyTypes = [
@@ -425,6 +426,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                 <option value="none">{t('request.noAuth')}</option>
                 <option value="bearer">{t('auth.bearer')}</option>
                 <option value="basic">{t('auth.basic')}</option>
+                <option value="apikey">{t('auth.apiKey')}</option>
               </select>
 
               {requestData.auth_type === 'bearer' && (
@@ -466,6 +468,108 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                   </div>
                 </div>
               )}
+
+              {requestData.auth_type === 'apikey' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyName')}</label>
+                    <Input
+                      value={requestData.api_key_name}
+                      onChange={(e) => updateRequestData({ api_key_name: e.target.value })}
+                      placeholder={t('request.apiKeyNamePlaceholder')}
+                      className={input}
+                    />
+                  </div>
+                  <div>
+                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyValue')}</label>
+                    <Input
+                      value={requestData.api_key_value}
+                      onChange={(e) => updateRequestData({ api_key_value: e.target.value })}
+                      type="password"
+                      placeholder={t('request.apiKeyValuePlaceholder')}
+                      className={input}
+                    />
+                  </div>
+                  <div>
+                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyLocation')}</label>
+                    <select
+                      value={requestData.api_key_location}
+                      onChange={(e) => updateRequestData({ api_key_location: e.target.value })}
+                      className={`w-full ${select}`}
+                    >
+                      <option value="header">{t('request.locationHeader')}</option>
+                      <option value="query">{t('request.locationQuery')}</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeRequestTab === 'settings' && (
+          <div className="h-full overflow-y-auto p-4">
+            <div className="space-y-5">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="insecure-skip-verify"
+                    checked={requestData.insecure_skip_verify}
+                    onChange={(e) => updateRequestData({ insecure_skip_verify: e.target.checked })}
+                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                  />
+                  <label htmlFor="insecure-skip-verify" className={`${text('sm')} font-medium cursor-pointer`}>
+                    {t('request.skipTlsVerify')}
+                  </label>
+                </div>
+                <p className={`${text('xs')} text-amber-600 dark:text-amber-400 mt-1 ml-6`}>
+                  {t('request.skipTlsVerifyWarning')}
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="follow-redirects"
+                    checked={requestData.follow_redirects}
+                    onChange={(e) => updateRequestData({ follow_redirects: e.target.checked })}
+                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                  />
+                  <label htmlFor="follow-redirects" className={`${text('sm')} font-medium cursor-pointer`}>
+                    {t('request.followRedirects')}
+                  </label>
+                </div>
+
+                {requestData.follow_redirects && (
+                  <div className="mt-3 ml-6">
+                    <label className={`${text('sm')} font-medium block mb-1`}>{t('request.maxRedirects')}</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={requestData.max_redirects}
+                      onChange={(e) => updateRequestData({ max_redirects: parseInt(e.target.value, 10) || 0 })}
+                      className={`w-32 ${input}`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={`${text('sm')} font-medium block mb-1`}>{t('request.timeoutOverride')}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={requestData.timeout_seconds || ''}
+                  onChange={(e) => updateRequestData({
+                    timeout_seconds: e.target.value === '' ? 0 : (parseInt(e.target.value, 10) || 0)
+                  })}
+                  placeholder={t('request.timeoutOverridePlaceholder')}
+                  className={`w-40 ${input}`}
+                />
+              </div>
             </div>
           </div>
         )}

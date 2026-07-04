@@ -149,9 +149,23 @@
     "tabAuthorization": "Autorización",
     "tabCaptures": "Capturas",
     "tabRawRequest": "Petición sin procesar",
+    "tabSettings": "Configuración",
     "untitled": "Sin título",
     "closeTab": "Cerrar pestaña",
-    "openTabs": "Pestañas de solicitudes abiertas"
+    "openTabs": "Pestañas de solicitudes abiertas",
+    "apiKeyName": "Nombre de la Clave",
+    "apiKeyNamePlaceholder": "ej. X-API-Key",
+    "apiKeyValue": "Valor de la Clave",
+    "apiKeyValuePlaceholder": "Ingresa el valor de la clave API",
+    "apiKeyLocation": "Agregar a",
+    "locationHeader": "Encabezado",
+    "locationQuery": "Parámetros de Consulta",
+    "skipTlsVerify": "Omitir verificación TLS/SSL",
+    "skipTlsVerifyWarning": "Deshabilita la validación de certificados - úsalo solo para servidores locales/de desarrollo en los que confíes.",
+    "followRedirects": "Seguir redirecciones",
+    "maxRedirects": "Máximo de redirecciones",
+    "timeoutOverride": "Timeout personalizado de la solicitud (segundos)",
+    "timeoutOverridePlaceholder": "0 o vacío = usar el valor global por defecto"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -307,6 +321,21 @@
       "noEndpoints": "No se encontraron endpoints en la especificación OpenAPI",
       "invalidFormat": "Formato de archivo inválido. Se esperaba JSON o YAML."
     }
+  },
+  "curlImport": {
+    "title": "Importar cURL",
+    "triggerTitle": "Importar comando cURL",
+    "placeholder": "Pega aquí un comando curl, ej. curl -X POST 'https://api.ejemplo.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+    "preview": "Vista previa",
+    "nameLabel": "Nombre de la Solicitud",
+    "namePlaceholder": "Ingresa el nombre de la solicitud",
+    "import": "Importar",
+    "importing": "Importando...",
+    "errors": {
+      "parseFailed": "Error al analizar el comando curl",
+      "importFailed": "Error al importar la solicitud"
+    },
+    "imported": "Solicitud importada desde curl"
   },
   "jsonEditor": {
     "format": "Formatear",

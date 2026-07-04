@@ -149,9 +149,23 @@
     "tabAuthorization": "Authorization",
     "tabCaptures": "Captures",
     "tabRawRequest": "Raw Request",
+    "tabSettings": "Settings",
     "untitled": "Untitled",
     "closeTab": "Close tab",
-    "openTabs": "Open request tabs"
+    "openTabs": "Open request tabs",
+    "apiKeyName": "Key Name",
+    "apiKeyNamePlaceholder": "e.g. X-API-Key",
+    "apiKeyValue": "Key Value",
+    "apiKeyValuePlaceholder": "Enter API key value",
+    "apiKeyLocation": "Add to",
+    "locationHeader": "Header",
+    "locationQuery": "Query Params",
+    "skipTlsVerify": "Skip TLS/SSL verification",
+    "skipTlsVerifyWarning": "Disables certificate validation - only use for local/dev servers you trust.",
+    "followRedirects": "Follow redirects",
+    "maxRedirects": "Max redirects",
+    "timeoutOverride": "Request timeout override (seconds)",
+    "timeoutOverridePlaceholder": "0 or empty = use global default"
   },
   "folder": {
     "create": "Create New Folder",
@@ -307,6 +321,21 @@
       "noEndpoints": "No endpoints found in the OpenAPI specification",
       "invalidFormat": "Invalid file format. Expected JSON or YAML."
     }
+  },
+  "curlImport": {
+    "title": "Import cURL",
+    "triggerTitle": "Import cURL command",
+    "placeholder": "Paste a curl command here, e.g. curl -X POST 'https://api.example.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+    "preview": "Preview",
+    "nameLabel": "Request Name",
+    "namePlaceholder": "Enter request name",
+    "import": "Import",
+    "importing": "Importing...",
+    "errors": {
+      "parseFailed": "Failed to parse curl command",
+      "importFailed": "Failed to import request"
+    },
+    "imported": "Request imported from curl"
   },
   "jsonEditor": {
     "format": "Format",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers, Terminal } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -21,6 +21,7 @@ import TabBar from '../components/TabBar';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
+import ImportCurlModal from '../components/ImportCurlModal';
 import EnvironmentManager from '../components/EnvironmentManager';
 import ShortcutsHelp from '../components/ShortcutsHelp';
 
@@ -44,6 +45,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
   const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
+  const [showCurlImportModal, setShowCurlImportModal] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const { activeEnvironment } = useEnvironmentStore();
@@ -139,9 +141,16 @@ function Project({ layout, onNewProject, onSettings }) {
         auth_type: selectedRequest.auth_type || 'none',
         bearer_token: selectedRequest.bearer_token || '',
         basic_auth: selectedRequest.basic_auth || { username: '', password: '' },
+        api_key_name: selectedRequest.api_key_name || '',
+        api_key_value: selectedRequest.api_key_value || '',
+        api_key_location: selectedRequest.api_key_location || 'header',
         body_type: selectedRequest.body_type || 'none',
         body: selectedRequest.body || '',
         form_data: selectedRequest.form_data || [],
+        insecure_skip_verify: selectedRequest.insecure_skip_verify || false,
+        follow_redirects: selectedRequest.follow_redirects !== undefined ? selectedRequest.follow_redirects : true,
+        max_redirects: selectedRequest.max_redirects !== undefined ? selectedRequest.max_redirects : 10,
+        timeout_seconds: selectedRequest.timeout_seconds || 0,
         position: selectedRequest.position + 1
       };
       
@@ -280,6 +289,18 @@ function Project({ layout, onNewProject, onSettings }) {
               title={t('openapi.title')}
             >
               <Upload className={icon} />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCurlImportModal(true);
+              }}
+              className={iconButton}
+              title={t('curlImport.triggerTitle')}
+            >
+              <Terminal className={icon} />
             </Button>
             <Button
               variant="outline"
@@ -479,6 +500,13 @@ function Project({ layout, onNewProject, onSettings }) {
       <OpenAPIImportModal
         isOpen={showOpenAPIModal}
         onClose={() => setShowOpenAPIModal(false)}
+        projectId={projectId}
+      />
+
+      {/* cURL Import Modal */}
+      <ImportCurlModal
+        isOpen={showCurlImportModal}
+        onClose={() => setShowCurlImportModal(false)}
         projectId={projectId}
       />
 

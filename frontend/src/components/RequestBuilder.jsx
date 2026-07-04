@@ -36,8 +36,15 @@ function RequestBuilder() {
     auth_type: 'none',
     bearer_token: '',
     basic_auth: { username: '', password: '' },
+    api_key_name: '',
+    api_key_value: '',
+    api_key_location: 'header',
     body_type: 'none',
-    form_data: []
+    form_data: [],
+    insecure_skip_verify: false,
+    follow_redirects: true,
+    max_redirects: 10,
+    timeout_seconds: 0
   });
 
   const [activeResponseTab, setActiveResponseTab] = useState('body');
@@ -94,8 +101,15 @@ function RequestBuilder() {
         auth_type: currentRequest.auth_type || 'none',
         bearer_token: currentRequest.bearer_token || '',
         basic_auth: { ...(currentRequest.basic_auth || { username: '', password: '' }) },
+        api_key_name: currentRequest.api_key_name || '',
+        api_key_value: currentRequest.api_key_value || '',
+        api_key_location: currentRequest.api_key_location || 'header',
         body_type: currentRequest.body_type || 'none',
-        form_data: currentRequest.form_data ? currentRequest.form_data.map(item => createRow({ ...item })) : []
+        form_data: currentRequest.form_data ? currentRequest.form_data.map(item => createRow({ ...item })) : [],
+        insecure_skip_verify: currentRequest.insecure_skip_verify || false,
+        follow_redirects: currentRequest.follow_redirects !== undefined ? currentRequest.follow_redirects : true,
+        max_redirects: currentRequest.max_redirects !== undefined ? currentRequest.max_redirects : 10,
+        timeout_seconds: currentRequest.timeout_seconds || 0
       };
 
       setRequestData(newRequestData);
