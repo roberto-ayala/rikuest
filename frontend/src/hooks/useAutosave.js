@@ -46,68 +46,89 @@ export function useAutosave(requestData, saveRequestOptimistic) {
   const lastSavedData = useRef(null);
   const [status, setStatus] = useState('idle');
 
-  const saveRequest = useCallback(async () => {
+  // Performs the actual save immediately (no debounce). Shared by the
+  // debounced timer and the force-flush path (e.g. Cmd/Ctrl+S).
+  const performSave = useCallback(async () => {
+    if (!requestData.id || isInitializing.current) return;
+
+    const currentDataString = normalizeRequestData(requestData);
+    if (lastSavedData.current === currentDataString) return;
+
+    if (savedStatusTimeout.current) clearTimeout(savedStatusTimeout.current);
+    setStatus('saving');
+    try {
+      // Sync headers object from headers_array before saving
+      const filteredHeaders = {};
+      requestData.headers_array.forEach(h => {
+        if (h.key && h.key.trim() && h.value && h.value.trim()) {
+          filteredHeaders[h.key.trim()] = h.value.trim();
+        }
+      });
+
+      const filteredQueryParams = requestData.query_params
+        .filter(p => (p.key && p.key.trim()) || (p.value && p.value.trim()))
+        .map(stripRowId);
+      // Always ensure at least one empty param exists for UI, but don't save it
+      if (filteredQueryParams.length === 0) {
+        filteredQueryParams.push({ key: '', value: '', enabled: true });
+      }
+
+      const filteredFormData = requestData.form_data
+        .filter(item => (item.key && item.key.trim()) || (item.value && item.value.trim()))
+        .map(stripRowId);
+
+      const requestToSave = {
+        ...requestData,
+        headers: filteredHeaders,
+        headers_array: requestData.headers_array.map(stripRowId),
+        query_params: filteredQueryParams,
+        form_data: filteredFormData
+      };
+
+      // Optimistic update - save to server and update background data
+      await saveRequestOptimistic(requestData.id, requestToSave);
+
+      // Update the comparison data to prevent unnecessary saves
+      lastSavedData.current = currentDataString;
+
+      setStatus('saved');
+      savedStatusTimeout.current = setTimeout(() => setStatus('idle'), SAVED_STATUS_RESET_MS);
+    } catch (error) {
+      // The store action already surfaces an error toast centrally
+      // (createAsyncAction), so here we only track the status.
+      console.error('Failed to save request:', error);
+      setStatus('error');
+    }
+  }, [requestData, saveRequestOptimistic]);
+
+  const saveRequest = useCallback(() => {
     if (!requestData.id || isInitializing.current) return;
 
     const currentDataString = normalizeRequestData(requestData);
     if (lastSavedData.current === currentDataString) return;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-
-    saveTimeout.current = setTimeout(async () => {
-      if (savedStatusTimeout.current) clearTimeout(savedStatusTimeout.current);
-      setStatus('saving');
-      try {
-        // Sync headers object from headers_array before saving
-        const filteredHeaders = {};
-        requestData.headers_array.forEach(h => {
-          if (h.key && h.key.trim() && h.value && h.value.trim()) {
-            filteredHeaders[h.key.trim()] = h.value.trim();
-          }
-        });
-
-        const filteredQueryParams = requestData.query_params
-          .filter(p => (p.key && p.key.trim()) || (p.value && p.value.trim()))
-          .map(stripRowId);
-        // Always ensure at least one empty param exists for UI, but don't save it
-        if (filteredQueryParams.length === 0) {
-          filteredQueryParams.push({ key: '', value: '', enabled: true });
-        }
-
-        const filteredFormData = requestData.form_data
-          .filter(item => (item.key && item.key.trim()) || (item.value && item.value.trim()))
-          .map(stripRowId);
-
-        const requestToSave = {
-          ...requestData,
-          headers: filteredHeaders,
-          headers_array: requestData.headers_array.map(stripRowId),
-          query_params: filteredQueryParams,
-          form_data: filteredFormData
-        };
-
-        // Optimistic update - save to server and update background data
-        await saveRequestOptimistic(requestData.id, requestToSave);
-
-        // Update the comparison data to prevent unnecessary saves
-        lastSavedData.current = currentDataString;
-
-        setStatus('saved');
-        savedStatusTimeout.current = setTimeout(() => setStatus('idle'), SAVED_STATUS_RESET_MS);
-      } catch (error) {
-        // The store action already surfaces an error toast centrally
-        // (createAsyncAction), so here we only track the status.
-        console.error('Failed to save request:', error);
-        setStatus('error');
-      }
+    saveTimeout.current = setTimeout(() => {
+      saveTimeout.current = null;
+      performSave();
     }, 500); // Reduced debounce since UI is now optimistic
-  }, [requestData, saveRequestOptimistic]);
+  }, [requestData, performSave]);
 
   // Re-runs the debounced save immediately; used by the "Save failed" retry.
   const retrySave = useCallback(() => {
     setStatus('idle');
     saveRequest();
   }, [saveRequest]);
+
+  // Cancels any pending debounced save and saves right away; used by the
+  // Cmd/Ctrl+S keyboard shortcut so the user gets an immediate save.
+  const flushNow = useCallback(() => {
+    if (saveTimeout.current) {
+      clearTimeout(saveTimeout.current);
+      saveTimeout.current = null;
+    }
+    performSave();
+  }, [performSave]);
 
   // Clear the transient status timer on unmount. The pending save timer is
   // intentionally left alone so an in-flight debounced save still completes.
@@ -124,5 +145,5 @@ export function useAutosave(requestData, saveRequestOptimistic) {
     }
   }, [requestData, saveRequest]);
 
-  return { isInitializing, lastSavedData, status, retrySave };
+  return { isInitializing, lastSavedData, status, retrySave, flushNow };
 }

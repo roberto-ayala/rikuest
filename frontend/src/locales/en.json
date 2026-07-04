@@ -316,5 +316,28 @@
     "curl": "cURL",
     "fetch": "JavaScript Fetch",
     "python": "Python Requests"
+  },
+  "response": {
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Failed to copy",
+    "switchToRaw": "Switch to raw view",
+    "switchToPretty": "Switch to pretty view",
+    "toggleWrap": "Toggle word wrap",
+    "search": "Search in body",
+    "searchPlaceholder": "Search...",
+    "noMatches": "No matches",
+    "matchCounter": "{current} of {total}",
+    "prevMatch": "Previous match",
+    "nextMatch": "Next match",
+    "closeSearch": "Close search",
+    "binaryPreviewTitle": "Binary response",
+    "binaryPreviewDesc": "{type} — {size} — preview not supported"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "execute": "Send request",
+    "save": "Save request",
+    "help": "Show shortcuts"
   }
 }

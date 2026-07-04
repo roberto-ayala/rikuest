@@ -13,12 +13,14 @@ import { addToast } from '../stores/toastStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useResizablePanel } from '../hooks/useResizablePanel';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
 import EnvironmentManager from '../components/EnvironmentManager';
+import ShortcutsHelp from '../components/ShortcutsHelp';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -41,6 +43,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
   const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const { activeEnvironment } = useEnvironmentStore();
   const [newRequest, setNewRequest] = useState({
     name: '',
@@ -188,6 +191,11 @@ function Project({ layout, onNewProject, onSettings }) {
     setShowMenu(false);
     setSelectedRequest(null);
   };
+
+  // Cmd/Ctrl+/ opens the shortcuts help modal from anywhere in the project view.
+  useKeyboardShortcuts([
+    { key: '/', mod: true, handler: () => setShowShortcutsHelp(true) }
+  ]);
 
   return (
     <div 
@@ -467,6 +475,12 @@ function Project({ layout, onNewProject, onSettings }) {
         projectId={projectId}
         isOpen={showEnvManager}
         onClose={() => setShowEnvManager(false)}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <ShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
       />
     </div>
   );

@@ -139,6 +139,13 @@ html.dark .shiki-wrapper .shiki {
   background-color: transparent !important;
 }
 
+/* Word-wrap toggle (ResponsePanel body view): wrapping is the default via
+   the rule above, ".no-wrap" opts back into a single scrollable line. */
+.shiki-wrapper.no-wrap .shiki {
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
 /* Line numbers via data-line attribute injected by the Shiki transformer */
 .shiki-wrapper.line-numbers .shiki .line[data-line]::before {
   content: attr(data-line);

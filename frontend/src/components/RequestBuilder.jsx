@@ -8,6 +8,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useAutosave, normalizeRequestData } from '../hooks/useAutosave';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { getMethodColor, createRow } from '../lib/utils';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 import RequestTabs from './request-builder/RequestTabs';
@@ -60,7 +61,7 @@ function RequestBuilder() {
   });
 
   // Debounced autosave (500ms) with initialization guard and save status
-  const { isInitializing, lastSavedData, status: saveStatus, retrySave } = useAutosave(requestData, saveRequestOptimistic);
+  const { isInitializing, lastSavedData, status: saveStatus, retrySave, flushNow } = useAutosave(requestData, saveRequestOptimistic);
 
   // Initialize request data when currentRequest changes
   useEffect(() => {
@@ -207,6 +208,27 @@ function RequestBuilder() {
   const cancelDeleteHistoryItem = () => {
     setDeleteConfirmation(null);
   };
+
+  // Cmd/Ctrl+Enter sends the current request; Cmd/Ctrl+S force-flushes the
+  // pending autosave. Both work even while focus is inside an input/textarea.
+  useKeyboardShortcuts([
+    {
+      key: 'Enter',
+      mod: true,
+      allowInInputs: true,
+      handler: () => {
+        if (requestData.id && requestData.url?.trim() && !executing) {
+          handleExecuteRequest();
+        }
+      }
+    },
+    {
+      key: 's',
+      mod: true,
+      allowInInputs: true,
+      handler: () => flushNow()
+    }
+  ], [requestData.id, requestData.url, executing, flushNow]);
 
   if (!currentRequest) {
     return <div className="flex-1 flex items-center justify-center">
