@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useProjectStore } from '../stores/projectStore';
+import { addToast } from '../stores/toastStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -100,6 +101,7 @@ function Home() {
     
     try {
       await deleteProject(selectedProject.id);
+      addToast('success', t('project.deleted'));
       setSelectedProject(null);
     } catch (error) {
       console.error('Failed to delete project:', error);

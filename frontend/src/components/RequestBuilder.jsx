@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Send, Loader2, History } from 'lucide-react';
+import { Send, Loader2, History, Check, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { useRequestStore } from '../stores/requestStore';
@@ -59,8 +59,8 @@ function RequestBuilder() {
     maxPercent: 80
   });
 
-  // Debounced autosave (500ms) with initialization guard
-  const { isInitializing, lastSavedData } = useAutosave(requestData, saveRequestOptimistic);
+  // Debounced autosave (500ms) with initialization guard and save status
+  const { isInitializing, lastSavedData, status: saveStatus, retrySave } = useAutosave(requestData, saveRequestOptimistic);
 
   // Initialize request data when currentRequest changes
   useEffect(() => {
@@ -267,6 +267,30 @@ function RequestBuilder() {
             placeholder={t('request.requestNamePlaceholder')}
             className={`${text('lg')} font-medium bg-transparent border-none p-0 h-auto focus-visible:ring-0 shadow-none flex-1 mr-3`}
           />
+
+          {/* Autosave status indicator */}
+          {saveStatus === 'saving' && (
+            <span className={`flex items-center text-muted-foreground ${text('xs')} mr-2 flex-shrink-0`}>
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              {t('request.saving')}
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className={`flex items-center text-green-500 ${text('xs')} mr-2 flex-shrink-0`}>
+              <Check className="h-3 w-3 mr-1" />
+              {t('request.saved')}
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <button
+              onClick={retrySave}
+              className={`flex items-center text-red-500 hover:text-red-400 ${text('xs')} mr-2 flex-shrink-0`}
+              title={t('request.retrySave')}
+            >
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {t('request.saveFailed')}
+            </button>
+          )}
 
           <Button
             variant="ghost"

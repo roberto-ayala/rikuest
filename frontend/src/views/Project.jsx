@@ -9,6 +9,7 @@ import { useRequestStore } from '../stores/requestStore';
 import { useFolderStore } from '../stores/folderStore';
 import { useUIStore } from '../stores/uiStore';
 import { useEnvironmentStore } from '../stores/environmentStore';
+import { addToast } from '../stores/toastStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useResizablePanel } from '../hooks/useResizablePanel';
@@ -162,6 +163,7 @@ function Project({ layout, onNewProject, onSettings }) {
         }
         
         await deleteRequest(selectedRequest.id);
+        addToast('success', t('request.deleted'));
         setSelectedRequest(null);
       } catch (error) {
         console.error('Failed to delete request:', error);

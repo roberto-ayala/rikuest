@@ -154,3 +154,18 @@ html.dark .shiki-wrapper .shiki {
 html.dark .shiki-wrapper.line-numbers .shiki .line[data-line]::before {
   color: #6e7681;
 }
+/* Toast enter animation (see components/Toaster.jsx) */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-in 0.2s ease-out;
+}

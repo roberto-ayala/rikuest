@@ -12,14 +12,52 @@ import { useTranslation } from './hooks/useTranslation';
 import ThemeSelector from './components/ThemeSelector';
 import LanguageSelector from './components/LanguageSelector';
 import SettingsModal from './components/SettingsModal';
+import Toaster from './components/Toaster';
 import Home from './views/Home';
 import Project from './views/Project';
+
+function AppHeader({ onNewProject, onSettings }) {
+  const { text, spacing, icon, iconButton, headerButton } = useUISize();
+  const { t } = useTranslation();
+
+  return (
+    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className={`flex h-14 items-center ${spacing(4)}`}>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Zap className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center space-x-2">
+          <Button onClick={onNewProject} className={`${headerButton} ${text('sm')}`}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('navigation.newProject')}
+          </Button>
+          <ThemeSelector />
+          <LanguageSelector />
+          <Button
+            variant="ghost"
+            onClick={onSettings}
+            className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+            title={t('common.settings')}
+          >
+            <Settings className={icon} />
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
 
 function App() {
   const navigate = useNavigate();
   const createProject = useProjectStore(state => state.createProject);
   const layout = useUIStore(state => state.layout);
-  const { text, spacing, button, input, icon, iconButton, headerButton } = useUISize();
+  const { text, spacing, button, input } = useUISize();
   const { t } = useTranslation();
   
   // Apply background colors
@@ -54,35 +92,7 @@ function App() {
       {layout === 'default' ? (
         <>
           {/* Default Layout - Full Header */}
-          <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-            <div className={`flex h-14 items-center ${spacing(4)}`}>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                    <Zap className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
-                </div>
-              </div>
-              
-              <div className="ml-auto flex items-center space-x-2">
-                <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('navigation.newProject')}
-                </Button>
-                <ThemeSelector />
-                <LanguageSelector />
-                <Button 
-                  variant="ghost"
-                  onClick={() => setShowSettingsModal(true)} 
-                  className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-                  title={t('common.settings')}
-                >
-                  <Settings className={icon} />
-                </Button>
-              </div>
-            </div>
-          </header>
+          <AppHeader onNewProject={() => setShowNewProjectDialog(true)} onSettings={() => setShowSettingsModal(true)} />
 
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden w-full min-h-0">
@@ -98,35 +108,7 @@ function App() {
           <Routes>
             <Route path="/" element={
               <>
-                <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-                  <div className={`flex h-14 items-center ${spacing(4)}`}>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                          <Zap className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                        <h1 className={`font-semibold ${text('lg')}`}>Rikuest</h1>
-                      </div>
-                    </div>
-                    
-                    <div className="ml-auto flex items-center space-x-2">
-                      <Button onClick={() => setShowNewProjectDialog(true)} className={`${headerButton} ${text('sm')}`}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        {t('navigation.newProject')}
-                      </Button>
-                      <ThemeSelector />
-                      <LanguageSelector />
-                      <Button 
-                        variant="ghost"
-                        onClick={() => setShowSettingsModal(true)} 
-                        className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-                        title={t('common.settings')}
-                      >
-                        <Settings className={icon} />
-                      </Button>
-                    </div>
-                  </div>
-                </header>
+                <AppHeader onNewProject={() => setShowNewProjectDialog(true)} onSettings={() => setShowSettingsModal(true)} />
                 <div className="flex-1 flex overflow-hidden w-full min-h-0">
                   <Home />
                 </div>
@@ -179,10 +161,13 @@ function App() {
       )}
 
       {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={showSettingsModal} 
-        onClose={() => setShowSettingsModal(false)} 
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }

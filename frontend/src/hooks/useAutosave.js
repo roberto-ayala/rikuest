@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 // Removes the client-side row id used for stable React list keys so it never
 // reaches the server payload or the change-detection comparison.
@@ -32,13 +32,19 @@ export function normalizeRequestData(requestData) {
   return JSON.stringify(normalizedData);
 }
 
+// How long the transient 'saved' status stays visible before returning to 'idle'.
+const SAVED_STATUS_RESET_MS = 2000;
+
 // Debounced autosave for the request builder. Saves via the optimistic store
 // action 500ms after the last meaningful change. Returns the refs used to
-// coordinate with the initialization effect in the consuming component.
+// coordinate with the initialization effect in the consuming component, plus
+// a save status ('idle' | 'saving' | 'saved' | 'error') and a retry function.
 export function useAutosave(requestData, saveRequestOptimistic) {
   const saveTimeout = useRef(null);
+  const savedStatusTimeout = useRef(null);
   const isInitializing = useRef(false);
   const lastSavedData = useRef(null);
+  const [status, setStatus] = useState('idle');
 
   const saveRequest = useCallback(async () => {
     if (!requestData.id || isInitializing.current) return;
@@ -49,6 +55,8 @@ export function useAutosave(requestData, saveRequestOptimistic) {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
 
     saveTimeout.current = setTimeout(async () => {
+      if (savedStatusTimeout.current) clearTimeout(savedStatusTimeout.current);
+      setStatus('saving');
       try {
         // Sync headers object from headers_array before saving
         const filteredHeaders = {};
@@ -83,11 +91,31 @@ export function useAutosave(requestData, saveRequestOptimistic) {
 
         // Update the comparison data to prevent unnecessary saves
         lastSavedData.current = currentDataString;
+
+        setStatus('saved');
+        savedStatusTimeout.current = setTimeout(() => setStatus('idle'), SAVED_STATUS_RESET_MS);
       } catch (error) {
+        // The store action already surfaces an error toast centrally
+        // (createAsyncAction), so here we only track the status.
         console.error('Failed to save request:', error);
+        setStatus('error');
       }
     }, 500); // Reduced debounce since UI is now optimistic
   }, [requestData, saveRequestOptimistic]);
+
+  // Re-runs the debounced save immediately; used by the "Save failed" retry.
+  const retrySave = useCallback(() => {
+    setStatus('idle');
+    saveRequest();
+  }, [saveRequest]);
+
+  // Clear the transient status timer on unmount. The pending save timer is
+  // intentionally left alone so an in-flight debounced save still completes.
+  useEffect(() => {
+    return () => {
+      if (savedStatusTimeout.current) clearTimeout(savedStatusTimeout.current);
+    };
+  }, []);
 
   // Auto-save when requestData changes (optimistic UI - no re-renders after save)
   useEffect(() => {
@@ -96,5 +124,5 @@ export function useAutosave(requestData, saveRequestOptimistic) {
     }
   }, [requestData, saveRequest]);
 
-  return { isInitializing, lastSavedData };
+  return { isInitializing, lastSavedData, status, retrySave };
 }
