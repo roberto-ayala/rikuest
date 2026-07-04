@@ -11,7 +11,8 @@ import (
 
 func newRequestService(t *testing.T) *RequestService {
 	t.Helper()
-	return NewRequestService(newTestDB(t))
+	db := newTestDB(t)
+	return NewRequestService(db, NewVariableResolver(db), NewResponseCaptureService(db))
 }
 
 func TestExecuteHTTPRequestBasics(t *testing.T) {

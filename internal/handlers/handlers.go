@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -13,36 +12,6 @@ import (
 
 type Handler struct {
 	services *services.Services
-}
-
-// getErrorStatusText returns a user-friendly status text based on the error message
-func getErrorStatusText(errorMsg string) string {
-	errorMsg = strings.ToLower(errorMsg)
-
-	if strings.Contains(errorMsg, "connection refused") {
-		return "Connection Refused"
-	}
-	if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "no such domain") {
-		return "Host Not Found"
-	}
-	if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "timed out") {
-		return "Request Timeout"
-	}
-	if strings.Contains(errorMsg, "eof") {
-		return "Connection Closed"
-	}
-	if strings.Contains(errorMsg, "certificate") || strings.Contains(errorMsg, "tls") || strings.Contains(errorMsg, "ssl") {
-		return "SSL/TLS Error"
-	}
-	if strings.Contains(errorMsg, "network") {
-		return "Network Error"
-	}
-	if strings.Contains(errorMsg, "dns") {
-		return "DNS Error"
-	}
-
-	// Default for unknown network errors
-	return "Connection Failed"
 }
 
 func NewHandler(services *services.Services) *Handler {

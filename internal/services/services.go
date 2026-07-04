@@ -17,10 +17,9 @@ type Services struct {
 
 // NewServices creates a new services container
 func NewServices(db *database.DB, webhookURL string) *Services {
-	requestSvc := NewRequestService(db)
 	resolver := NewVariableResolver(db)
 	captureSvc := NewResponseCaptureService(db)
-	requestSvc.SetCollaborators(resolver, captureSvc)
+	requestSvc := NewRequestService(db, resolver, captureSvc)
 
 	return &Services{
 		Project:         NewProjectService(db),

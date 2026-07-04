@@ -20,21 +20,19 @@ const maxResponseBodyBytes int64 = 10 * 1024 * 1024 // 10 MB
 type RequestService struct {
 	db              *database.DB
 	config          *ConfigService
+	format          *FormatService
 	resolver        *VariableResolver
 	captureService  *ResponseCaptureService
 }
 
-func NewRequestService(db *database.DB) *RequestService {
+func NewRequestService(db *database.DB, resolver *VariableResolver, capture *ResponseCaptureService) *RequestService {
 	return &RequestService{
-		db:     db,
-		config: NewConfigService(db),
+		db:             db,
+		config:         NewConfigService(db),
+		format:         NewFormatService(),
+		resolver:       resolver,
+		captureService: capture,
 	}
-}
-
-// SetCollaborators wires in the variable resolver and capture service after construction.
-func (s *RequestService) SetCollaborators(resolver *VariableResolver, capture *ResponseCaptureService) {
-	s.resolver = resolver
-	s.captureService = capture
 }
 
 func (s *RequestService) GetRequests(projectID int) ([]models.Request, error) {
@@ -80,11 +78,9 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 	}
 
 	// Resolve {{variables}} before executing
-	if s.resolver != nil {
-		vars, err := s.resolver.BuildVariableMap(request.ProjectID, request.FolderID)
-		if err == nil && len(vars) > 0 {
-			request = s.resolver.ResolveRequest(request, vars)
-		}
+	vars, err := s.resolver.BuildVariableMap(request.ProjectID, request.FolderID)
+	if err == nil && len(vars) > 0 {
+		request = s.resolver.ResolveRequest(request, vars)
 	}
 
 	response, err := s.executeHTTPRequest(request)
@@ -93,7 +89,7 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 	}
 
 	// Apply response captures on successful responses
-	if s.captureService != nil && response.Status >= 200 && response.Status < 300 {
+	if response.Status >= 200 && response.Status < 300 {
 		s.captureService.ApplyCaptures(requestID, request.ProjectID, response.Body)
 	}
 
@@ -198,13 +194,13 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	duration := time.Since(start)
 	
 	// Generate raw request
-	rawRequestString := s.buildRawRequest(request)
+	rawRequestString := s.format.BuildRawRequest(request)
 	
 	var response models.RequestResponse
 	
 	if err != nil {
 		// Handle network/connection errors as a response
-		statusText := s.getErrorStatusText(err.Error())
+		statusText := errorStatusText(err.Error())
 		response = models.RequestResponse{
 			Status:     0,
 			StatusText: statusText,
@@ -264,109 +260,8 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	return &response, nil
 }
 
-// buildRawRequest constructs the raw HTTP request string
-func (s *RequestService) buildRawRequest(request *models.Request) string {
-	var rawRequest strings.Builder
-	
-	// Parse URL to extract query parameters
-	parsedURL, err := url.Parse(request.URL)
-	if err != nil {
-		parsedURL = &url.URL{Path: request.URL}
-	}
-	
-	// Build query parameters from request.QueryParams
-	queryParams := url.Values{}
-	for _, param := range request.QueryParams {
-		if param.Enabled && param.Key != "" {
-			queryParams.Add(param.Key, param.Value)
-		}
-	}
-	
-	// Construct the request line
-	requestPath := parsedURL.Path
-	if requestPath == "" {
-		requestPath = "/"
-	}
-	
-	if len(queryParams) > 0 {
-		requestPath += "?" + queryParams.Encode()
-	}
-	
-	// Add host from URL
-	host := parsedURL.Host
-	if host == "" {
-		host = "unknown-host"
-	}
-	
-	rawRequest.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", request.Method, requestPath))
-	rawRequest.WriteString(fmt.Sprintf("Host: %s\r\n", host))
-	
-	// Add custom User-Agent header
-	rawRequest.WriteString("User-Agent: Rikuest/1.0 (HTTP API Client)\r\n")
-	
-	// Add headers
-	for key, value := range request.Headers {
-		rawRequest.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
-	}
-	
-	// Add authorization headers based on auth type
-	switch request.AuthType {
-	case "bearer":
-		if request.BearerToken != "" {
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Bearer %s\r\n", request.BearerToken))
-		}
-	case "basic":
-		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
-			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
-			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Basic %s\r\n", encodedAuth))
-		}
-	}
-	
-	// Add Content-Type for form data if not already present
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		hasContentType := false
-		for key := range request.Headers {
-			if strings.ToLower(key) == "content-type" {
-				hasContentType = true
-				break
-			}
-		}
-		if !hasContentType {
-			rawRequest.WriteString("Content-Type: application/x-www-form-urlencoded\r\n")
-		}
-	}
-	
-	// Add Content-Length if there's a body
-	var bodyContent string
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		formValues := url.Values{}
-		for _, item := range request.FormData {
-			if item.Key != "" {
-				formValues.Add(item.Key, item.Value)
-			}
-		}
-		bodyContent = formValues.Encode()
-	} else if request.Body != "" {
-		bodyContent = request.Body
-	}
-	
-	if bodyContent != "" {
-		rawRequest.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(bodyContent)))
-	}
-	
-	rawRequest.WriteString("\r\n")
-	
-	// Add body if present
-	if bodyContent != "" {
-		rawRequest.WriteString(bodyContent)
-	}
-	
-	return rawRequest.String()
-}
-
-// getErrorStatusText returns a user-friendly status text based on the error message
-func (s *RequestService) getErrorStatusText(errorMsg string) string {
+// errorStatusText returns a user-friendly status text based on the error message
+func errorStatusText(errorMsg string) string {
 	errorMsg = strings.ToLower(errorMsg)
 	
 	if strings.Contains(errorMsg, "connection refused") {

@@ -61,15 +61,10 @@ func (a *App) OnStartup(ctx context.Context) {
 	// Get webhook URL from centralized config
 	webhookURL := config.DiscordWebhookURL()
 
-	// Initialize services
+	// Initialize services. The telemetry service falls back to the webhook
+	// stored in telemetry_config when the env var is not set, so no
+	// re-creation is needed here.
 	a.services = services.NewServices(db, webhookURL)
-
-	// Update webhook URL from config if available (allows runtime override from DB)
-	telemetryConfig, err := a.services.Telemetry.GetConfig()
-	if err == nil && telemetryConfig.WebhookURL != "" {
-		// Use webhook from config (allows users to override via DB)
-		a.services.Telemetry = services.NewTelemetryService(db, telemetryConfig.WebhookURL)
-	}
 
 	// Setup panic recovery
 	defer func() {
