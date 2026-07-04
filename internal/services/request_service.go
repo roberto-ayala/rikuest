@@ -13,6 +13,10 @@ import (
 	"rikuest/internal/models"
 )
 
+// maxResponseBodyBytes caps how much of a response body is kept in memory
+// and stored in request_history (bodies beyond this are truncated).
+const maxResponseBodyBytes int64 = 10 * 1024 * 1024 // 10 MB
+
 type RequestService struct {
 	db              *database.DB
 	config          *ConfigService
@@ -213,7 +217,16 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	} else {
 		defer resp.Body.Close()
 
-		responseBody, err := io.ReadAll(resp.Body)
+		// Cap how much of the body is kept in memory (and later stored in
+		// request_history): an unbounded ReadAll on a large download would
+		// exhaust memory and bloat the SQLite file.
+		limited := io.LimitReader(resp.Body, maxResponseBodyBytes+1)
+		responseBody, err := io.ReadAll(limited)
+		truncated := false
+		if err == nil && int64(len(responseBody)) > maxResponseBodyBytes {
+			responseBody = responseBody[:maxResponseBodyBytes]
+			truncated = true
+		}
 		if err != nil {
 			// Handle body read errors as a response
 			response = models.RequestResponse{
@@ -231,11 +244,16 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 				responseHeaders[key] = strings.Join(values, ", ")
 			}
 
+			bodyText := string(responseBody)
+			if truncated {
+				bodyText += fmt.Sprintf("\n\n[Rikuest] Response truncated: body exceeded the %d MB limit", maxResponseBodyBytes/(1024*1024))
+			}
+
 			response = models.RequestResponse{
 				Status:     resp.StatusCode,
 				StatusText: resp.Status,
 				Headers:    responseHeaders,
-				Body:       string(responseBody),
+				Body:       bodyText,
 				Duration:   duration.Milliseconds(),
 				Size:       int64(len(responseBody)),
 				RawRequest: rawRequestString,

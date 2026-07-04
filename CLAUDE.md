@@ -56,7 +56,8 @@ All routes under `/api`, registered in `cmd/server/main.go` — read that file f
 
 ## Gotchas
 - Telemetry is opt-in and disabled by default. It only sends events to Discord when the user enables it AND the `RIKUEST_DISCORD_WEBHOOK` env var (read in `internal/config/config.go`) or a webhook in `telemetry_config` provides a URL.
-- No tests are configured (Go or JS). ESLint is the only automated check.
+- Go tests exist (start with `internal/database`); run with `go test ./...`. No JS test framework is configured — ESLint is the only frontend check.
+- SQLite runs with `_foreign_keys=on`, WAL, busy_timeout and `SetMaxOpenConns(1)` (set in `database.NewDB`) — don't open the DB elsewhere without them.
 
 ## Development Workflow
 

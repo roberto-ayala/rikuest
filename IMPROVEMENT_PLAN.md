@@ -22,17 +22,15 @@ Basado en el análisis del código en la rama `feature/ra-vars` (julio 2026): ba
 
 Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
-5. **Activar claves foráneas en SQLite.**
-   `PRAGMA foreign_keys = ON` nunca se ejecuta, así que todos los `ON DELETE CASCADE` del esquema se ignoran: borrar un proyecto deja requests/folders/environments huérfanos. Añadir el pragma al DSN o tras `sql.Open` en `internal/database/database.go`.
+5. **Activar claves foráneas en SQLite.** ✅ DSN con `_foreign_keys=on` en `database.NewDB`; los CASCADE/SET NULL del esquema ahora se aplican de verdad (cubierto por tests).
 
-6. **Configurar el pool para SQLite.**
-   `SetMaxOpenConns(1)` + `_busy_timeout` (o modo WAL). Hoy la goroutine de telemetría escribe en paralelo con `request_history` → errores `database is locked`.
+6. **Configurar el pool para SQLite.** ✅ `SetMaxOpenConns(1)` + `_journal_mode=WAL` + `_busy_timeout=5000` en el DSN.
 
-7. **Transaccionar `MAX(position)+1`.**
-   `CreateRequest` y `CreateFolder` (database.go ~300-320, ~454-470) hacen read-then-write sin transacción — carrera de posiciones.
+7. **Transaccionar `MAX(position)+1`.** ✅ Resuelto sin transacción: la posición se calcula con un subquery dentro del propio INSERT (atómico) en `CreateRequest` y `CreateFolder`, devuelta vía `RETURNING`.
 
-8. **Limitar el tamaño de respuesta.**
-   `executeHTTPRequest` hace `io.ReadAll` sin límite (request_service.go:216); una descarga grande tumba la app y engorda la BD. Usar `io.LimitReader` (p. ej. 10 MB configurable) e indicar truncamiento en la respuesta.
+8. **Limitar el tamaño de respuesta.** ✅ `io.LimitReader` de 10 MB (`maxResponseBodyBytes` en request_service.go); los cuerpos truncados se marcan con una nota al final del body.
+
+> Nota: junto con estos pasos se creó `internal/database/database_test.go` (primeros tests del proyecto: posiciones, FKs, cascade, telemetría opt-in) — adelanto de la Fase 2.
 
 9. **Apagado limpio en modo servidor.**
    `cmd/server/main.go:92` usa `log.Fatal(r.Run(...))` — el `defer db.Close()` nunca corre. Cambiar a `http.Server` + manejo de señales + `Shutdown(ctx)`. Añadir `gin.SetMode(gin.ReleaseMode)`.

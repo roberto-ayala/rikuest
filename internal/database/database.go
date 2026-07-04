@@ -16,10 +16,18 @@ type DB struct {
 }
 
 func NewDB(dataSourceName string) (*DB, error) {
-	db, err := sql.Open("sqlite3", dataSourceName)
+	// _foreign_keys: the schema relies on ON DELETE CASCADE/SET NULL, which
+	// SQLite ignores unless enabled per-connection.
+	// WAL + busy_timeout: tolerate concurrent writers (telemetry goroutine
+	// writes while request history is being saved).
+	db, err := sql.Open("sqlite3", dataSourceName+"?_foreign_keys=on&_journal_mode=WAL&_busy_timeout=5000")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
+	// SQLite serializes writes; a single connection avoids "database is locked"
+	// errors and makes the per-connection pragmas above apply everywhere.
+	db.SetMaxOpenConns(1)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
@@ -297,25 +305,18 @@ func (db *DB) CreateRequest(request *models.Request) error {
 	basicAuthJSON, _ := json.Marshal(request.BasicAuth)
 	formDataJSON, _ := json.Marshal(request.FormData)
 
-	// Get the next position for this folder (or root level)
-	var maxPosition int
-	if request.FolderID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id IS NULL",
-			request.ProjectID).Scan(&maxPosition)
-	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM requests WHERE project_id = ? AND folder_id = ?",
-			request.ProjectID, request.FolderID).Scan(&maxPosition)
-	}
-	request.Position = maxPosition + 1
-
-	query := `INSERT INTO requests (project_id, folder_id, name, method, url, headers, body, 
-			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data, position) 
-			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at, updated_at`
+	// Position is computed inside the INSERT so the MAX(position)+1 read and
+	// the write happen atomically (no race between concurrent creates).
+	query := `INSERT INTO requests (project_id, folder_id, name, method, url, headers, body,
+			  query_params, auth_type, bearer_token, basic_auth, body_type, form_data, position)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+			  (SELECT COALESCE(MAX(position), -1) + 1 FROM requests WHERE project_id = ? AND folder_id IS ?))
+			  RETURNING id, position, created_at, updated_at`
 	err := db.QueryRow(query, request.ProjectID, request.FolderID, request.Name, request.Method,
 		request.URL, string(headersJSON), request.Body, string(queryParamsJSON),
 		request.AuthType, request.BearerToken, string(basicAuthJSON),
-		request.BodyType, string(formDataJSON), request.Position).Scan(
-		&request.ID, &request.CreatedAt, &request.UpdatedAt,
+		request.BodyType, string(formDataJSON), request.ProjectID, request.FolderID).Scan(
+		&request.ID, &request.Position, &request.CreatedAt, &request.UpdatedAt,
 	)
 	return err
 }
@@ -451,21 +452,15 @@ func (db *DB) DeleteRequestHistoryItem(requestID int, historyID int) error {
 
 // Folder operations
 func (db *DB) CreateFolder(folder *models.Folder) error {
-	// Get the next position for this parent folder (or root level)
-	var maxPosition int
-	if folder.ParentID == nil {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id IS NULL",
-			folder.ProjectID).Scan(&maxPosition)
-	} else {
-		db.QueryRow("SELECT COALESCE(MAX(position), -1) FROM folders WHERE project_id = ? AND parent_id = ?",
-			folder.ProjectID, folder.ParentID).Scan(&maxPosition)
-	}
-	folder.Position = maxPosition + 1
-
-	query := `INSERT INTO folders (project_id, name, parent_id, position) 
-			  VALUES (?, ?, ?, ?) RETURNING id, created_at, updated_at`
-	err := db.QueryRow(query, folder.ProjectID, folder.Name, folder.ParentID, folder.Position).Scan(
-		&folder.ID, &folder.CreatedAt, &folder.UpdatedAt,
+	// Position is computed inside the INSERT so the MAX(position)+1 read and
+	// the write happen atomically (no race between concurrent creates).
+	query := `INSERT INTO folders (project_id, name, parent_id, position)
+			  VALUES (?, ?, ?,
+			  (SELECT COALESCE(MAX(position), -1) + 1 FROM folders WHERE project_id = ? AND parent_id IS ?))
+			  RETURNING id, position, created_at, updated_at`
+	err := db.QueryRow(query, folder.ProjectID, folder.Name, folder.ParentID,
+		folder.ProjectID, folder.ParentID).Scan(
+		&folder.ID, &folder.Position, &folder.CreatedAt, &folder.UpdatedAt,
 	)
 	return err
 }
