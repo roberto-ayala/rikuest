@@ -38,9 +38,9 @@ func NewDB(dataSourceName string) (*DB, error) {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	// Run migrations for new columns
-	if err := database.migrateRequestsTable(); err != nil {
-		return nil, fmt.Errorf("failed to migrate requests table: %w", err)
+	// Apply schema migrations (versioned via PRAGMA user_version)
+	if err := database.migrate(); err != nil {
+		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
 	// Initialize default settings
@@ -184,39 +184,116 @@ func (db *DB) createTables() error {
 	return nil
 }
 
-func (db *DB) migrateRequestsTable() error {
-	// Add new columns if they don't exist
-	migrations := []string{
-		`ALTER TABLE requests ADD COLUMN query_params TEXT DEFAULT '[]'`,
-		`ALTER TABLE requests ADD COLUMN auth_type TEXT DEFAULT 'none'`,
-		`ALTER TABLE requests ADD COLUMN bearer_token TEXT DEFAULT ''`,
-		`ALTER TABLE requests ADD COLUMN basic_auth TEXT DEFAULT '{}'`,
-		`ALTER TABLE requests ADD COLUMN body_type TEXT DEFAULT 'none'`,
-		`ALTER TABLE requests ADD COLUMN form_data TEXT DEFAULT '[]'`,
-		`ALTER TABLE requests ADD COLUMN folder_id INTEGER`,
-		`ALTER TABLE requests ADD COLUMN position INTEGER DEFAULT 0`,
+// migration is a numbered schema change. Applied migrations are tracked via
+// PRAGMA user_version; to evolve the schema, append a new entry with the next
+// version number (never edit an already-shipped migration).
+type migration struct {
+	version    int
+	statements []string
+}
+
+var migrations = []migration{
+	{
+		version: 1,
+		statements: []string{
+			`CREATE INDEX IF NOT EXISTS idx_folders_project_id ON folders(project_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_requests_project_id ON requests(project_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_requests_folder_id ON requests(folder_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_request_history_request_id ON request_history(request_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_environments_project_id ON environments(project_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_folder_variables_folder_id ON folder_variables(folder_id)`,
+			`CREATE INDEX IF NOT EXISTS idx_response_captures_request_id ON response_captures(request_id)`,
+		},
+	},
+}
+
+func (db *DB) migrate() error {
+	// Legacy pre-versioning columns: DBs created before the requests table
+	// gained these columns need them added; detection is by inspecting the
+	// actual schema, not by matching error strings.
+	if err := db.ensureRequestColumns(); err != nil {
+		return err
 	}
 
-	for _, migration := range migrations {
-		_, err := db.Exec(migration)
-		if err != nil && !isColumnExistsError(err) {
-			return fmt.Errorf("migration failed: %w", err)
+	var current int
+	if err := db.QueryRow("PRAGMA user_version").Scan(&current); err != nil {
+		return fmt.Errorf("failed to read schema version: %w", err)
+	}
+
+	for _, m := range migrations {
+		if m.version <= current {
+			continue
 		}
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		for _, stmt := range m.statements {
+			if _, err := tx.Exec(stmt); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("migration %d failed: %w", m.version, err)
+			}
+		}
+		if _, err := tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", m.version)); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to set schema version %d: %w", m.version, err)
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		current = m.version
 	}
 
 	return nil
 }
 
-func isColumnExistsError(err error) bool {
-	errStr := fmt.Sprintf("%s", err)
-	return err != nil && (errStr == "duplicate column name: query_params" ||
-		errStr == "duplicate column name: auth_type" ||
-		errStr == "duplicate column name: bearer_token" ||
-		errStr == "duplicate column name: basic_auth" ||
-		errStr == "duplicate column name: body_type" ||
-		errStr == "duplicate column name: form_data" ||
-		errStr == "duplicate column name: folder_id" ||
-		errStr == "duplicate column name: position")
+func (db *DB) ensureRequestColumns() error {
+	rows, err := db.Query(`PRAGMA table_info(requests)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	existing := make(map[string]bool)
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			return err
+		}
+		existing[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	columns := []struct {
+		name string
+		stmt string
+	}{
+		{"query_params", `ALTER TABLE requests ADD COLUMN query_params TEXT DEFAULT '[]'`},
+		{"auth_type", `ALTER TABLE requests ADD COLUMN auth_type TEXT DEFAULT 'none'`},
+		{"bearer_token", `ALTER TABLE requests ADD COLUMN bearer_token TEXT DEFAULT ''`},
+		{"basic_auth", `ALTER TABLE requests ADD COLUMN basic_auth TEXT DEFAULT '{}'`},
+		{"body_type", `ALTER TABLE requests ADD COLUMN body_type TEXT DEFAULT 'none'`},
+		{"form_data", `ALTER TABLE requests ADD COLUMN form_data TEXT DEFAULT '[]'`},
+		{"folder_id", `ALTER TABLE requests ADD COLUMN folder_id INTEGER`},
+		{"position", `ALTER TABLE requests ADD COLUMN position INTEGER DEFAULT 0`},
+	}
+
+	for _, col := range columns {
+		if existing[col.name] {
+			continue
+		}
+		if _, err := db.Exec(col.stmt); err != nil {
+			return fmt.Errorf("failed to add column %s: %w", col.name, err)
+		}
+	}
+
+	return nil
 }
 
 func (db *DB) initializeDefaultSettings() error {

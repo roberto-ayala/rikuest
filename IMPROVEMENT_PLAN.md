@@ -32,17 +32,15 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 > Nota: junto con estos pasos se creó `internal/database/database_test.go` (primeros tests del proyecto: posiciones, FKs, cascade, telemetría opt-in) — adelanto de la Fase 2.
 
-9. **Apagado limpio en modo servidor.**
-   `cmd/server/main.go:92` usa `log.Fatal(r.Run(...))` — el `defer db.Close()` nunca corre. Cambiar a `http.Server` + manejo de señales + `Shutdown(ctx)`. Añadir `gin.SetMode(gin.ReleaseMode)`.
+9. **Apagado limpio en modo servidor.** ✅ `http.Server` + SIGINT/SIGTERM + `Shutdown(ctx)` con drenaje de 10s; `db.Close()` ahora sí corre. Gin en release mode salvo que `RIKUEST_DEBUG` esté definida.
 
-10. **Arreglar CORS.**
-    `AllowOrigins: ["*"]` + `AllowCredentials: true` es una combinación inválida e insegura; en modo servidor la app es un proxy SSRF abierto. Restringir a `localhost` (5173/8080) por defecto.
+10. **Arreglar CORS.** ✅ Orígenes restringidos a localhost/127.0.0.1 (5173 y 8080); eliminado `AllowCredentials` + wildcard.
 
-11. **Índices en claves foráneas.**
-    No existe ningún índice más allá de PK/UNIQUE. Añadir índices sobre `project_id`, `folder_id`, `request_id`, `environment_id`.
+11. **Índices en claves foráneas.** ✅ 8 índices sobre las FKs consultadas con frecuencia, aplicados como migración v1.
 
-12. **Migraciones versionadas.**
-    `migrateRequestsTable()` compara nombres de columna hardcodeados para tragarse errores de "duplicate column". Sustituir por una tabla `schema_version` con migraciones numeradas.
+12. **Migraciones versionadas.** ✅ Runner basado en `PRAGMA user_version` (lista `migrations` numerada, transaccional); la detección de columnas legacy usa `PRAGMA table_info` en vez de comparar strings de error. Cubierto por tests.
+
+**Fase 1 ✅ COMPLETADA**
 
 ---
 

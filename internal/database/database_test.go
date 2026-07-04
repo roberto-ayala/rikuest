@@ -88,6 +88,32 @@ func TestDeleteProjectCascades(t *testing.T) {
 	}
 }
 
+func TestMigrationsApplied(t *testing.T) {
+	db := newTestDB(t)
+
+	var version int
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		t.Fatalf("read user_version: %v", err)
+	}
+	want := migrations[len(migrations)-1].version
+	if version != want {
+		t.Errorf("user_version = %d; want %d", version, want)
+	}
+
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_requests_project_id'`).Scan(&count)
+	if err != nil || count != 1 {
+		t.Errorf("idx_requests_project_id missing (count=%d, err=%v)", count, err)
+	}
+
+	// Re-opening the same DB must be a no-op, not an error
+	db2, err := NewDB(filepath.Join(t.TempDir(), "reopen.db"))
+	if err != nil {
+		t.Fatalf("NewDB fresh: %v", err)
+	}
+	db2.Close()
+}
+
 func TestTelemetryDisabledByDefault(t *testing.T) {
 	db := newTestDB(t)
 

@@ -1,8 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"rikuest/internal/database"
 	"rikuest/internal/handlers"
@@ -23,14 +30,22 @@ func main() {
 	servicesContainer := services.NewServices(db, "")
 	handler := handlers.NewHandler(servicesContainer)
 
+	if os.Getenv("RIKUEST_DEBUG") == "" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	r := gin.Default()
 
+	// The server executes arbitrary HTTP requests on behalf of the UI, so it
+	// must only be reachable from the local frontend: restrict CORS to the
+	// Vite dev server and the embedded frontend origin.
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"*"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowOrigins: []string{
+			"http://localhost:5173", "http://127.0.0.1:5173",
+			"http://localhost:8080", "http://127.0.0.1:8080",
+		},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders: []string{"Content-Length"},
 	}))
 
 	api := r.Group("/api")
@@ -88,6 +103,25 @@ func main() {
 		}
 	})
 
-	log.Println("Server starting on :8080")
-	log.Fatal(r.Run(":8080"))
+	srv := &http.Server{Addr: ":8080", Handler: r}
+
+	go func() {
+		log.Println("Server starting on :8080")
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("server error: %v", err)
+		}
+	}()
+
+	// Wait for SIGINT/SIGTERM, then drain in-flight requests before exiting
+	// so the deferred db.Close() actually runs.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("forced shutdown: %v", err)
+	}
 }
