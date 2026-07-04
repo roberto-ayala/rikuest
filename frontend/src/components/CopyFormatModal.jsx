@@ -104,10 +104,10 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
   if (!isOpen) return null;
 
   const formatTabs = [
-    { id: 'raw', label: 'Raw HTTP', icon: FileText },
-    { id: 'curl', label: 'cURL', icon: Terminal },
-    { id: 'fetch', label: 'JavaScript Fetch', icon: Code },
-    { id: 'python', label: 'Python Requests', icon: FileCode }
+    { id: 'raw', label: t('copyFormats.rawHttp'), icon: FileText },
+    { id: 'curl', label: t('copyFormats.curl'), icon: Terminal },
+    { id: 'fetch', label: t('copyFormats.fetch'), icon: Code },
+    { id: 'python', label: t('copyFormats.python'), icon: FileCode }
   ];
 
   const content = formats[activeFormat] || '';

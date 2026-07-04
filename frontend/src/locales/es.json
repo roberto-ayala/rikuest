@@ -136,7 +136,13 @@
     "password": "Contraseña",
     "passwordPlaceholder": "Ingresa la contraseña",
     "createRequest": "Crear Solicitud",
-    "copyRequest": "Copiar Solicitud"
+    "copyRequest": "Copiar Solicitud",
+    "tabParams": "Parámetros",
+    "tabHeaders": "Encabezados",
+    "tabBody": "Cuerpo",
+    "tabAuthorization": "Autorización",
+    "tabCaptures": "Capturas",
+    "tabRawRequest": "Petición sin procesar"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -154,7 +160,8 @@
     "foldersAndRequests": "Carpetas y Solicitudes",
     "createNew": "Crear Nuevo",
     "createFolder": "Crear Carpeta",
-    "rename": "Renombrar"
+    "rename": "Renombrar",
+    "dropToRoot": "Suelta aquí para mover al nivel raíz"
   },
   "settings": {
     "title": "Configuración",
@@ -291,5 +298,17 @@
       "noEndpoints": "No se encontraron endpoints en la especificación OpenAPI",
       "invalidFormat": "Formato de archivo inválido. Se esperaba JSON o YAML."
     }
+  },
+  "jsonEditor": {
+    "format": "Formatear",
+    "formatTooltip": "Formatear JSON (Ctrl+Shift+F)",
+    "validJson": "JSON válido",
+    "invalidJson": "JSON no válido"
+  },
+  "copyFormats": {
+    "rawHttp": "HTTP sin procesar",
+    "curl": "cURL",
+    "fetch": "JavaScript Fetch",
+    "python": "Python Requests"
   }
 }

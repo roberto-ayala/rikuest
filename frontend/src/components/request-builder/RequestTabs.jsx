@@ -165,17 +165,17 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
   const requestTabs = [
     {
       id: 'params',
-      label: 'Params',
+      label: t('request.tabParams'),
       count: requestData.query_params.filter(p => p.key && p.value).length || null
     },
     {
       id: 'headers',
-      label: 'Headers',
+      label: t('request.tabHeaders'),
       count: requestData.headers_array.filter(h => h.key && h.value).length || null
     },
-    { id: 'body', label: 'Body' },
-    { id: 'auth', label: 'Authorization' },
-    { id: 'captures', label: 'Captures' },
+    { id: 'body', label: t('request.tabBody') },
+    { id: 'auth', label: t('request.tabAuthorization') },
+    { id: 'captures', label: t('request.tabCaptures') },
   ];
 
   const bodyTypes = [

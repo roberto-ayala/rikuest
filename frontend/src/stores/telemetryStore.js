@@ -1,42 +1,27 @@
 import { create } from 'zustand';
 import { adapterFactory } from '../adapters/adapterFactory.js';
+import { asyncAction } from './createAsyncAction.js';
 
 export const useTelemetryStore = create((set, get) => ({
   enabled: true, // Default enabled
   loading: false,
   error: null,
 
-  fetchTelemetryStatus: async () => {
-    set({ loading: true, error: null });
-    try {
-      const adapter = await adapterFactory.getAdapter();
+  fetchTelemetryStatus: () =>
+    asyncAction(set, async (adapter) => {
       if (adapter.getTelemetryEnabled) {
         const enabled = await adapter.getTelemetryEnabled();
-        set({ enabled, loading: false });
-      } else {
-        set({ loading: false });
+        set({ enabled });
       }
-    } catch (error) {
-      console.error('Failed to fetch telemetry status:', error);
-      set({ error: error.message || 'Failed to fetch telemetry status', loading: false });
-    }
-  },
+    }, { label: 'Failed to fetch telemetry status' }),
 
-  setEnabled: async (enabled) => {
-    set({ loading: true, error: null });
-    try {
-      const adapter = await adapterFactory.getAdapter();
+  setEnabled: (enabled) =>
+    asyncAction(set, async (adapter) => {
       if (adapter.setTelemetryEnabled) {
         await adapter.setTelemetryEnabled(enabled);
-        set({ enabled, loading: false });
-      } else {
-        set({ enabled, loading: false });
       }
-    } catch (error) {
-      console.error('Failed to update telemetry status:', error);
-      set({ error: error.message || 'Failed to update telemetry status', loading: false });
-    }
-  },
+      set({ enabled });
+    }, { label: 'Failed to update telemetry status' }),
 
   reportError: async (error, stackTrace) => {
     try {
@@ -62,4 +47,3 @@ export const useTelemetryStore = create((set, get) => ({
     }
   },
 }));
-

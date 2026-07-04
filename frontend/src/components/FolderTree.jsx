@@ -43,6 +43,7 @@ import FolderVariablesModal from './FolderVariablesModal';
 
 // Root Drop Zone Component
 function RootDropZone() {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -72,7 +73,7 @@ function RootDropZone() {
     >
       {isOver && (
         <span className="text-xs text-primary font-medium">
-          Drop here to move to root level
+          {t('folder.dropToRoot')}
         </span>
       )}
     </div>

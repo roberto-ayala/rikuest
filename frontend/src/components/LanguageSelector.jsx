@@ -5,7 +5,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
 const LanguageSelector = () => {
-  const { currentLanguage, currentLanguageInfo, changeLanguage, availableLanguages } = useTranslation();
+  const { t, currentLanguage, currentLanguageInfo, changeLanguage, availableLanguages } = useTranslation();
   const { icon, iconButton, menuItem } = useUISize();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -20,7 +20,7 @@ const LanguageSelector = () => {
         variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
         className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
-        title="Language"
+        title={t('settings.language')}
       >
         <Globe className={icon} />
       </Button>

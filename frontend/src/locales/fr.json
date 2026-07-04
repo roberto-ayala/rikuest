@@ -136,7 +136,13 @@
     "password": "Mot de passe",
     "passwordPlaceholder": "Entrez le mot de passe",
     "createRequest": "Créer la Requête",
-    "copyRequest": "Copier la Requête"
+    "copyRequest": "Copier la Requête",
+    "tabParams": "Paramètres",
+    "tabHeaders": "En-têtes",
+    "tabBody": "Corps",
+    "tabAuthorization": "Autorisation",
+    "tabCaptures": "Captures",
+    "tabRawRequest": "Requête brute"
   },
   "folder": {
     "create": "Créer un Nouveau Dossier",
@@ -154,7 +160,8 @@
     "foldersAndRequests": "Dossiers et Requêtes",
     "createNew": "Créer Nouveau",
     "createFolder": "Créer un Dossier",
-    "rename": "Renommer"
+    "rename": "Renommer",
+    "dropToRoot": "Déposez ici pour déplacer à la racine"
   },
   "settings": {
     "title": "Paramètres",
@@ -291,5 +298,17 @@
       "noEndpoints": "Aucun point de terminaison trouvé dans la spécification OpenAPI",
       "invalidFormat": "Format de fichier invalide. JSON ou YAML attendu."
     }
+  },
+  "jsonEditor": {
+    "format": "Formater",
+    "formatTooltip": "Formater le JSON (Ctrl+Shift+F)",
+    "validJson": "JSON valide",
+    "invalidJson": "JSON invalide"
+  },
+  "copyFormats": {
+    "rawHttp": "HTTP brut",
+    "curl": "cURL",
+    "fetch": "JavaScript Fetch",
+    "python": "Python Requests"
   }
 }

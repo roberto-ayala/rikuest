@@ -110,9 +110,9 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
   const { t } = useTranslation();
 
   const responseTabs = [
-    { id: 'body', label: 'Body' },
-    { id: 'headers', label: 'Headers' },
-    { id: 'raw', label: 'Raw Request' }
+    { id: 'body', label: t('request.tabBody') },
+    { id: 'headers', label: t('request.tabHeaders') },
+    { id: 'raw', label: t('request.tabRawRequest') }
   ];
 
   if (loadingHistoryItem) {

@@ -1,60 +1,51 @@
 import { create } from 'zustand';
-import { adapterFactory } from '../adapters/adapterFactory.js';
+import { asyncAction } from './createAsyncAction.js';
 
-export const useProjectStore = create((set, get) => ({
+export const useProjectStore = create((set) => ({
   projects: [],
   currentProject: null,
   loading: false,
+  error: null,
 
-  fetchProjects: async () => {
-    set({ loading: true });
-    try {
-      const adapter = await adapterFactory.getAdapter();
+  fetchProjects: () =>
+    asyncAction(set, async (adapter) => {
       const projects = await adapter.getProjects();
       set({ projects: projects || [] });
-    } catch (error) {
-      console.error('Failed to fetch projects:', error);
-      set({ projects: [] });
-    } finally {
-      set({ loading: false });
-    }
-  },
+    }, {
+      label: 'Failed to fetch projects',
+      onError: () => set({ projects: [] })
+    }),
 
-  createProject: async (project) => {
-    const adapter = await adapterFactory.getAdapter();
-    const newProject = await adapter.createProject(project);
-    set((state) => ({
-      projects: [newProject, ...state.projects]
-    }));
-    return newProject;
-  },
+  createProject: (project) =>
+    asyncAction(set, async (adapter) => {
+      const newProject = await adapter.createProject(project);
+      set((state) => ({
+        projects: [newProject, ...state.projects]
+      }));
+      return newProject;
+    }, { loadingKey: null, rethrow: true, label: 'Failed to create project' }),
 
-  updateProject: async (id, project) => {
-    const adapter = await adapterFactory.getAdapter();
-    const updatedProject = await adapter.updateProject(id, project);
-    set((state) => ({
-      projects: state.projects.map(p => p.id === id ? updatedProject : p)
-    }));
-    return updatedProject;
-  },
+  updateProject: (id, project) =>
+    asyncAction(set, async (adapter) => {
+      const updatedProject = await adapter.updateProject(id, project);
+      set((state) => ({
+        projects: state.projects.map(p => p.id === id ? updatedProject : p)
+      }));
+      return updatedProject;
+    }, { loadingKey: null, rethrow: true, label: 'Failed to update project' }),
 
-  deleteProject: async (id) => {
-    const adapter = await adapterFactory.getAdapter();
-    await adapter.deleteProject(id);
-    set((state) => ({
-      projects: state.projects.filter(p => p.id !== id)
-    }));
-  },
+  deleteProject: (id) =>
+    asyncAction(set, async (adapter) => {
+      await adapter.deleteProject(id);
+      set((state) => ({
+        projects: state.projects.filter(p => p.id !== id)
+      }));
+    }, { loadingKey: null, rethrow: true, label: 'Failed to delete project' }),
 
-  fetchProject: async (id) => {
-    try {
-      const adapter = await adapterFactory.getAdapter();
+  fetchProject: (id) =>
+    asyncAction(set, async (adapter) => {
       const project = await adapter.getProject(id);
       set({ currentProject: project });
       return project;
-    } catch (error) {
-      console.error('Failed to fetch project:', error);
-      throw error;
-    }
-  }
+    }, { loadingKey: null, rethrow: true, label: 'Failed to fetch project' })
 }));
