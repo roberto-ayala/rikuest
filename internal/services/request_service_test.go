@@ -126,6 +126,159 @@ func TestExecuteHTTPRequestHonorsContextCancellation(t *testing.T) {
 	}
 }
 
+func TestExecuteHTTPRequestApiKeyInHeader(t *testing.T) {
+	var got *http.Request
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Clone(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	svc := newRequestService(t)
+	_, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:         "GET",
+		URL:            server.URL,
+		AuthType:       "apikey",
+		ApiKeyName:     "X-API-Key",
+		ApiKeyValue:    "secret123",
+		ApiKeyLocation: "header",
+	})
+	if err != nil {
+		t.Fatalf("executeHTTPRequest: %v", err)
+	}
+	if got.Header.Get("X-API-Key") != "secret123" {
+		t.Errorf("api key header not sent: %v", got.Header)
+	}
+}
+
+func TestExecuteHTTPRequestApiKeyInQuery(t *testing.T) {
+	var got *http.Request
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Clone(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	svc := newRequestService(t)
+	_, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:         "GET",
+		URL:            server.URL,
+		AuthType:       "apikey",
+		ApiKeyName:     "api_key",
+		ApiKeyValue:    "secret123",
+		ApiKeyLocation: "query",
+	})
+	if err != nil {
+		t.Fatalf("executeHTTPRequest: %v", err)
+	}
+	if got.URL.Query().Get("api_key") != "secret123" {
+		t.Errorf("api key query param not sent: %s", got.URL.RawQuery)
+	}
+	if got.Header.Get("api_key") != "" {
+		t.Errorf("api key should not also be sent as a header: %v", got.Header)
+	}
+}
+
+func TestExecuteHTTPRequestInsecureSkipVerify(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	svc := newRequestService(t)
+
+	// Without the flag, the self-signed certificate must be rejected.
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{Method: "GET", URL: server.URL})
+	if err != nil {
+		t.Fatalf("TLS errors must be returned as a response, got err: %v", err)
+	}
+	if resp.Status != 0 {
+		t.Errorf("Status = %d; want 0 for TLS verification failure", resp.Status)
+	}
+	if !strings.Contains(strings.ToLower(resp.StatusText), "tls") && !strings.Contains(strings.ToLower(resp.StatusText), "ssl") {
+		t.Errorf("StatusText = %q; want an SSL/TLS-ish status", resp.StatusText)
+	}
+
+	// With the flag, the same self-signed certificate must be accepted.
+	resp, err = svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:             "GET",
+		URL:                server.URL,
+		InsecureSkipVerify: true,
+	})
+	if err != nil {
+		t.Fatalf("executeHTTPRequest: %v", err)
+	}
+	if resp.Status != http.StatusOK {
+		t.Errorf("Status = %d; want 200 with InsecureSkipVerify", resp.Status)
+	}
+}
+
+func TestExecuteHTTPRequestFollowRedirects(t *testing.T) {
+	var mux http.ServeMux
+	mux.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/final", http.StatusFound)
+	})
+	mux.HandleFunc("/final", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	server := httptest.NewServer(&mux)
+	defer server.Close()
+
+	svc := newRequestService(t)
+
+	// FollowRedirects = false: the 302 itself should be surfaced, not followed.
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:          "GET",
+		URL:             server.URL + "/redirect",
+		FollowRedirects: false,
+	})
+	if err != nil {
+		t.Fatalf("executeHTTPRequest: %v", err)
+	}
+	if resp.Status != http.StatusFound {
+		t.Errorf("Status = %d; want 302 when FollowRedirects is false", resp.Status)
+	}
+
+	// FollowRedirects = true: the client should transparently follow to the final 200.
+	resp, err = svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:          "GET",
+		URL:             server.URL + "/redirect",
+		FollowRedirects: true,
+		MaxRedirects:    10,
+	})
+	if err != nil {
+		t.Fatalf("executeHTTPRequest: %v", err)
+	}
+	if resp.Status != http.StatusOK {
+		t.Errorf("Status = %d; want 200 when FollowRedirects is true", resp.Status)
+	}
+}
+
+func TestExecuteHTTPRequestPerRequestTimeoutOverride(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-release // never respond within the test's short timeout
+	}))
+	defer server.Close()
+	defer close(release)
+
+	svc := newRequestService(t)
+	resp, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		Method:         "GET",
+		URL:            server.URL,
+		TimeoutSeconds: 1,
+	})
+	if err != nil {
+		t.Fatalf("timeouts must be returned as a response, got err: %v", err)
+	}
+	if resp.Status != 0 {
+		t.Errorf("Status = %d; want 0 for a timed-out request", resp.Status)
+	}
+	if !strings.Contains(strings.ToLower(resp.StatusText), "timeout") {
+		t.Errorf("StatusText = %q; want a timeout-ish status", resp.StatusText)
+	}
+}
+
 func TestExecuteHTTPRequestTruncatesLargeBodies(t *testing.T) {
 	overLimit := maxResponseBodyBytes + 512
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

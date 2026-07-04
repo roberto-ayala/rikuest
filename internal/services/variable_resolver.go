@@ -76,6 +76,8 @@ func (r *VariableResolver) ResolveRequest(req *models.Request, vars map[string]s
 	resolved.URL = r.Resolve(req.URL, vars)
 	resolved.Body = r.Resolve(req.Body, vars)
 	resolved.BearerToken = r.Resolve(req.BearerToken, vars)
+	resolved.ApiKeyName = r.Resolve(req.ApiKeyName, vars)
+	resolved.ApiKeyValue = r.Resolve(req.ApiKeyValue, vars)
 
 	resolvedHeaders := make(map[string]string, len(req.Headers))
 	for k, v := range req.Headers {

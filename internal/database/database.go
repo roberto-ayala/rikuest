@@ -202,6 +202,20 @@ var migrations = []migration{
 			`CREATE INDEX IF NOT EXISTS idx_response_captures_request_id ON response_captures(request_id)`,
 		},
 	},
+	{
+		// v2: API key auth fields + per-request execution options (TLS
+		// verification, redirect handling, timeout override).
+		version: 2,
+		statements: []string{
+			`ALTER TABLE requests ADD COLUMN api_key_name TEXT DEFAULT ''`,
+			`ALTER TABLE requests ADD COLUMN api_key_value TEXT DEFAULT ''`,
+			`ALTER TABLE requests ADD COLUMN api_key_location TEXT DEFAULT 'header'`,
+			`ALTER TABLE requests ADD COLUMN insecure_skip_verify INTEGER DEFAULT 0`,
+			`ALTER TABLE requests ADD COLUMN follow_redirects INTEGER DEFAULT 1`,
+			`ALTER TABLE requests ADD COLUMN max_redirects INTEGER DEFAULT 10`,
+			`ALTER TABLE requests ADD COLUMN timeout_seconds INTEGER DEFAULT 0`,
+		},
+	},
 }
 
 func (db *DB) migrate() error {

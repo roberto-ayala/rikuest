@@ -68,6 +68,9 @@ func (fs *FormatService) BuildRawRequest(request *models.Request) string {
 			queryParams.Add(param.Key, param.Value)
 		}
 	}
+	if request.AuthType == "apikey" && request.ApiKeyLocation == "query" && request.ApiKeyName != "" {
+		queryParams.Add(request.ApiKeyName, request.ApiKeyValue)
+	}
 
 	// Construct the request line
 	requestPath := parsedURL.Path
@@ -107,6 +110,10 @@ func (fs *FormatService) BuildRawRequest(request *models.Request) string {
 			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
 			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 			rawRequest.WriteString(fmt.Sprintf("Authorization: Basic %s\r\n", encodedAuth))
+		}
+	case "apikey":
+		if request.ApiKeyName != "" && request.ApiKeyLocation != "query" {
+			rawRequest.WriteString(fmt.Sprintf("%s: %s\r\n", request.ApiKeyName, request.ApiKeyValue))
 		}
 	}
 
@@ -170,6 +177,9 @@ func (fs *FormatService) BuildCurlRequest(request *models.Request) string {
 			queryParams.Add(param.Key, param.Value)
 		}
 	}
+	if request.AuthType == "apikey" && request.ApiKeyLocation == "query" && request.ApiKeyName != "" {
+		queryParams.Add(request.ApiKeyName, request.ApiKeyValue)
+	}
 
 	// Construct the final URL
 	finalURL := request.URL
@@ -194,6 +204,10 @@ func (fs *FormatService) BuildCurlRequest(request *models.Request) string {
 	case "basic":
 		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
 			curlCmd.WriteString(fmt.Sprintf(" -u \"%s:%s\"", request.BasicAuth.Username, request.BasicAuth.Password))
+		}
+	case "apikey":
+		if request.ApiKeyName != "" && request.ApiKeyLocation != "query" {
+			curlCmd.WriteString(fmt.Sprintf(" -H \"%s: %s\"", request.ApiKeyName, request.ApiKeyValue))
 		}
 	}
 
@@ -234,6 +248,9 @@ func (fs *FormatService) BuildFetchRequest(request *models.Request) string {
 			queryParams.Add(param.Key, param.Value)
 		}
 	}
+	if request.AuthType == "apikey" && request.ApiKeyLocation == "query" && request.ApiKeyName != "" {
+		queryParams.Add(request.ApiKeyName, request.ApiKeyValue)
+	}
 
 	// Construct the final URL
 	finalURL := request.URL
@@ -259,6 +276,10 @@ func (fs *FormatService) BuildFetchRequest(request *models.Request) string {
 			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
 			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 			headers["Authorization"] = "Basic " + encodedAuth
+		}
+	case "apikey":
+		if request.ApiKeyName != "" && request.ApiKeyLocation != "query" {
+			headers[request.ApiKeyName] = request.ApiKeyValue
 		}
 	}
 
@@ -322,6 +343,9 @@ func (fs *FormatService) BuildPythonRequest(request *models.Request) string {
 			queryParams.Add(param.Key, param.Value)
 		}
 	}
+	if request.AuthType == "apikey" && request.ApiKeyLocation == "query" && request.ApiKeyName != "" {
+		queryParams.Add(request.ApiKeyName, request.ApiKeyValue)
+	}
 
 	// Construct the final URL
 	finalURL := request.URL
@@ -345,6 +369,10 @@ func (fs *FormatService) BuildPythonRequest(request *models.Request) string {
 	case "basic":
 		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
 			headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(request.BasicAuth.Username+":"+request.BasicAuth.Password))
+		}
+	case "apikey":
+		if request.ApiKeyName != "" && request.ApiKeyLocation != "query" {
+			headers[request.ApiKeyName] = request.ApiKeyValue
 		}
 	}
 

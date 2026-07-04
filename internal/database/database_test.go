@@ -114,6 +114,59 @@ func TestMigrationsApplied(t *testing.T) {
 	db2.Close()
 }
 
+func TestMigrationV2ColumnsAndDefaults(t *testing.T) {
+	db := newTestDB(t)
+
+	p := &models.Project{Name: "p2", Description: "d"}
+	if err := db.CreateProject(p); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
+	// Insert a row without specifying the new columns to exercise the raw
+	// schema defaults (CreateRequest itself applies its own Go-level
+	// defaults, so we bypass it here to check the column defaults directly).
+	res, err := db.Exec(`INSERT INTO requests (project_id, name, method, url) VALUES (?, ?, ?, ?)`,
+		p.ID, "r", "GET", "http://x")
+	if err != nil {
+		t.Fatalf("insert minimal request: %v", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("LastInsertId: %v", err)
+	}
+
+	var apiKeyName, apiKeyValue, apiKeyLocation string
+	var insecureSkipVerify, followRedirects, maxRedirects, timeoutSeconds int
+	err = db.QueryRow(`SELECT api_key_name, api_key_value, api_key_location,
+		insecure_skip_verify, follow_redirects, max_redirects, timeout_seconds
+		FROM requests WHERE id = ?`, id).Scan(
+		&apiKeyName, &apiKeyValue, &apiKeyLocation,
+		&insecureSkipVerify, &followRedirects, &maxRedirects, &timeoutSeconds,
+	)
+	if err != nil {
+		t.Fatalf("select new columns: %v", err)
+	}
+
+	if apiKeyName != "" || apiKeyValue != "" {
+		t.Errorf("api_key_name/value = %q/%q; want empty defaults", apiKeyName, apiKeyValue)
+	}
+	if apiKeyLocation != "header" {
+		t.Errorf("api_key_location = %q; want 'header'", apiKeyLocation)
+	}
+	if insecureSkipVerify != 0 {
+		t.Errorf("insecure_skip_verify = %d; want 0", insecureSkipVerify)
+	}
+	if followRedirects != 1 {
+		t.Errorf("follow_redirects = %d; want 1 (default true)", followRedirects)
+	}
+	if maxRedirects != 10 {
+		t.Errorf("max_redirects = %d; want 10", maxRedirects)
+	}
+	if timeoutSeconds != 0 {
+		t.Errorf("timeout_seconds = %d; want 0 (use global default)", timeoutSeconds)
+	}
+}
+
 func TestTelemetryDisabledByDefault(t *testing.T) {
 	db := newTestDB(t)
 

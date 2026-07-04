@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -9,21 +10,28 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	
+
 	"rikuest/internal/database"
 	"rikuest/internal/models"
 )
+
+// defaultMaxRedirects is used when a request's MaxRedirects is 0, which means
+// "use the default" rather than "follow zero redirects" (0 stored in the DB
+// is ambiguous between "not configured" and "explicitly zero"; we choose the
+// more useful interpretation since a hard cap of zero redirects has little
+// practical value and would surprise users).
+const defaultMaxRedirects = 10
 
 // maxResponseBodyBytes caps how much of a response body is kept in memory
 // and stored in request_history (bodies beyond this are truncated).
 const maxResponseBodyBytes int64 = 10 * 1024 * 1024 // 10 MB
 
 type RequestService struct {
-	db              *database.DB
-	config          *ConfigService
-	format          *FormatService
-	resolver        *VariableResolver
-	captureService  *ResponseCaptureService
+	db             *database.DB
+	config         *ConfigService
+	format         *FormatService
+	resolver       *VariableResolver
+	captureService *ResponseCaptureService
 }
 
 func NewRequestService(db *database.DB, resolver *VariableResolver, capture *ResponseCaptureService) *RequestService {
@@ -114,8 +122,35 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 		timeout = 300 * time.Second // Default to 5 minutes on error
 	}
 
+	// A per-request timeout override takes precedence over the global
+	// configured default. Clamp using the same bounds ConfigService applies
+	// (1s - 3h) so behavior stays consistent regardless of which value wins.
+	if request.TimeoutSeconds > 0 {
+		timeout = clampTimeoutSeconds(request.TimeoutSeconds)
+	}
+
+	maxRedirects := request.MaxRedirects
+	if maxRedirects <= 0 {
+		maxRedirects = defaultMaxRedirects
+	}
+
 	client := &http.Client{
 		Timeout: timeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: request.InsecureSkipVerify},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if !request.FollowRedirects {
+				// Returning ErrUseLastResponse makes the client stop following
+				// and hand back the redirect (3xx) response itself, rather than
+				// silently following it or erroring out.
+				return http.ErrUseLastResponse
+			}
+			if len(via) >= maxRedirects {
+				return fmt.Errorf("stopped after %d redirects", maxRedirects)
+			}
+			return nil
+		},
 	}
 
 	// Build the complete URL with query parameters
@@ -124,14 +159,14 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 		parsedURL, err := url.Parse(request.URL)
 		if err == nil {
 			queryValues := parsedURL.Query()
-			
+
 			// Add query parameters from the request
 			for _, param := range request.QueryParams {
 				if param.Enabled && param.Key != "" {
 					queryValues.Add(param.Key, param.Value)
 				}
 			}
-			
+
 			parsedURL.RawQuery = queryValues.Encode()
 			finalURL = parsedURL.String()
 		}
@@ -140,7 +175,7 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 	// Prepare the request body based on body type
 	var body io.Reader
 	var bodyString string
-	
+
 	if request.BodyType == "form" && len(request.FormData) > 0 {
 		// Handle form data
 		formValues := url.Values{}
@@ -164,7 +199,7 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 
 	// Set custom User-Agent header
 	req.Header.Set("User-Agent", "Rikuest/1.0 (HTTP API Client)")
-	
+
 	// Set headers from the request
 	for key, value := range request.Headers {
 		req.Header.Set(key, value)
@@ -182,6 +217,16 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 			req.Header.Set("Authorization", "Basic "+encodedAuth)
 		}
+	case "apikey":
+		if request.ApiKeyName != "" {
+			if request.ApiKeyLocation == "query" {
+				q := req.URL.Query()
+				q.Add(request.ApiKeyName, request.ApiKeyValue)
+				req.URL.RawQuery = q.Encode()
+			} else {
+				req.Header.Set(request.ApiKeyName, request.ApiKeyValue)
+			}
+		}
 	}
 
 	// Ensure Content-Type is set for form data if not already present
@@ -193,12 +238,12 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 
 	resp, err := client.Do(req)
 	duration := time.Since(start)
-	
+
 	// Generate raw request
 	rawRequestString := s.format.BuildRawRequest(request)
-	
+
 	var response models.RequestResponse
-	
+
 	if err != nil {
 		// Handle network/connection errors as a response
 		statusText := errorStatusText(err.Error())
@@ -264,7 +309,7 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 // errorStatusText returns a user-friendly status text based on the error message
 func errorStatusText(errorMsg string) string {
 	errorMsg = strings.ToLower(errorMsg)
-	
+
 	if strings.Contains(errorMsg, "connection refused") {
 		return "Connection Refused"
 	}
@@ -286,7 +331,20 @@ func errorStatusText(errorMsg string) string {
 	if strings.Contains(errorMsg, "dns") {
 		return "DNS Error"
 	}
-	
+
 	// Default for unknown network errors
 	return "Connection Failed"
+}
+
+// clampTimeoutSeconds mirrors ConfigService's bounds (1s - 3h) for the
+// per-request timeout override, so a per-request value is clamped the same
+// way the global default is.
+func clampTimeoutSeconds(seconds int) time.Duration {
+	if seconds < 1 {
+		seconds = 1
+	}
+	if seconds > 10800 {
+		seconds = 10800
+	}
+	return time.Duration(seconds) * time.Second
 }
