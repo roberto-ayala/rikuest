@@ -56,7 +56,8 @@ All routes under `/api`, registered in `cmd/server/main.go` — read that file f
 
 ## Gotchas
 - Telemetry is opt-in and disabled by default. It only sends events to Discord when the user enables it AND the `RIKUEST_DISCORD_WEBHOOK` env var (read in `internal/config/config.go`) or a webhook in `telemetry_config` provides a URL.
-- Go tests exist (start with `internal/database`); run with `go test ./...`. No JS test framework is configured — ESLint is the only frontend check.
+- Go tests live in `internal/database` and `internal/services`; run with `go test ./...`. No JS test framework is configured — ESLint is the only frontend check.
+- CI (`.github/workflows/ci.yml`) runs go build/vet/test and frontend lint+build. The lint step is non-blocking until the ~40 legacy no-unused-vars errors are cleaned up.
 - SQLite runs with `_foreign_keys=on`, WAL, busy_timeout and `SetMaxOpenConns(1)` (set in `database.NewDB`) — don't open the DB elsewhere without them.
 - Schema changes go through the versioned `migrations` list in `internal/database/database.go` (tracked via `PRAGMA user_version`): append a new numbered entry, never edit a shipped one.
 - The web server runs Gin in release mode unless `RIKUEST_DEBUG` is set, and CORS only allows localhost origins (5173/8080).

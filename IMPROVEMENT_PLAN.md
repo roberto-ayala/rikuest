@@ -44,16 +44,14 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 ---
 
-## Fase 2 — Tests (base para todo lo demás)
+## Fase 2 — Tests (base para todo lo demás) ✅ COMPLETADA
 
-Hoy hay **cero tests**. Empezar por las funciones puras (máximo valor / mínimo esfuerzo):
-
-13. `internal/services/variable_resolver.go` — tests de tabla: precedencia env < folder, variables desconocidas quedan literales.
-14. `internal/services/response_capture_service.go` (`extractDotPath`) — hoy silencia todos los errores; los tests documentan el comportamiento.
-15. `internal/services/format_service.go` — los 4 generadores; hay bugs conocidos de escapado (cuerpos con comillas simples rompen el cURL generado, línea ~211).
-16. `internal/services/config_service.go` — clamping del timeout.
-17. `executeHTTPRequest` con `httptest.Server` — timeout, form encoding, mapeo de errores.
-18. **CI mínimo**: GitHub Actions con `go test ./...`, `go vet` y `cd frontend && npm run lint`.
+13. `variable_resolver.go` ✅ Resolve (tabla), ResolveRequest (todos los campos + no-mutación), BuildVariableMap (precedencia env < folder, sin env activo).
+14. `response_capture_service.go` ✅ `extractDotPath` (tabla con arrays/escalares/nulls) y `ApplyCaptures` end-to-end (guarda en env activo, silencioso ante JSON inválido).
+15. `format_service.go` ✅ cURL (headers, auth, query params, bodies), GetFormat/GetAllFormats. Pendiente: el bug de escapado de comillas simples en el body cURL sigue ahí (documentarlo/arreglarlo en Fase 3 al deduplicar).
+16. `config_service.go` ✅ default 300s, clamping [1, 10800], fallback ante valores no numéricos.
+17. `executeHTTPRequest` ✅ con `httptest.Server`: headers/auth/query params, form encoding, errores de conexión como respuesta status 0, truncamiento a 10 MB.
+18. **CI mínimo** ✅ `.github/workflows/ci.yml`: backend (build+vet+test) y frontend (lint+build). El lint es `continue-on-error` hasta limpiar los ~40 errores legacy de `no-unused-vars` (hacerlo blocking al completar el paso 25).
 
 ---
 
