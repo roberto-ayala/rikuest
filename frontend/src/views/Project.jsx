@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { handleMenuKeyDown } from '../lib/utils';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
+import TabBar from '../components/TabBar';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
@@ -33,7 +34,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const { t } = useTranslation();
   
   const { currentProject, fetchProject } = useProjectStore();
-  const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest } = useRequestStore();
+  const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest, loadTabsForProject } = useRequestStore();
   const { fetchFolders } = useFolderStore();
   
   const [showRequestDialog, setShowRequestDialog] = useState(false);
@@ -72,11 +73,14 @@ function Project({ layout, onNewProject, onSettings }) {
   useEffect(() => {
     if (projectId) {
       fetchProject(projectId);
-      fetchRequests(projectId);
-      // Clear current request when switching projects
-      setCurrentRequest(null);
+      // Tabs from a previous project must not leak into this one: load tabs
+      // only after requests for the new project have resolved, then restore
+      // (and filter) whatever was persisted for this project.
+      fetchRequests(projectId).then(() => {
+        loadTabsForProject(projectId);
+      });
     }
-  }, [projectId, fetchProject, fetchRequests, setCurrentRequest]);
+  }, [projectId, fetchProject, fetchRequests, loadTabsForProject]);
 
   const handleSelectRequest = (request) => {
     setCurrentRequest(request);
@@ -161,11 +165,10 @@ function Project({ layout, onNewProject, onSettings }) {
     if (!selectedRequest) return;
     
       try {
-        // If deleting the current request, clear it
-        if (currentRequest && currentRequest.id === selectedRequest.id) {
-          setCurrentRequest(null);
-        }
-        
+        // deleteRequest itself removes the request from any open tab and
+        // picks the next active tab if it was the active one - no need to
+        // pre-clear currentRequest here (doing so would blow away the tab
+        // selection before deleteRequest can hand off to a neighboring tab).
         await deleteRequest(selectedRequest.id);
         addToast('success', t('request.deleted'));
         setSelectedRequest(null);
@@ -324,6 +327,7 @@ function Project({ layout, onNewProject, onSettings }) {
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <TabBar />
         {currentRequest ? (
           <RequestBuilder />
         ) : (

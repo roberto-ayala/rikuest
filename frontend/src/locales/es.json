@@ -148,7 +148,10 @@
     "tabBody": "Cuerpo",
     "tabAuthorization": "Autorización",
     "tabCaptures": "Capturas",
-    "tabRawRequest": "Petición sin procesar"
+    "tabRawRequest": "Petición sin procesar",
+    "untitled": "Sin título",
+    "closeTab": "Cerrar pestaña",
+    "openTabs": "Pestañas de solicitudes abiertas"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",

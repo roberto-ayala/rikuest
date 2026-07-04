@@ -148,7 +148,10 @@
     "tabBody": "Body",
     "tabAuthorization": "Authorization",
     "tabCaptures": "Captures",
-    "tabRawRequest": "Raw Request"
+    "tabRawRequest": "Raw Request",
+    "untitled": "Untitled",
+    "closeTab": "Close tab",
+    "openTabs": "Open request tabs"
   },
   "folder": {
     "create": "Create New Folder",

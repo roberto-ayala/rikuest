@@ -148,7 +148,10 @@
     "tabBody": "Corps",
     "tabAuthorization": "Autorisation",
     "tabCaptures": "Captures",
-    "tabRawRequest": "Requête brute"
+    "tabRawRequest": "Requête brute",
+    "untitled": "Sans titre",
+    "closeTab": "Fermer l'onglet",
+    "openTabs": "Onglets de requêtes ouverts"
   },
   "folder": {
     "create": "Créer un Nouveau Dossier",
