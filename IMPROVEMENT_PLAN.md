@@ -87,19 +87,20 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 ---
 
-## Fase 4 — UX
+## Fase 4 — UX ✅ COMPLETADA
 
-30. **Sistema de toasts/notificaciones y errores visibles.** La mayor carencia de UX: hoy todo fallo (ejecutar, guardar, cargar) termina en `console.error` y el usuario no ve nada. Toast global + render del campo `error` de los stores.
+30. **Sistema de toasts/notificaciones y errores visibles.** ✅ `toastStore` + `Toaster` (esquina inferior derecha, theme-aware); `asyncAction` emite un toast de error centralmente en cada acción de store, así que ningún fallo vuelve a morir en `console.error`. Toasts de éxito en borrado de proyecto/request.
 
-31. **Indicador de estado de guardado** (sin guardar / guardando / guardado) — el autosave es silencioso y un fallo de guardado es invisible.
+31. **Indicador de estado de guardado.** ✅ `useAutosave` expone `idle/saving/saved/error`; `RequestBuilder` muestra spinner/check/aviso de fallo con reintento al click, junto al nombre del request.
 
-32. **Atajos de teclado:** `Cmd/Ctrl+Enter` enviar, `Cmd/Ctrl+S` guardar, `Cmd/Ctrl+K` búsqueda global. Documentarlos en un modal de ayuda.
+32. **Atajos de teclado.** ✅ `Cmd/Ctrl+Enter` enviar, `Cmd/Ctrl+S` fuerza el flush del autosave pendiente, `Cmd/Ctrl+/` abre el modal de ayuda (`ShortcutsHelp`). Los atajos no interfieren mientras se escribe, salvo Enter/S que es justo donde el usuario los espera. `Cmd+K` de búsqueda global queda para el paso 41 (Fase 5), no implementado aquí.
 
-33. **Accesibilidad:** usar `@headlessui/react` (ya instalado, sin uso) para modales y menús contextuales → focus trap, `role="dialog"`, Escape. Hoy hay cero atributos `aria-*` en todo el código.
+33. **Accesibilidad.** ✅ Modales migrados a `Dialog` de `@headlessui/react` (focus trap, `role="dialog"`, `aria-modal`, Escape automático): ConfirmDialog, DeleteConfirmModal, ShortcutsHelp, CopyFormatModal, EnvironmentManager, FolderVariablesModal, OpenAPIImportModal. Los menús contextuales (Project.jsx, FolderTree.jsx) se mantuvieron con posicionamiento custom al cursor (`Menu` de Headless UI no soporta anclar a un punto arbitrario) pero ganaron `role="menu"/"menuitem"` y navegación con flechas/Escape. Toaster con `aria-live="polite"`; inputs de params/headers/form-data con `aria-label`. `ui/Select.jsx` es un `<select>` nativo sin lógica custom — fuera de alcance, sin cambios.
+    Pendiente (menor, fuera del plan original): `App.jsx` "New Project", diálogos de Home.jsx, `SettingsModal.jsx`, diálogos de FolderTree y `HistoryDrawer.jsx` siguen siendo overlays raw sin ARIA — buenos candidatos para una pasada futura.
 
-34. **Panel de respuesta:** botón copiar, búsqueda en el body, toggle pretty/raw, word-wrap, y preview de imágenes/binarios.
+34. **Panel de respuesta.** ✅ Botón copiar, toggle pretty/raw, word-wrap (persistidos), búsqueda ligera en el body (vista raw, contador n-de-m, prev/next). Preview de binarios/imágenes: **no es fiable con los datos actuales** — el backend Go lee el body como `string` y el viaje a JSON corrompe bytes no-UTF-8 — se optó por un placeholder amigable ("Binary response — tipo — tamaño") en vez de volcar basura.
 
-35. **Unificar el header duplicado de `App.jsx`** (modos default/compact duplican el markup completo, líneas 57-85 vs 101-129).
+35. **Unificar el header duplicado de `App.jsx`.** ✅ Extraído a un único `AppHeader` parametrizado; sin cambio visual.
 
 ---
 
