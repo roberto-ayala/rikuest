@@ -787,6 +787,33 @@ func (db *DB) UpsertEnvironmentVariable(environmentID int, key, value string) er
 }
 
 // GetFolderVariables returns variables for a folder.
+// GetFolderAncestry returns the folder IDs from the root ancestor down to
+// (and including) the given folder, in root-first order.
+func (db *DB) GetFolderAncestry(folderID int) ([]int, error) {
+	rows, err := db.Query(`
+		WITH RECURSIVE chain(id, parent_id, depth) AS (
+			SELECT id, parent_id, 0 FROM folders WHERE id = ?
+			UNION ALL
+			SELECT f.id, f.parent_id, c.depth + 1
+			FROM folders f JOIN chain c ON f.id = c.parent_id
+		)
+		SELECT id FROM chain ORDER BY depth DESC`, folderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (db *DB) GetFolderVariables(folderID int) ([]models.Variable, error) {
 	rows, err := db.Query(
 		`SELECT id, key, value, created_at, updated_at FROM folder_variables WHERE folder_id = ? ORDER BY key ASC`,

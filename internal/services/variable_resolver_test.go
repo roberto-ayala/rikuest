@@ -104,6 +104,43 @@ func TestBuildVariableMapPrecedence(t *testing.T) {
 	}
 }
 
+func TestBuildVariableMapAncestorFolderChain(t *testing.T) {
+	db := newTestDB(t)
+	p := createProject(t, db, "p")
+	createActiveEnv(t, db, p.ID, map[string]string{"shared": "from-env"})
+
+	root := &models.Folder{ProjectID: p.ID, Name: "root"}
+	if err := db.CreateFolder(root); err != nil {
+		t.Fatal(err)
+	}
+	child := &models.Folder{ProjectID: p.ID, Name: "child", ParentID: &root.ID}
+	if err := db.CreateFolder(child); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpdateFolderVariables(root.ID, []models.Variable{
+		{Key: "from_root", Value: "root-val"},
+		{Key: "shared", Value: "from-root"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpdateFolderVariables(child.ID, []models.Variable{
+		{Key: "shared", Value: "from-child"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	vars, err := NewVariableResolver(db).BuildVariableMap(p.ID, &child.ID)
+	if err != nil {
+		t.Fatalf("BuildVariableMap: %v", err)
+	}
+	if vars["from_root"] != "root-val" {
+		t.Errorf("ancestor variable not inherited: from_root = %q", vars["from_root"])
+	}
+	if vars["shared"] != "from-child" {
+		t.Errorf("deepest folder must win: shared = %q; want from-child", vars["shared"])
+	}
+}
+
 func TestBuildVariableMapNoActiveEnvironment(t *testing.T) {
 	db := newTestDB(t)
 	p := createProject(t, db, "p")

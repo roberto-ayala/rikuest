@@ -10,7 +10,8 @@ import (
 var variablePattern = regexp.MustCompile(`\{\{(\w+)\}\}`)
 
 // VariableResolver resolves {{varName}} placeholders in request fields.
-// Resolution order: folder variables > active environment variables.
+// Resolution order (highest priority last): active environment variables,
+// then folder variables from the root ancestor down to the request's folder.
 type VariableResolver struct {
 	db *database.DB
 }
@@ -34,10 +35,19 @@ func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[s
 		}
 	}
 
-	// Layer 2: folder variables (override env vars, only immediate folder)
+	// Layer 2: folder variables. Folders form a tree, so the whole ancestor
+	// chain applies: root-first, so deeper folders override their ancestors
+	// (and all of them override env vars).
 	if folderID != nil {
-		folderVars, err := r.db.GetFolderVariables(*folderID)
-		if err == nil {
+		chain, err := r.db.GetFolderAncestry(*folderID)
+		if err != nil {
+			return vars, nil
+		}
+		for _, id := range chain {
+			folderVars, err := r.db.GetFolderVariables(id)
+			if err != nil {
+				continue
+			}
 			for _, v := range folderVars {
 				vars[v.Key] = v.Value
 			}
