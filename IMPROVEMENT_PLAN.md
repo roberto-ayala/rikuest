@@ -71,21 +71,19 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 24. **Paridad HTTP/Wails.** ✅ Los handlers HTTP ahora emiten los mismos eventos de telemetría que Wails (project_created, folder_created, request_executed); eliminados los re-fetch de Wails tras create (RETURNING ya devuelve el modelo completo) — ambas rutas devuelven lo mismo. Pendiente (menor): interfaz-fachada formal que fuerce la paridad en compilación.
 
-### Frontend
+### Frontend ✅ COMPLETADO
 
-25. **Descomponer `RequestBuilder.jsx` (1.357 LOC)** en: editor de params/headers/body/auth, panel de respuesta, drawer de historial, modal de borrado. Extraer hooks compartidos:
-    - `useResizablePanel` (3 resizers duplicados en Project.jsx y RequestBuilder.jsx),
-    - `useIsDark` (2 MutationObserver idénticos en RequestBuilder y JsonEditor),
-    - `useAutosave` (la lógica de debounce+diff de RequestBuilder.jsx:291-365 es frágil y pertenece al store).
-    Después, mismo tratamiento para `FolderTree.jsx` (742 LOC).
+25. **Descomponer `RequestBuilder.jsx`.** ✅ De 1.357 a 342 líneas; editores/respuesta/historial/modal en `components/request-builder/`. Hooks extraídos: `useResizablePanel`, `useIsDark`, `useAutosave` (mismo debounce y formato de guardado; claves de layout preservadas). `getMethodColor` unificado en `lib/utils.js`. Pendiente (menor): mismo tratamiento para `FolderTree.jsx` (742 LOC).
 
-26. **Factory de stores Zustand.** Los 6 stores repiten el boilerplate `loading/try/catch/finally`; `projectStore` y `requestStore` son casi idénticos. Un `createResourceStore` elimina ~40% del código y unifica el manejo de errores (hoy 3 stores lo tragan y 2 lo guardan sin que nadie lo pinte).
+26. **Factory de stores Zustand.** ✅ Helper `asyncAction` en `stores/createAsyncAction.js`; los 5 stores de datos lo usan y todos exponen `error` en el estado (contrato unificado para el futuro sistema de toasts, paso 30). Los mapas estáticos de uiStore viven en `lib/uiConfig.js`.
 
-27. **Contrato de adapters.** Corregir el **bug de orden de argumentos** en `wailsAdapter.setActiveEnvironment` (línea 136: `(projectId, id)` invertido respecto al apiAdapter), eliminar las mutaciones del objeto del caller en los `update*`, y añadir un test de paridad que verifique que ambos adapters exponen los mismos métodos.
+27. **Contrato de adapters.** ✅ Verificado: el supuesto bug de orden de argumentos en `setActiveEnvironment` **no existía** (el orden es consistente y correcto contra el binding Go). Sí corregido: mutaciones del objeto del caller en los `update*` de wailsAdapter, y chequeo de paridad de métodos en dev (console.warn si los adapters divergen).
 
-28. **i18n:** compartir estado vía contexto (hoy cada `useTranslation()` carga y guarda su propia copia), y traducir los textos hardcodeados (tabs Params/Headers/Body/Authorization/Captures, JsonEditor, CopyFormatModal, selectores de tema/color).
+28. **i18n.** ✅ `useTranslation` comparte estado vía un store único (una carga de locale por idioma para toda la app); tabs de request/respuesta, JsonEditor, CopyFormatModal, selectores y drop-zone traducidos; en/es/fr sincronizados (278 claves cada uno).
 
-29. **`ErrorBoundary`** de React (hoy cualquier throw en render deja pantalla blanca) y **arreglar `calculateNewPosition`** (`FolderTree.jsx:357`: devuelve `Date.now() % 1000`, un placeholder que hace el orden de drag&drop efectivamente aleatorio). Sustituir los `key={index}` en listas editables por ids estables.
+29. **ErrorBoundary + drag&drop.** ✅ ErrorBoundary montado en main.jsx (reporta a telemetría, pantalla recuperable); `calculateNewPosition` ya no es aleatorio (toma el slot del request destino o añade al final de la carpeta); `key={index}` sustituido por `_id` estables en las filas editables.
+
+**Fase 3 ✅ COMPLETADA** (pendientes menores anotados en 20, 24 y 25)
 
 ---
 

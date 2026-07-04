@@ -39,8 +39,8 @@ REST API client (Postman/Insomnia-style). Go 1.22 + Gin backend, React 19 + Vite
 - `internal/models/` - Shared data models
 
 ### Frontend (`/frontend/src`)
-- `adapters/` - adapterFactory picks apiAdapter (HTTP) or wailsAdapter (native bindings); all store calls go through this layer — never call axios or Wails bindings directly
-- `stores/` - 6 Zustand stores: project, request, folder, environment, telemetry, ui
+- `adapters/` - adapterFactory picks apiAdapter (HTTP) or wailsAdapter (native bindings); all store calls go through this layer — never call fetch or Wails bindings directly. A dev-only parity check warns if the two adapters' method sets drift.
+- `stores/` - 6 Zustand stores: project, request, folder, environment, telemetry, ui. Data stores wrap async work with `asyncAction` (stores/createAsyncAction.js) and all expose an `error` field — keep that contract when adding actions.
 - `hooks/useTranslation.js` - Custom i18n (NOT react-i18next); locales in `locales/{en,es,fr}.json`, language persisted in localStorage key `rikuest-language`
 - `components/`, `views/` - UI (Tailwind, Headless UI, Monaco editor for bodies)
 
