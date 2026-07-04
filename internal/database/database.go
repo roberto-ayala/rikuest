@@ -57,8 +57,8 @@ func (db *DB) initializeTelemetryConfig() error {
 	}
 
 	if count == 0 {
-		// Insert default config
-		_, err = db.Exec("INSERT INTO telemetry_config (id, enabled, webhook_url, installation_id) VALUES (1, 1, '', '')")
+		// Insert default config (telemetry is opt-in: disabled until the user enables it)
+		_, err = db.Exec("INSERT INTO telemetry_config (id, enabled, webhook_url, installation_id) VALUES (1, 0, '', '')")
 		return err
 	}
 
@@ -120,7 +120,7 @@ func (db *DB) createTables() error {
 		)`,
 		`CREATE TABLE IF NOT EXISTS telemetry_config (
 			id INTEGER PRIMARY KEY,
-			enabled INTEGER DEFAULT 1,
+			enabled INTEGER DEFAULT 0,
 			webhook_url TEXT DEFAULT '',
 			installation_id TEXT DEFAULT ''
 		)`,

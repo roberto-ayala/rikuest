@@ -19,11 +19,11 @@ var (
 	versionOnce  sync.Once
 )
 
-// DiscordWebhookURL returns the Discord webhook URL.
-// It first checks the RIKUEST_DISCORD_WEBHOOK environment variable,
-// and if not set, returns the default webhook URL.
+// DiscordWebhookURL returns the telemetry Discord webhook URL from the
+// RIKUEST_DISCORD_WEBHOOK environment variable. When the variable is not
+// set it returns an empty string, which disables telemetry delivery.
 func DiscordWebhookURL() string {
-	return "https://discord.com/api/webhooks/1433690267302629409/k5L0tIMzfjPqmL1Gp08_ab440ms3YbdrYx93GdD38TnFE_rjo8nhizrZfglPCaCL6DA4"
+	return os.Getenv("RIKUEST_DISCORD_WEBHOOK")
 }
 
 // Version returns the application version from wails.json.
