@@ -11,6 +11,7 @@ import { useUIStore } from '../stores/uiStore';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
+import { useResizablePanel } from '../hooks/useResizablePanel';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
@@ -49,103 +50,19 @@ function Project({ layout, onNewProject, onSettings }) {
   });
 
   // Panel resizing with percentage-based persistence
-  const [sidebarWidth, setSidebarWidth] = useState(320); // Initial pixel value
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = React.useRef(null);
-
-  // Save sidebar width percentage to localStorage
-  const saveWidthPercentage = React.useCallback((width) => {
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.getBoundingClientRect().width;
-      const percentage = (width / containerWidth) * 100;
-      localStorage.setItem('project-sidebarPercentage', percentage.toString());
-    }
-  }, []);
-
-  // Load and apply saved percentage
-  const loadSavedWidth = React.useCallback(() => {
-    if (containerRef.current) {
-      const savedPercentage = localStorage.getItem('project-sidebarPercentage');
-      if (savedPercentage) {
-        const containerWidth = containerRef.current.getBoundingClientRect().width;
-        const percentage = parseFloat(savedPercentage);
-        
-        // Apply constraints (10% to 40%)
-        const constrainedPercentage = Math.min(Math.max(percentage, 10), 40);
-        const calculatedWidth = (constrainedPercentage / 100) * containerWidth;
-        
-        // Ensure minimum width is respected
-        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
-        const newWidth = Math.max(calculatedWidth, minWidth);
-        
-        setSidebarWidth(newWidth);
-      } else {
-        // Default to 25% if no saved value, but respect minimum width
-        const containerWidth = containerRef.current.getBoundingClientRect().width;
-        const defaultWidth = containerWidth * 0.25;
-        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
-        setSidebarWidth(Math.max(defaultWidth, minWidth));
-      }
-    }
-  }, [sidebarMinWidth]);
-
-  // Handle resizing
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    setIsResizing(true);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  const handleMouseMove = React.useCallback((e) => {
-    if (!isResizing || !containerRef.current) return;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const mouseX = e.clientX - containerRect.left;
-    
-    // Calculate minimum width: max between sidebarMinWidth and 10% of container
-    const percentageMinWidth = containerWidth * 0.1;
-    const minWidth = Math.max(sidebarMinWidth, percentageMinWidth);
-    const maxWidth = containerWidth * 0.4;
-    
-    // Clamp the width between min and max
-    const newWidth = Math.min(Math.max(mouseX, minWidth), maxWidth);
-    
-    setSidebarWidth(newWidth);
-    saveWidthPercentage(newWidth);
-  }, [isResizing, saveWidthPercentage, sidebarMinWidth]);
-
-  const handleMouseUp = React.useCallback(() => {
-    setIsResizing(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  React.useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isResizing, handleMouseMove, handleMouseUp]);
-
-  // Initialize sidebar width responsively and load saved width
-  React.useEffect(() => {
-    const handleResize = () => {
-      loadSavedWidth();
-    };
-
-    // Load saved width on mount
-    loadSavedWidth();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [loadSavedWidth]);
+  const {
+    size: sidebarWidth,
+    isResizing,
+    startResize,
+    containerRef
+  } = useResizablePanel({
+    storageKey: 'project-sidebarPercentage',
+    initialSize: 320,
+    defaultPercent: 25,
+    minPercent: 10,
+    maxPercent: 40,
+    minPx: sidebarMinWidth
+  });
 
   useEffect(() => {
     if (projectId) {
@@ -388,7 +305,7 @@ function Project({ layout, onNewProject, onSettings }) {
         className={`w-1 bg-border hover:bg-primary/50 cursor-col-resize transition-colors relative group ${
           isResizing ? 'bg-primary' : ''
         }`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={startResize}
       >
         <div className="absolute inset-0 w-3 -translate-x-1 z-10" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-muted-foreground/30 rounded-full group-hover:bg-primary/70 transition-colors" />

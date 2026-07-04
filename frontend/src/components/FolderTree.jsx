@@ -35,6 +35,7 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
+import { getMethodColor } from '../lib/utils';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
@@ -363,19 +364,6 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     );
     if (siblings.length === 0) return 0;
     return Math.max(...siblings.map((r) => r.position ?? 0)) + 1;
-  };
-  
-  const getMethodColor = (method) => {
-    const colors = {
-      'GET': 'text-blue-500',
-      'POST': 'text-green-500',
-      'PUT': 'text-orange-500',
-      'DELETE': 'text-red-500',
-      'PATCH': 'text-purple-500',
-      'HEAD': 'text-gray-400',
-      'OPTIONS': 'text-gray-400'
-    };
-    return colors[method] || 'text-gray-400';
   };
   
   const folderTree = getFolderTree();

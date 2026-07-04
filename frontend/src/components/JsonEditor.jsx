@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useUISize } from '../hooks/useUISize';
+import { useIsDark } from '../hooks/useIsDark';
 import { useUIStore } from '../stores/uiStore';
 import './JsonEditor.css';
 
 const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const editorRef = useRef(null);
   const [isValidJson, setIsValidJson] = useState(true);
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const isDark = useIsDark();
   const { config } = useUISize();
   
   // Subscribe to background color changes
@@ -161,21 +162,6 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     // Define theme before mount to prevent white background flash
     setupAppTheme(monaco);
   }, [setupAppTheme]);
-
-  // Listen for theme changes
-  useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Update theme when dark mode changes or background colors change
   useEffect(() => {
