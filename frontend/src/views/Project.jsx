@@ -14,6 +14,7 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { handleMenuKeyDown } from '../lib/utils';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import FolderTree from '../components/FolderTree';
@@ -415,12 +416,17 @@ function Project({ layout, onNewProject, onSettings }) {
       {/* Request Menu */}
       {showMenu && (
         <div className="fixed inset-0 z-50" onClick={handleCloseMenus}>
-          <div 
+          <div
+            role="menu"
+            aria-orientation="vertical"
             className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
             style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => handleMenuKeyDown(e, handleCloseMenus)}
           >
             <button
+              role="menuitem"
+              autoFocus
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={handleDuplicateRequest}
             >
@@ -428,6 +434,7 @@ function Project({ layout, onNewProject, onSettings }) {
               {t('project.duplicate')}
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={handleCopyRequest}
             >
@@ -435,6 +442,7 @@ function Project({ layout, onNewProject, onSettings }) {
               {t('request.copyRequest')}
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteRequest}
             >

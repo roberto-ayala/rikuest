@@ -233,6 +233,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                       updateRequestData({ query_params: newParams });
                     }}
                     className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
+                    aria-label={t('request.paramEnabled', 'Parameter enabled')}
                   />
                   <Input
                     value={param.key}
@@ -243,6 +244,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     }}
                     placeholder={t('request.paramName')}
                     className={`flex-1 ${input}`}
+                    aria-label={t('request.paramName')}
                   />
                   <Input
                     value={param.value}
@@ -253,6 +255,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     }}
                     placeholder={t('request.paramValue')}
                     className={`flex-1 ${input}`}
+                    aria-label={t('request.paramValue')}
                   />
                   <Button
                     variant="ghost"
@@ -287,6 +290,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     }}
                     placeholder={t('request.headerName')}
                     className={`flex-1 ${input}`}
+                    aria-label={t('request.headerName')}
                   />
                   <Input
                     value={header.value}
@@ -297,6 +301,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     }}
                     placeholder={t('request.headerValue')}
                     className={`flex-1 ${input}`}
+                    aria-label={t('request.headerValue')}
                   />
                   <Button
                     variant="ghost"
@@ -351,6 +356,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                         }}
                         placeholder={t('request.formKey')}
                         className={`flex-1 ${input}`}
+                        aria-label={t('request.formKey')}
                       />
                       <Input
                         value={item.value}
@@ -361,6 +367,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                         }}
                         placeholder={t('request.formValue')}
                         className={`flex-1 ${input}`}
+                        aria-label={t('request.formValue')}
                       />
                       <Button
                         variant="ghost"

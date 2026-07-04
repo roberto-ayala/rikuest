@@ -1,4 +1,5 @@
 import React from 'react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUISize } from '../../hooks/useUISize';
@@ -12,23 +13,24 @@ function DeleteConfirmModal({ deleteConfirmation, onConfirm, onCancel }) {
   if (!deleteConfirmation) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <Dialog
+      open={!!deleteConfirmation}
+      onClose={onCancel}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+    >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
 
       {/* Modal */}
-      <div className="relative bg-card border border-border rounded-lg shadow-lg p-6 m-4 max-w-md w-full">
+      <DialogPanel className="relative bg-card border border-border rounded-lg shadow-lg p-6 m-4 max-w-md w-full">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
             <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div className="flex-1">
-            <h3 className={`${text('lg')} font-semibold text-foreground mb-2`}>
+            <DialogTitle as="h3" className={`${text('lg')} font-semibold text-foreground mb-2`}>
               {t('request.deleteHistoryTitle')}
-            </h3>
+            </DialogTitle>
             <p className={`${text('sm')} text-muted-foreground mb-4`}>
               {t('request.deleteHistoryConfirm')}
             </p>
@@ -62,8 +64,8 @@ function DeleteConfirmModal({ deleteConfirmation, onConfirm, onCancel }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </Dialog>
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X, Copy, Check, FileText, Terminal, Code, FileCode } from 'lucide-react';
 import { adapterFactory } from '../adapters/adapterFactory';
 import { useTranslation } from '../hooks/useTranslation';
@@ -82,25 +83,6 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
     }
   };
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const formatTabs = [
@@ -114,20 +96,21 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
   const html = ready ? highlight(content, getLanguage()) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+    >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
 
       {/* Modal */}
-      <div className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] m-4 flex flex-col">
+      <DialogPanel className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] m-4 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">
+          <DialogTitle as="h3" className="text-lg font-semibold text-foreground">
             {t('request.copyRequest')}
-          </h3>
+          </DialogTitle>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
@@ -212,8 +195,8 @@ const CopyFormatModal = ({ isOpen, onClose, requestId }) => {
             {t('common.press')} <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded">Esc</kbd> {t('common.toClose')}
           </p>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </Dialog>
   );
 };
 

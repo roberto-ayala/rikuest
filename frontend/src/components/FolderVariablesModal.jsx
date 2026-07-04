@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useEnvironmentStore } from '../stores/environmentStore';
@@ -63,12 +64,16 @@ export default function FolderVariablesModal({ folder, isOpen, onClose }) {
   if (!isOpen || !folder) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[70vh] flex flex-col">
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    >
+      <DialogPanel className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[70vh] flex flex-col">
         {/* Header */}
         <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
           <div>
-            <h2 className={`${text('sm')} font-semibold`}>{t('environment.folderVariables')}</h2>
+            <DialogTitle as="h2" className={`${text('sm')} font-semibold`}>{t('environment.folderVariables')}</DialogTitle>
             <p className={`${text('xs')} text-muted-foreground mt-0.5`}>
               {t('environment.folderVariablesDesc')} <span className="font-medium">{folder.name}</span>
             </p>
@@ -111,7 +116,7 @@ export default function FolderVariablesModal({ folder, isOpen, onClose }) {
             {saving ? t('environment.saving') : t('common.save')}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </Dialog>
   );
 }

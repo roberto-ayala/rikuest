@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X, Keyboard } from 'lucide-react';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -29,24 +30,6 @@ function ShortcutsHelp({ isOpen, onClose }) {
   const { text, spacing, iconButton, icon } = useUISize();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
 
   const shortcuts = [
@@ -56,19 +39,20 @@ function ShortcutsHelp({ isOpen, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+    >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
 
       {/* Modal */}
-      <div className={`relative bg-card border border-border rounded-lg shadow-lg ${spacing(6)} m-4 max-w-sm w-full`}>
+      <DialogPanel className={`relative bg-card border border-border rounded-lg shadow-lg ${spacing(6)} m-4 max-w-sm w-full`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Keyboard className={icon} />
-            <h3 className={`${text('lg')} font-semibold text-foreground`}>{t('shortcuts.title')}</h3>
+            <DialogTitle as="h3" className={`${text('lg')} font-semibold text-foreground`}>{t('shortcuts.title')}</DialogTitle>
           </div>
           <button
             onClick={onClose}
@@ -84,8 +68,8 @@ function ShortcutsHelp({ isOpen, onClose }) {
             <ShortcutRow key={index} label={shortcut.label} keys={shortcut.keys} />
           ))}
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </Dialog>
   );
 }
 

@@ -19,7 +19,11 @@ function Toaster() {
   if (visibleToasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end space-y-2 pointer-events-none">
+    <div
+      className="fixed bottom-4 right-4 z-[100] flex flex-col items-end space-y-2 pointer-events-none"
+      role="status"
+      aria-live="polite"
+    >
       {visibleToasts.map((toast) => {
         const { border, iconColor, Icon } = TOAST_STYLES[toast.type] || TOAST_STYLES.info;
 

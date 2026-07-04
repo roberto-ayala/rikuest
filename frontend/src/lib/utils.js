@@ -35,6 +35,26 @@ export function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// Keyboard navigation for custom role="menu" context menus (right-click
+// menus positioned at the cursor, where Headless UI's Menu can't anchor to
+// an arbitrary point). Wire to onKeyDown on the menu container: Escape closes
+// it, ArrowUp/ArrowDown move focus between role="menuitem" children.
+export function handleMenuKeyDown(e, onClose) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    onClose();
+    return;
+  }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  const items = Array.from(e.currentTarget.querySelectorAll('[role="menuitem"]'));
+  if (items.length === 0) return;
+  const currentIndex = items.indexOf(document.activeElement);
+  const delta = e.key === 'ArrowDown' ? 1 : -1;
+  const nextIndex = (currentIndex + delta + items.length) % items.length;
+  items[nextIndex].focus();
+}
+
 // Creates a key/value row with a stable client-side id (_id) so React lists
 // can use it as a key without breaking input focus on insert/delete.
 // The _id is stripped before data is sent to the server.

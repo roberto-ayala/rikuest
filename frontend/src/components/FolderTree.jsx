@@ -35,7 +35,7 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
-import { getMethodColor } from '../lib/utils';
+import { getMethodColor, handleMenuKeyDown } from '../lib/utils';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
@@ -536,12 +536,17 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {/* Folder Context Menu */}
       {showFolderMenu && (
         <div className="fixed inset-0 z-50" onClick={() => setShowFolderMenu(false)}>
-          <div 
+          <div
+            role="menu"
+            aria-orientation="vertical"
             className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[160px]"
             style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => handleMenuKeyDown(e, () => setShowFolderMenu(false))}
           >
             <button
+              role="menuitem"
+              autoFocus
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowNewRequestDialog(true);
@@ -552,6 +557,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               {t('navigation.newRequest')}
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowRenameFolderDialog(true);
@@ -563,6 +569,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               {t('folder.rename')}
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowFolderVariables(true);
@@ -573,6 +580,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               {t('folder.variables')}
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
               onClick={handleDeleteFolder}
             >
@@ -690,12 +698,17 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {/* Create Menu */}
       {showCreateMenu && (
         <div className="fixed inset-0 z-50" onClick={() => setShowCreateMenu(false)}>
-          <div 
+          <div
+            role="menu"
+            aria-orientation="vertical"
             className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
             style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => handleMenuKeyDown(e, () => setShowCreateMenu(false))}
           >
             <button
+              role="menuitem"
+              autoFocus
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
               onClick={() => {
                 setShowCreateMenu(false);
@@ -706,6 +719,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               <span>{t('navigation.newFolder')}</span>
             </button>
             <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
               onClick={() => {
                 setShowCreateMenu(false);
