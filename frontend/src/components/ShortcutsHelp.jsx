@@ -35,6 +35,7 @@ function ShortcutsHelp({ isOpen, onClose }) {
   const shortcuts = [
     { label: t('shortcuts.execute'), keys: [MOD_LABEL, 'Enter'] },
     { label: t('shortcuts.save'), keys: [MOD_LABEL, 'S'] },
+    { label: t('shortcuts.search'), keys: [MOD_LABEL, 'K'] },
     { label: t('shortcuts.help'), keys: [MOD_LABEL, '/'] }
   ];
 

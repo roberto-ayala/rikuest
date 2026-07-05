@@ -24,6 +24,7 @@ import OpenAPIImportModal from '../components/OpenAPIImportModal';
 import ImportCurlModal from '../components/ImportCurlModal';
 import EnvironmentManager from '../components/EnvironmentManager';
 import ShortcutsHelp from '../components/ShortcutsHelp';
+import GlobalSearch from '../components/GlobalSearch';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -48,6 +49,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [showCurlImportModal, setShowCurlImportModal] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const { activeEnvironment } = useEnvironmentStore();
   const [newRequest, setNewRequest] = useState({
     name: '',
@@ -206,8 +208,12 @@ function Project({ layout, onNewProject, onSettings }) {
   };
 
   // Cmd/Ctrl+/ opens the shortcuts help modal from anywhere in the project view.
+  // Cmd/Ctrl+K opens global search - allowInInputs so it works even while
+  // focus is inside the URL bar or other inputs, and to preempt the
+  // browser's own address-bar-focus binding on that combo.
   useKeyboardShortcuts([
-    { key: '/', mod: true, handler: () => setShowShortcutsHelp(true) }
+    { key: '/', mod: true, handler: () => setShowShortcutsHelp(true) },
+    { key: 'k', mod: true, allowInInputs: true, handler: () => setShowGlobalSearch(true) }
   ]);
 
   return (
@@ -521,6 +527,12 @@ function Project({ layout, onNewProject, onSettings }) {
       <ShortcutsHelp
         isOpen={showShortcutsHelp}
         onClose={() => setShowShortcutsHelp(false)}
+      />
+
+      {/* Global Search */}
+      <GlobalSearch
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
       />
     </div>
   );

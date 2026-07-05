@@ -370,6 +370,12 @@
     "title": "Atajos de Teclado",
     "execute": "Enviar solicitud",
     "save": "Guardar solicitud",
+    "search": "Buscar solicitudes",
     "help": "Mostrar atajos"
+  },
+  "search": {
+    "placeholder": "Buscar solicitudes por nombre o URL...",
+    "typeToSearch": "Escribe para buscar",
+    "noResults": "No se encontraron solicitudes"
   }
 }

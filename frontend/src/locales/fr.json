@@ -370,6 +370,12 @@
     "title": "Raccourcis Clavier",
     "execute": "Envoyer la requête",
     "save": "Enregistrer la requête",
+    "search": "Rechercher des requêtes",
     "help": "Afficher les raccourcis"
+  },
+  "search": {
+    "placeholder": "Rechercher des requêtes par nom ou URL...",
+    "typeToSearch": "Tapez pour rechercher",
+    "noResults": "Aucune requête trouvée"
   }
 }

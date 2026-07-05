@@ -370,6 +370,12 @@
     "title": "Keyboard Shortcuts",
     "execute": "Send request",
     "save": "Save request",
+    "search": "Search requests",
     "help": "Show shortcuts"
+  },
+  "search": {
+    "placeholder": "Search requests by name or URL...",
+    "typeToSearch": "Type to search",
+    "noResults": "No requests found"
   }
 }
