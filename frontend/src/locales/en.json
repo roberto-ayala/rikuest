@@ -184,7 +184,8 @@
     "createNew": "Create New",
     "createFolder": "Create Folder",
     "rename": "Rename",
-    "dropToRoot": "Drop here to move to root level"
+    "dropToRoot": "Drop here to move to root level",
+    "runCollection": "Run Collection"
   },
   "settings": {
     "title": "Settings",
@@ -372,6 +373,14 @@
     "save": "Save request",
     "search": "Search requests",
     "help": "Show shortcuts"
+  },
+  "runner": {
+    "title": "Collection Runner",
+    "stop": "Stop",
+    "noRequests": "This folder has no requests to run",
+    "completed": "Completed",
+    "succeeded": "succeeded",
+    "failed": "failed"
   },
   "search": {
     "placeholder": "Search requests by name or URL...",

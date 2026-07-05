@@ -184,7 +184,8 @@
     "createNew": "Créer Nouveau",
     "createFolder": "Créer un Dossier",
     "rename": "Renommer",
-    "dropToRoot": "Déposez ici pour déplacer à la racine"
+    "dropToRoot": "Déposez ici pour déplacer à la racine",
+    "runCollection": "Exécuter la Collection"
   },
   "settings": {
     "title": "Paramètres",
@@ -372,6 +373,14 @@
     "save": "Enregistrer la requête",
     "search": "Rechercher des requêtes",
     "help": "Afficher les raccourcis"
+  },
+  "runner": {
+    "title": "Exécuteur de Collection",
+    "stop": "Arrêter",
+    "noRequests": "Ce dossier n'a aucune requête à exécuter",
+    "completed": "Terminé",
+    "succeeded": "réussies",
+    "failed": "échouées"
   },
   "search": {
     "placeholder": "Rechercher des requêtes par nom ou URL...",

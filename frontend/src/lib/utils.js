@@ -55,6 +55,35 @@ export function handleMenuKeyDown(e, onClose) {
   items[nextIndex].focus();
 }
 
+// Recursively collects the ids of `folderId` and every descendant folder
+// (walking `parent_id` chains), in tree order (parent before children).
+export function collectFolderAndDescendantIds(folderId, folders) {
+  const ids = [folderId];
+  const children = folders
+    .filter((f) => f.parent_id === folderId)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  for (const child of children) {
+    ids.push(...collectFolderAndDescendantIds(child.id, folders));
+  }
+  return ids;
+}
+
+// Builds the ordered list of requests to run for the Collection Runner: every
+// request whose folder_id falls under `folder` (itself or any descendant),
+// grouped by folder in tree order and sorted by position within each folder.
+export function collectRunnableRequests(folder, folders, requests) {
+  if (!folder) return [];
+  const folderIds = collectFolderAndDescendantIds(folder.id, folders);
+  const ordered = [];
+  for (const folderId of folderIds) {
+    const inFolder = requests
+      .filter((r) => r.folder_id === folderId)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    ordered.push(...inFolder);
+  }
+  return ordered;
+}
+
 // Creates a key/value row with a stable client-side id (_id) so React lists
 // can use it as a key without breaking input focus on insert/delete.
 // The _id is stripped before data is sent to the server.

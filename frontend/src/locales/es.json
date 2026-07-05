@@ -184,7 +184,8 @@
     "createNew": "Crear Nuevo",
     "createFolder": "Crear Carpeta",
     "rename": "Renombrar",
-    "dropToRoot": "Suelta aquí para mover al nivel raíz"
+    "dropToRoot": "Suelta aquí para mover al nivel raíz",
+    "runCollection": "Ejecutar Colección"
   },
   "settings": {
     "title": "Configuración",
@@ -372,6 +373,14 @@
     "save": "Guardar solicitud",
     "search": "Buscar solicitudes",
     "help": "Mostrar atajos"
+  },
+  "runner": {
+    "title": "Ejecutor de Colección",
+    "stop": "Detener",
+    "noRequests": "Esta carpeta no tiene solicitudes para ejecutar",
+    "completed": "Completado",
+    "succeeded": "exitosas",
+    "failed": "fallidas"
   },
   "search": {
     "placeholder": "Buscar solicitudes por nombre o URL...",

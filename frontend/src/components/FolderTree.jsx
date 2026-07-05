@@ -26,7 +26,8 @@ import {
   ChevronDown,
   Edit3,
   Trash2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Play
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -35,11 +36,12 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
-import { getMethodColor, handleMenuKeyDown } from '../lib/utils';
+import { getMethodColor, handleMenuKeyDown, collectRunnableRequests } from '../lib/utils';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
 import FolderVariablesModal from './FolderVariablesModal';
+import CollectionRunner from './CollectionRunner';
 
 // Root Drop Zone Component
 function RootDropZone() {
@@ -115,6 +117,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const [showFolderVariables, setShowFolderVariables] = useState(false);
+  const [showCollectionRunner, setShowCollectionRunner] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -369,6 +372,9 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   const folderTree = getFolderTree();
   const requestsByFolder = getRequestsByFolder();
+  const selectedFolderHasRequests = selectedFolder
+    ? collectRunnableRequests(selectedFolder, folders, requests).length > 0
+    : false;
   
   // Only requests are sortable, folders are drop targets
   const sortableItems = [
@@ -558,6 +564,22 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             </button>
             <button
               role="menuitem"
+              className={`w-full ${menuItem} text-left transition-colors flex items-center gap-2 ${
+                selectedFolderHasRequests ? 'hover:bg-muted' : 'opacity-50 cursor-not-allowed'
+              }`}
+              disabled={!selectedFolderHasRequests}
+              title={selectedFolderHasRequests ? undefined : t('runner.noRequests')}
+              onClick={() => {
+                if (!selectedFolderHasRequests) return;
+                setShowCollectionRunner(true);
+                setShowFolderMenu(false);
+              }}
+            >
+              <Play className={iconMd} />
+              {t('folder.runCollection')}
+            </button>
+            <button
+              role="menuitem"
               className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
               onClick={() => {
                 setShowRenameFolderDialog(true);
@@ -595,6 +617,13 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         folder={selectedFolder}
         isOpen={showFolderVariables}
         onClose={() => setShowFolderVariables(false)}
+      />
+
+      <CollectionRunner
+        isOpen={showCollectionRunner}
+        onClose={() => setShowCollectionRunner(false)}
+        folder={selectedFolder}
+        projectId={projectId}
       />
       
       {/* New Request in Folder Dialog */}
