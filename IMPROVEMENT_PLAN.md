@@ -104,19 +104,19 @@ Bugs reales que hoy producen comportamiento silenciosamente incorrecto.
 
 ---
 
-## Fase 5 — Funcionalidades nuevas
+## Fase 5 — Funcionalidades nuevas ✅ COMPLETADA (36-43; 38 y 44 quedan para después)
 
-Ordenadas por relación valor/esfuerzo frente a Postman/Insomnia:
+36. **Pestañas multi-request.** ✅ `requestStore` gana `openTabIds`/`activeTabId` + mapas `responses`/`executingIds` por request (evita que una ejecución en segundo plano sobreescriba la pestaña que se está viendo); persistidas por proyecto en localStorage. Nuevo `TabBar.jsx`.
+37. **Importar cURL.** ✅ `lib/curlParser.js` (maneja comillas, continuaciones `\`, infiere POST igual que curl real) + `ImportCurlModal.jsx`.
+39. **API key auth.** ✅ Nuevo `auth_type: "apikey"` (header o query), en ejecución, export (curl/fetch/python/raw) y resolución de variables. UI en la nueva pestaña Auth/Settings de `RequestTabs`.
+40. **Opciones de ejecución.** ✅ `insecure_skip_verify`, `follow_redirects`/`max_redirects`, `timeout_seconds` por request (migración v2, 7 columnas nuevas), expuestos en una pestaña "Settings" nueva.
+41. **Búsqueda global (Cmd/Ctrl+K).** ✅ `GlobalSearch.jsx`, estilo command-palette, navegación con flechas.
+42. **Cookie jar por proyecto.** ✅ Tabla `project_cookies` (migración v3) + `CookieService` sobre `net/http/cookiejar` de la librería estándar — usa `resp.Cookies()` (no el header combinado) para no corromper respuestas con múltiples `Set-Cookie` o atributos `Expires` con comas. Un header `Cookie` explícito del usuario desactiva el jar para esa request. UI: `CookieManager.jsx`.
+43. **Collection runner.** ✅ Ejecuta una carpeta (y subcarpetas) en secuencia estricta (`for...of` + `await`, nunca `Promise.all`) para que el encadenado de variables por captura funcione; `CollectionRunner.jsx` con estado por fila y resumen final.
 
-36. **Pestañas multi-request.** Hoy solo hay un `currentRequest`; es el mayor gap funcional. Requiere elevar el estado de respuesta/vista por pestaña.
-37. **Importar cURL** (ya existe export cURL/fetch/python y import OpenAPI; falta el camino inverso, muy barato de añadir).
-38. **`multipart/form-data` con subida de archivos** (backend solo soporta `x-www-form-urlencoded`; modelo `FormData` es solo key/value).
-39. **Más tipos de auth:** API key (header/query) y OAuth2 client-credentials (hoy solo none/bearer/basic).
-40. **Opciones de ejecución:** toggle "ignorar certificado TLS inválido", control de redirects, timeout por request.
-41. **Búsqueda global** de requests por nombre/URL (`Cmd+K`).
-42. **Cookie jar** por proyecto.
-43. **Collection runner** (ejecutar una carpeta en secuencia usando las capturas de respuesta ya existentes como encadenado) — se apoya en `response_captures`, que ya es una fortaleza del producto.
-44. *(Futuro/explorar)* GraphQL y WebSocket.
+**Pendiente de esta fase:**
+- 38. `multipart/form-data` con subida de archivos — no abordado, requiere cambios de modelo (`FormData` es solo key/value) más significativos que el resto de items.
+- 44. GraphQL/WebSocket — explícitamente exploratorio/futuro, fuera de alcance.
 
 ---
 
