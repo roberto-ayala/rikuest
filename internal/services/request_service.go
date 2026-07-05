@@ -32,15 +32,17 @@ type RequestService struct {
 	format         *FormatService
 	resolver       *VariableResolver
 	captureService *ResponseCaptureService
+	cookies        *CookieService
 }
 
-func NewRequestService(db *database.DB, resolver *VariableResolver, capture *ResponseCaptureService) *RequestService {
+func NewRequestService(db *database.DB, resolver *VariableResolver, capture *ResponseCaptureService, cookies *CookieService) *RequestService {
 	return &RequestService{
 		db:             db,
 		config:         NewConfigService(db),
 		format:         NewFormatService(),
 		resolver:       resolver,
 		captureService: capture,
+		cookies:        cookies,
 	}
 }
 
@@ -236,7 +238,23 @@ func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models
 		}
 	}
 
+	// Attach the per-project cookie jar unless the user already set an
+	// explicit Cookie header — respecting an explicit header avoids sending
+	// two Cookie headers (req.Header.Get canonicalizes the key, so this check
+	// is case-insensitive regardless of how the user typed it).
+	if req.Header.Get("Cookie") == "" {
+		jar, jarErr := s.cookies.BuildJarForRequest(request.ProjectID, req.URL)
+		if jarErr == nil {
+			client.Jar = jar
+		}
+	}
+
 	resp, err := client.Do(req)
+	if err == nil {
+		if syncErr := s.cookies.SyncFromResponse(request.ProjectID, req.URL, resp); syncErr != nil {
+			fmt.Printf("Warning: failed to sync cookies: %v\n", syncErr)
+		}
+	}
 	duration := time.Since(start)
 
 	// Generate raw request

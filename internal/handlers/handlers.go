@@ -377,6 +377,59 @@ func (h *Handler) CopyRequestFormats(c *gin.Context) {
 	})
 }
 
+// Cookie handlers
+
+func (h *Handler) GetProjectCookies(c *gin.Context) {
+	projectID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	cookies, err := h.services.Cookie.GetCookies(projectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure we return an empty array instead of null
+	if cookies == nil {
+		cookies = []models.Cookie{}
+	}
+
+	c.JSON(http.StatusOK, cookies)
+}
+
+func (h *Handler) DeleteCookie(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cookie ID"})
+		return
+	}
+
+	if err := h.services.Cookie.DeleteCookie(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Cookie deleted successfully"})
+}
+
+func (h *Handler) ClearProjectCookies(c *gin.Context) {
+	projectID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	if err := h.services.Cookie.ClearProjectCookies(projectID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Project cookies cleared successfully"})
+}
+
 // CopyAllRequestFormats returns the request in all available formats
 func (h *Handler) CopyAllRequestFormats(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))

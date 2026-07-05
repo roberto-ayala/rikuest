@@ -323,6 +323,20 @@ func (a *App) UpdateResponseCaptures(requestID int, captures []models.ResponseCa
 	return a.services.ResponseCapture.UpdateCaptures(requestID, captures)
 }
 
+// ===== COOKIE BINDINGS =====
+
+func (a *App) GetCookies(projectID int) ([]models.Cookie, error) {
+	return a.services.Cookie.GetCookies(projectID)
+}
+
+func (a *App) DeleteCookie(id int) error {
+	return a.services.Cookie.DeleteCookie(id)
+}
+
+func (a *App) ClearProjectCookies(projectID int) error {
+	return a.services.Cookie.ClearProjectCookies(projectID)
+}
+
 // ===== TELEMETRY BINDINGS =====
 
 func (a *App) ReportError(errMsg string, stackTrace string) error {

@@ -13,13 +13,15 @@ type Services struct {
 	Environment     *EnvironmentService
 	VariableResolver *VariableResolver
 	ResponseCapture *ResponseCaptureService
+	Cookie          *CookieService
 }
 
 // NewServices creates a new services container
 func NewServices(db *database.DB, webhookURL string) *Services {
 	resolver := NewVariableResolver(db)
 	captureSvc := NewResponseCaptureService(db)
-	requestSvc := NewRequestService(db, resolver, captureSvc)
+	cookieSvc := NewCookieService(db)
+	requestSvc := NewRequestService(db, resolver, captureSvc, cookieSvc)
 
 	return &Services{
 		Project:         NewProjectService(db),
@@ -31,5 +33,6 @@ func NewServices(db *database.DB, webhookURL string) *Services {
 		Environment:     NewEnvironmentService(db),
 		VariableResolver: resolver,
 		ResponseCapture: captureSvc,
+		Cookie:          cookieSvc,
 	}
 }

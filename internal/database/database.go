@@ -216,6 +216,31 @@ var migrations = []migration{
 			`ALTER TABLE requests ADD COLUMN timeout_seconds INTEGER DEFAULT 0`,
 		},
 	},
+	{
+		// v3: per-project cookie jar, populated by executeHTTPRequest syncing
+		// Set-Cookie headers and read back on subsequent requests to the same
+		// host.
+		version: 3,
+		statements: []string{
+			`CREATE TABLE IF NOT EXISTS project_cookies (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				project_id INTEGER NOT NULL,
+				domain TEXT NOT NULL,
+				path TEXT NOT NULL DEFAULT '/',
+				name TEXT NOT NULL,
+				value TEXT NOT NULL DEFAULT '',
+				expires_at DATETIME,
+				secure INTEGER DEFAULT 0,
+				http_only INTEGER DEFAULT 0,
+				same_site TEXT DEFAULT '',
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+				UNIQUE(project_id, domain, path, name)
+			)`,
+			`CREATE INDEX IF NOT EXISTS idx_project_cookies_project_id ON project_cookies(project_id)`,
+		},
+	},
 }
 
 func (db *DB) migrate() error {

@@ -114,6 +114,23 @@ type Environment struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
+// ===== COOKIE JAR =====
+
+type Cookie struct {
+	ID        int        `json:"id" db:"id"`
+	ProjectID int        `json:"project_id" db:"project_id"`
+	Domain    string     `json:"domain" db:"domain"`
+	Path      string     `json:"path" db:"path"`
+	Name      string     `json:"name" db:"name"`
+	Value     string     `json:"value" db:"value"`
+	ExpiresAt *time.Time `json:"expires_at" db:"expires_at"`
+	Secure    bool       `json:"secure" db:"secure"`
+	HttpOnly  bool       `json:"http_only" db:"http_only"`
+	SameSite  string     `json:"same_site" db:"same_site"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+}
+
 type ResponseCapture struct {
 	ID           int    `json:"id"`
 	RequestID    int    `json:"request_id"`

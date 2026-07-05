@@ -13,7 +13,7 @@ import (
 func newRequestService(t *testing.T) *RequestService {
 	t.Helper()
 	db := newTestDB(t)
-	return NewRequestService(db, NewVariableResolver(db), NewResponseCaptureService(db))
+	return NewRequestService(db, NewVariableResolver(db), NewResponseCaptureService(db), NewCookieService(db))
 }
 
 func TestExecuteHTTPRequestBasics(t *testing.T) {
@@ -276,6 +276,85 @@ func TestExecuteHTTPRequestPerRequestTimeoutOverride(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(resp.StatusText), "timeout") {
 		t.Errorf("StatusText = %q; want a timeout-ish status", resp.StatusText)
+	}
+}
+
+func TestExecuteHTTPRequestCookieJarRoundTrip(t *testing.T) {
+	var gotCookieHeader string
+	first := true
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if first {
+			http.SetCookie(w, &http.Cookie{Name: "session", Value: "abc123", Path: "/"})
+			first = false
+		} else {
+			gotCookieHeader = r.Header.Get("Cookie")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	db := newTestDB(t)
+	project := createProject(t, db, "cookie-project")
+	svc := NewRequestService(db, NewVariableResolver(db), NewResponseCaptureService(db), NewCookieService(db))
+
+	// First request receives the Set-Cookie header and should persist it.
+	if _, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		ProjectID: project.ID,
+		Method:    "GET",
+		URL:       server.URL,
+	}); err != nil {
+		t.Fatalf("first executeHTTPRequest: %v", err)
+	}
+
+	// Second request to the same host should replay the persisted cookie.
+	if _, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		ProjectID: project.ID,
+		Method:    "GET",
+		URL:       server.URL,
+	}); err != nil {
+		t.Fatalf("second executeHTTPRequest: %v", err)
+	}
+
+	if !strings.Contains(gotCookieHeader, "session=abc123") {
+		t.Errorf("Cookie header = %q; want it to contain session=abc123", gotCookieHeader)
+	}
+}
+
+func TestExecuteHTTPRequestExplicitCookieHeaderSkipsJar(t *testing.T) {
+	var got *http.Request
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Clone(r.Context())
+		http.SetCookie(w, &http.Cookie{Name: "session", Value: "shouldnotbeused", Path: "/"})
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	db := newTestDB(t)
+	project := createProject(t, db, "cookie-project-explicit")
+	svc := NewRequestService(db, NewVariableResolver(db), NewResponseCaptureService(db), NewCookieService(db))
+
+	// Prime the jar with a stored cookie for this host/project.
+	if _, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		ProjectID: project.ID,
+		Method:    "GET",
+		URL:       server.URL,
+	}); err != nil {
+		t.Fatalf("priming request: %v", err)
+	}
+
+	// A request with an explicit Cookie header should send it unmodified,
+	// not merged with (or overwritten by) the jar's stored cookie.
+	if _, err := svc.executeHTTPRequest(context.Background(), &models.Request{
+		ProjectID: project.ID,
+		Method:    "GET",
+		URL:       server.URL,
+		Headers:   map[string]string{"Cookie": "explicit=value"},
+	}); err != nil {
+		t.Fatalf("executeHTTPRequest with explicit cookie header: %v", err)
+	}
+
+	if got.Header.Get("Cookie") != "explicit=value" {
+		t.Errorf("Cookie header = %q; want it to be the explicit value, unmodified", got.Header.Get("Cookie"))
 	}
 }
 

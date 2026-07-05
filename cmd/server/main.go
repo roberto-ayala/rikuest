@@ -88,6 +88,11 @@ func main() {
 		api.DELETE("/environment/:id", handler.DeleteEnvironment)
 		api.POST("/environment/:id/activate", handler.SetActiveEnvironment)
 		api.PUT("/environment/:id/variables", handler.UpdateEnvironmentVariables)
+
+		// Cookies routes
+		api.GET("/project/:id/cookies", handler.GetProjectCookies)
+		api.DELETE("/cookie/:id", handler.DeleteCookie)
+		api.DELETE("/project/:id/cookies", handler.ClearProjectCookies)
 	}
 
 	// Serve static files for non-API routes
