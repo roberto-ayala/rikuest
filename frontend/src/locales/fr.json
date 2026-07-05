@@ -47,7 +47,8 @@
     "settings": "Paramètres",
     "newProject": "Nouveau Projet",
     "newRequest": "Nouvelle Requête",
-    "newFolder": "Nouveau Dossier"
+    "newFolder": "Nouveau Dossier",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Créer un Nouveau Projet",
@@ -386,5 +387,18 @@
     "placeholder": "Rechercher des requêtes par nom ou URL...",
     "typeToSearch": "Tapez pour rechercher",
     "noResults": "Aucune requête trouvée"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "Aucun cookie enregistré pour ce projet",
+    "domain": "Domaine",
+    "name": "Nom",
+    "value": "Valeur",
+    "expires": "Expire",
+    "session": "Session",
+    "clearAll": "Tout effacer",
+    "clearAllConfirm": "Voulez-vous vraiment supprimer tous les cookies de ce projet ? Cette action est irréversible.",
+    "deleted": "Cookie supprimé",
+    "cleared": "Cookies effacés"
   }
 }

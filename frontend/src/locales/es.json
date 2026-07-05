@@ -47,7 +47,8 @@
     "settings": "Configuración",
     "newProject": "Nuevo Proyecto",
     "newRequest": "Nueva Solicitud",
-    "newFolder": "Nueva Carpeta"
+    "newFolder": "Nueva Carpeta",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Crear Nuevo Proyecto",
@@ -386,5 +387,18 @@
     "placeholder": "Buscar solicitudes por nombre o URL...",
     "typeToSearch": "Escribe para buscar",
     "noResults": "No se encontraron solicitudes"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "Aún no hay cookies almacenadas para este proyecto",
+    "domain": "Dominio",
+    "name": "Nombre",
+    "value": "Valor",
+    "expires": "Expira",
+    "session": "Sesión",
+    "clearAll": "Borrar todo",
+    "clearAllConfirm": "¿Seguro que quieres eliminar todas las cookies de este proyecto? Esta acción no se puede deshacer.",
+    "deleted": "Cookie eliminada",
+    "cleared": "Cookies borradas"
   }
 }

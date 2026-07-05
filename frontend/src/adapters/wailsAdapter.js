@@ -154,6 +154,19 @@ export class WailsAdapter {
     await this.app.UpdateResponseCaptures(requestId, captures || []);
   }
 
+  // ===== COOKIE METHODS =====
+  async getCookies(projectId) {
+    return await this.app.GetCookies(projectId);
+  }
+
+  async deleteCookie(id) {
+    await this.app.DeleteCookie(id);
+  }
+
+  async clearProjectCookies(projectId) {
+    await this.app.ClearProjectCookies(projectId);
+  }
+
   // ===== CONFIG METHODS =====
   async getRequestTimeout() {
     return await this.app.GetRequestTimeout();

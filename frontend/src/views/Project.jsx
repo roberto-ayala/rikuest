@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers, Terminal } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers, Terminal, Cookie } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -23,6 +23,7 @@ import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
 import ImportCurlModal from '../components/ImportCurlModal';
 import EnvironmentManager from '../components/EnvironmentManager';
+import CookieManager from '../components/CookieManager';
 import ShortcutsHelp from '../components/ShortcutsHelp';
 import GlobalSearch from '../components/GlobalSearch';
 
@@ -48,6 +49,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
   const [showCurlImportModal, setShowCurlImportModal] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
+  const [showCookieManager, setShowCookieManager] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const { activeEnvironment } = useEnvironmentStore();
@@ -316,6 +318,14 @@ function Project({ layout, onNewProject, onSettings }) {
             >
               <Layers className={icon} />
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowCookieManager(true)}
+              className={iconButton}
+              title={t('navigation.cookies')}
+            >
+              <Cookie className={icon} />
+            </Button>
           </div>
           {activeEnvironment && (
             <div className="mt-1.5 flex items-center gap-1.5">
@@ -521,6 +531,13 @@ function Project({ layout, onNewProject, onSettings }) {
         projectId={projectId}
         isOpen={showEnvManager}
         onClose={() => setShowEnvManager(false)}
+      />
+
+      {/* Cookie Manager */}
+      <CookieManager
+        projectId={projectId}
+        isOpen={showCookieManager}
+        onClose={() => setShowCookieManager(false)}
       />
 
       {/* Keyboard Shortcuts Help */}

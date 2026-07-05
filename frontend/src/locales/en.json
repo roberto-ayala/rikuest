@@ -47,7 +47,8 @@
     "settings": "Settings",
     "newProject": "New Project",
     "newRequest": "New Request",
-    "newFolder": "New Folder"
+    "newFolder": "New Folder",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Create New Project",
@@ -386,5 +387,18 @@
     "placeholder": "Search requests by name or URL...",
     "typeToSearch": "Type to search",
     "noResults": "No requests found"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "No cookies stored for this project yet",
+    "domain": "Domain",
+    "name": "Name",
+    "value": "Value",
+    "expires": "Expires",
+    "session": "Session",
+    "clearAll": "Clear all",
+    "clearAllConfirm": "Are you sure you want to delete all cookies for this project? This action cannot be undone.",
+    "deleted": "Cookie deleted",
+    "cleared": "Cookies cleared"
   }
 }
