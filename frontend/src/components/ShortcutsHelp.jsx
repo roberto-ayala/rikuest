@@ -1,6 +1,6 @@
 import React from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
-import { X, Keyboard } from 'lucide-react';
+import { Keyboard } from 'lucide-react';
+import { Modal, ModalHeader, ModalBody } from './ui';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { isMac } from '../hooks/useKeyboardShortcuts';
@@ -27,10 +27,8 @@ function ShortcutRow({ label, keys }) {
 }
 
 function ShortcutsHelp({ isOpen, onClose }) {
-  const { text, spacing, iconButton, icon } = useUISize();
+  const { icon } = useUISize();
   const { t } = useTranslation();
-
-  if (!isOpen) return null;
 
   const shortcuts = [
     { label: t('shortcuts.execute'), keys: [MOD_LABEL, 'Enter'] },
@@ -40,37 +38,18 @@ function ShortcutsHelp({ isOpen, onClose }) {
   ];
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center"
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
-
-      {/* Modal */}
-      <DialogPanel className={`relative bg-card border border-border rounded-lg shadow-lg ${spacing(6)} m-4 max-w-sm w-full`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Keyboard className={icon} />
-            <DialogTitle as="h3" className={`${text('lg')} font-semibold text-foreground`}>{t('shortcuts.title')}</DialogTitle>
-          </div>
-          <button
-            onClick={onClose}
-            className={`${iconButton} hover:bg-muted rounded-md text-muted-foreground hover:text-foreground`}
-            title={t('common.close')}
-          >
-            <X className={icon} />
-          </button>
-        </div>
-
-        <div>
-          {shortcuts.map((shortcut, index) => (
-            <ShortcutRow key={index} label={shortcut.label} keys={shortcut.keys} />
-          ))}
-        </div>
-      </DialogPanel>
-    </Dialog>
+    <Modal isOpen={isOpen} onClose={onClose} size="sm">
+      <ModalHeader
+        title={t('shortcuts.title')}
+        onClose={onClose}
+        icon={<Keyboard className={icon} />}
+      />
+      <ModalBody className="pb-6">
+        {shortcuts.map((shortcut, index) => (
+          <ShortcutRow key={index} label={shortcut.label} keys={shortcut.keys} />
+        ))}
+      </ModalBody>
+    </Modal>
   );
 }
 

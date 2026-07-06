@@ -1,6 +1,7 @@
 import React from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { DialogTitle } from '@headlessui/react';
 import { AlertTriangle } from 'lucide-react';
+import { Modal, ModalBody, ModalFooter } from './ui';
 import { Button } from './ui/Button';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -12,11 +13,10 @@ function ConfirmDialog({
   message,
   confirmText,
   cancelText,
-  variant = 'danger' // 'danger' or 'warning'
+  variant = 'danger', // 'danger' or 'warning'
+  children,
 }) {
   const { t } = useTranslation();
-
-  if (!isOpen) return null;
 
   const handleConfirm = () => {
     onConfirm();
@@ -24,12 +24,8 @@ function ConfirmDialog({
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-    >
-      <DialogPanel className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <ModalBody className="pt-6">
         <div className="flex items-start space-x-4">
           <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
             variant === 'danger' ? 'bg-destructive/10' : 'bg-orange-500/10'
@@ -46,24 +42,24 @@ function ConfirmDialog({
             <p className="text-sm text-muted-foreground">
               {message}
             </p>
+            {children}
           </div>
         </div>
+      </ModalBody>
 
-        <div className="flex justify-end space-x-2 mt-6">
-          <Button variant="ghost" onClick={onClose}>
-            {cancelText || t('common.cancel')}
-          </Button>
-          <Button
-            variant={variant === 'danger' ? 'destructive' : 'default'}
-            onClick={handleConfirm}
-          >
-            {confirmText || t('common.delete')}
-          </Button>
-        </div>
-      </DialogPanel>
-    </Dialog>
+      <ModalFooter>
+        <Button variant="ghost" onClick={onClose}>
+          {cancelText || t('common.cancel')}
+        </Button>
+        <Button
+          variant={variant === 'danger' ? 'destructive' : 'default'}
+          onClick={handleConfirm}
+        >
+          {confirmText || t('common.delete')}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
 export default ConfirmDialog;
-
