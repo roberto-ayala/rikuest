@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { Input } from './ui/Input';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
-function CaptureRow({ capture, onChange, onDelete, inputClass, iconClass, textXs }) {
+function CaptureRow({ capture, onChange, onDelete, iconClass, textXs }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono`}
+      <Input
+        className="flex-1 font-mono"
         placeholder="variableName"
         value={capture.variable_name}
         onChange={e => onChange({ ...capture, variable_name: e.target.value })}
       />
       <span className={`${textXs} text-muted-foreground flex-shrink-0`}>=</span>
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono`}
+      <Input
+        className="flex-1 font-mono"
         placeholder="data.token"
         value={capture.json_path}
         onChange={e => onChange({ ...capture, json_path: e.target.value })}
@@ -32,7 +33,7 @@ function CaptureRow({ capture, onChange, onDelete, inputClass, iconClass, textXs
 
 export default function ResponseCapturesPanel({ requestId }) {
   const { t } = useTranslation();
-  const { text, input, icon } = useUISize();
+  const { text, icon } = useUISize();
   const [captures, setCaptures] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -91,7 +92,6 @@ export default function ResponseCapturesPanel({ requestId }) {
             capture={c}
             onChange={updated => updateCapture(i, updated)}
             onDelete={() => removeCapture(i)}
-            inputClass={input}
             iconClass={icon}
             textXs={text('xs')}
           />

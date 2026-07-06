@@ -3,6 +3,7 @@ import {
   Send, Loader2, BarChart3, Timer, HardDrive, Calendar,
   Copy, Braces, AlignLeft, WrapText, Search, ChevronUp, ChevronDown, X, ImageOff
 } from 'lucide-react';
+import { Input } from '../ui';
 import { useUISize } from '../../hooks/useUISize';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useShikiHighlighter } from '../../hooks/useShikiHighlighter';
@@ -448,7 +449,8 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
 
         {searchOpen && activeResponseTab === 'body' && (
           <div className="flex items-center gap-2 px-2 py-1.5 border-t border-border bg-muted/30">
-            <input
+            <Input
+              variant="borderless"
               autoFocus
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -460,7 +462,7 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
                 }
               }}
               placeholder={t('response.searchPlaceholder')}
-              className={`flex-1 bg-transparent border-none focus:outline-none ${text('sm')}`}
+              className={`flex-1 ${text('sm')}`}
             />
             <span className={`${text('xs')} text-muted-foreground whitespace-nowrap`}>
               {matchCount === 0

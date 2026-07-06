@@ -3,21 +3,22 @@ import { DialogTitle } from '@headlessui/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
-function VariableRow({ variable, onChange, onDelete, inputClass, iconClass, t }) {
+function VariableRow({ variable, onChange, onDelete, iconClass, t }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.variablePlaceholder')}
         value={variable.key}
         onChange={e => onChange({ ...variable, key: e.target.value })}
       />
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.valuePlaceholder')}
         value={variable.value}
         onChange={e => onChange({ ...variable, value: e.target.value })}
@@ -35,7 +36,7 @@ function VariableRow({ variable, onChange, onDelete, inputClass, iconClass, t })
 export default function FolderVariablesModal({ folder, isOpen, onClose }) {
   const { folderVariables, fetchFolderVariables, updateFolderVariables } = useEnvironmentStore();
   const { t } = useTranslation();
-  const { text, input, icon, button: buttonClass } = useUISize();
+  const { text, icon, button: buttonClass } = useUISize();
   const [variables, setVariables] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -87,7 +88,6 @@ export default function FolderVariablesModal({ folder, isOpen, onClose }) {
             variable={v}
             onChange={updated => updateVariable(i, updated)}
             onDelete={() => removeVariable(i)}
-            inputClass={input}
             iconClass={icon}
             t={t}
           />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Modal } from './ui';
+import { Modal, Input } from './ui';
 import { Search } from 'lucide-react';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -82,14 +82,15 @@ function GlobalSearch({ isOpen, onClose }) {
     <Modal isOpen={isOpen} onClose={onClose} size="lg" align="top" className="overflow-hidden">
         <div className={`flex items-center gap-2 border-b border-border ${spacing(4)}`}>
           <Search className={`${icon} text-muted-foreground flex-shrink-0`} />
-          <input
+          <Input
+            variant="borderless"
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('search.placeholder')}
-            className={`w-full bg-transparent border-none outline-none focus:ring-0 ${text('sm')} text-foreground placeholder:text-muted-foreground`}
+            className={`${text('sm')} text-foreground`}
           />
         </div>
 

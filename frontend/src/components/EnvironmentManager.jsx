@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DialogTitle } from '@headlessui/react';
 import { Modal } from './ui';
+import { Input } from './ui/Input';
 import { X, Plus, Trash2, Check, Pencil } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useEnvironmentStore } from '../stores/environmentStore';
@@ -8,17 +9,17 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
 // Inline editable variable row
-function VariableRow({ variable, onChange, onDelete, inputClass, iconClass, t }) {
+function VariableRow({ variable, onChange, onDelete, iconClass, t }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.variablePlaceholder')}
         value={variable.key}
         onChange={e => onChange({ ...variable, key: e.target.value })}
       />
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.valuePlaceholder')}
         value={variable.value}
         onChange={e => onChange({ ...variable, value: e.target.value })}
@@ -47,7 +48,7 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
   } = useEnvironmentStore();
 
   const { t } = useTranslation();
-  const { text, spacing, input, icon, iconMd, button: buttonClass } = useUISize();
+  const { text, spacing, icon, iconMd, button: buttonClass } = useUISize();
 
   const [selectedEnvId, setSelectedEnvId] = useState(null);
   const [variables, setVariables] = useState([]);
@@ -175,9 +176,9 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
             <div className={`border-t border-border ${spacing(3)}`}>
               {isCreating ? (
                 <div className="flex gap-1">
-                  <input
+                  <Input
                     autoFocus
-                    className={`flex-1 ${input} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+                    className="flex-1"
                     placeholder={t('common.name')}
                     value={newEnvName}
                     onChange={e => setNewEnvName(e.target.value)}
@@ -233,7 +234,6 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
                       variable={v}
                       onChange={updated => updateVariable(i, updated)}
                       onDelete={() => removeVariable(i)}
-                      inputClass={input}
                       iconClass={icon}
                       t={t}
                     />
