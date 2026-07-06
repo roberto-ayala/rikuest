@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Loader2, History, Check, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { Select, SelectOption } from './ui/Select';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -18,7 +19,7 @@ import DeleteConfirmModal from './request-builder/DeleteConfirmModal';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
-  const { text, spacing, button, input, select } = useUISize();
+  const { text, spacing, button, input } = useUISize();
   const { t } = useTranslation();
   const { fetchEnvironments } = useEnvironmentStore();
 
@@ -255,19 +256,19 @@ function RequestBuilder() {
       {/* Request Header */}
       <div className={`border-b border-border bg-background ${spacing(4)}`}>
         <div className="flex items-center space-x-3 mb-3">
-          <select
+          <Select
             value={requestData.method}
             onChange={(e) => updateRequestData({ method: e.target.value })}
-            className={`${select} font-medium min-w-[90px] ${getMethodColor(requestData.method)}`}
+            className={`font-medium min-w-[90px] ${getMethodColor(requestData.method)}`}
           >
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-            <option value="PATCH">PATCH</option>
-            <option value="HEAD">HEAD</option>
-            <option value="OPTIONS">OPTIONS</option>
-          </select>
+            <SelectOption value="GET">GET</SelectOption>
+            <SelectOption value="POST">POST</SelectOption>
+            <SelectOption value="PUT">PUT</SelectOption>
+            <SelectOption value="DELETE">DELETE</SelectOption>
+            <SelectOption value="PATCH">PATCH</SelectOption>
+            <SelectOption value="HEAD">HEAD</SelectOption>
+            <SelectOption value="OPTIONS">OPTIONS</SelectOption>
+          </Select>
 
           <Input
             value={requestData.url}

@@ -3,6 +3,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
+import { Checkbox } from '../ui/Checkbox';
+import { Select, SelectOption } from '../ui/Select';
+import { Label } from '../ui/Label';
 import JsonEditor from '../JsonEditor';
 import ResponseCapturesPanel from '../ResponseCapturesPanel';
 import { useUISize } from '../../hooks/useUISize';
@@ -10,7 +13,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { createRow } from '../../lib/utils';
 
 function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidth }) {
-  const { text, spacing, button, input, select, tab: tabStyle } = useUISize();
+  const { text, spacing, button, input, tab: tabStyle } = useUISize();
   const { t } = useTranslation();
   const [activeRequestTab, setActiveRequestTab] = useState('params');
   const tabsContainerRef = useRef(null);
@@ -225,15 +228,13 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
             <div className="space-y-3">
               {requestData.query_params.map((param, index) => (
                 <div key={param._id ?? index} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={param.enabled}
                     onChange={(e) => {
                       const newParams = [...requestData.query_params];
                       newParams[index].enabled = e.target.checked;
                       updateRequestData({ query_params: newParams });
                     }}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
                     aria-label={t('request.paramEnabled', 'Parameter enabled')}
                   />
                   <Input
@@ -418,20 +419,20 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
         {activeRequestTab === 'auth' && (
           <div className="h-full overflow-y-auto p-4">
             <div className="space-y-4">
-              <select
+              <Select
                 value={requestData.auth_type}
                 onChange={(e) => updateRequestData({ auth_type: e.target.value })}
-                className={`w-full ${select}`}
+                className="w-full"
               >
-                <option value="none">{t('request.noAuth')}</option>
-                <option value="bearer">{t('auth.bearer')}</option>
-                <option value="basic">{t('auth.basic')}</option>
-                <option value="apikey">{t('auth.apiKey')}</option>
-              </select>
+                <SelectOption value="none">{t('request.noAuth')}</SelectOption>
+                <SelectOption value="bearer">{t('auth.bearer')}</SelectOption>
+                <SelectOption value="basic">{t('auth.basic')}</SelectOption>
+                <SelectOption value="apikey">{t('auth.apiKey')}</SelectOption>
+              </Select>
 
               {requestData.auth_type === 'bearer' && (
                 <div className="space-y-3">
-                  <label className={`${text('sm')} font-medium`}>{t('request.token')}</label>
+                  <Label>{t('request.token')}</Label>
                   <Input
                     value={requestData.bearer_token}
                     onChange={(e) => updateRequestData({ bearer_token: e.target.value })}
@@ -444,7 +445,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
               {requestData.auth_type === 'basic' && (
                 <div className="space-y-3">
                   <div>
-                    <label className={`${text('sm')} font-medium`}>{t('request.username')}</label>
+                    <Label>{t('request.username')}</Label>
                     <Input
                       value={requestData.basic_auth.username}
                       onChange={(e) => updateRequestData({
@@ -455,7 +456,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     />
                   </div>
                   <div>
-                    <label className={`${text('sm')} font-medium`}>{t('request.password')}</label>
+                    <Label>{t('request.password')}</Label>
                     <Input
                       value={requestData.basic_auth.password}
                       onChange={(e) => updateRequestData({
@@ -472,7 +473,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
               {requestData.auth_type === 'apikey' && (
                 <div className="space-y-3">
                   <div>
-                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyName')}</label>
+                    <Label>{t('request.apiKeyName')}</Label>
                     <Input
                       value={requestData.api_key_name}
                       onChange={(e) => updateRequestData({ api_key_name: e.target.value })}
@@ -481,7 +482,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     />
                   </div>
                   <div>
-                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyValue')}</label>
+                    <Label>{t('request.apiKeyValue')}</Label>
                     <Input
                       value={requestData.api_key_value}
                       onChange={(e) => updateRequestData({ api_key_value: e.target.value })}
@@ -491,15 +492,15 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     />
                   </div>
                   <div>
-                    <label className={`${text('sm')} font-medium`}>{t('request.apiKeyLocation')}</label>
-                    <select
+                    <Label>{t('request.apiKeyLocation')}</Label>
+                    <Select
                       value={requestData.api_key_location}
                       onChange={(e) => updateRequestData({ api_key_location: e.target.value })}
-                      className={`w-full ${select}`}
+                      className="w-full"
                     >
-                      <option value="header">{t('request.locationHeader')}</option>
-                      <option value="query">{t('request.locationQuery')}</option>
-                    </select>
+                      <SelectOption value="header">{t('request.locationHeader')}</SelectOption>
+                      <SelectOption value="query">{t('request.locationQuery')}</SelectOption>
+                    </Select>
                   </div>
                 </div>
               )}
@@ -513,16 +514,14 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
             <div className="space-y-5">
               <div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="insecure-skip-verify"
                     checked={requestData.insecure_skip_verify}
                     onChange={(e) => updateRequestData({ insecure_skip_verify: e.target.checked })}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
                   />
-                  <label htmlFor="insecure-skip-verify" className={`${text('sm')} font-medium cursor-pointer`}>
+                  <Label htmlFor="insecure-skip-verify" className="cursor-pointer">
                     {t('request.skipTlsVerify')}
-                  </label>
+                  </Label>
                 </div>
                 <p className={`${text('xs')} text-amber-600 dark:text-amber-400 mt-1 ml-6`}>
                   {t('request.skipTlsVerifyWarning')}
@@ -531,21 +530,19 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
 
               <div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id="follow-redirects"
                     checked={requestData.follow_redirects}
                     onChange={(e) => updateRequestData({ follow_redirects: e.target.checked })}
-                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
                   />
-                  <label htmlFor="follow-redirects" className={`${text('sm')} font-medium cursor-pointer`}>
+                  <Label htmlFor="follow-redirects" className="cursor-pointer">
                     {t('request.followRedirects')}
-                  </label>
+                  </Label>
                 </div>
 
                 {requestData.follow_redirects && (
                   <div className="mt-3 ml-6">
-                    <label className={`${text('sm')} font-medium block mb-1`}>{t('request.maxRedirects')}</label>
+                    <Label className="block mb-1">{t('request.maxRedirects')}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -558,7 +555,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
               </div>
 
               <div>
-                <label className={`${text('sm')} font-medium block mb-1`}>{t('request.timeoutOverride')}</label>
+                <Label className="block mb-1">{t('request.timeoutOverride')}</Label>
                 <Input
                   type="number"
                   min="0"

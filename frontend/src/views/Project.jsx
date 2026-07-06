@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers, Terminal, Cookie } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Select, SelectOption } from '../components/ui/Select';
+import { Label } from '../components/ui/Label';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
@@ -33,7 +35,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const projectId = parseInt(id);
   const uiLayout = useUIStore(state => state.layout);
   const currentLayout = layout || uiLayout;
-  const { text, spacing, button, input, select, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
+  const { text, spacing, button, input, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
   const { t } = useTranslation();
   
   const { currentProject, fetchProject } = useProjectStore();
@@ -404,7 +406,7 @@ function Project({ layout, onNewProject, onSettings }) {
 
             <div className="space-y-4">
               <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>{t('request.requestName')}</label>
+                <Label className="mb-2 block">{t('request.requestName')}</Label>
                 <Input
                   value={newRequest.name}
                   onChange={(e) => setNewRequest({...newRequest, name: e.target.value})}
@@ -415,23 +417,23 @@ function Project({ layout, onNewProject, onSettings }) {
               
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.method')}</label>
-                  <select
+                  <Label className="mb-2 block">{t('common.method')}</Label>
+                  <Select
                     value={newRequest.method}
                     onChange={(e) => setNewRequest({...newRequest, method: e.target.value})}
-                    className={`${select} w-full shadow-sm`}
+                    className="w-full shadow-sm"
                   >
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="DELETE">DELETE</option>
-                    <option value="PATCH">PATCH</option>
-                    <option value="HEAD">HEAD</option>
-                    <option value="OPTIONS">OPTIONS</option>
-                  </select>
+                    <SelectOption value="GET">GET</SelectOption>
+                    <SelectOption value="POST">POST</SelectOption>
+                    <SelectOption value="PUT">PUT</SelectOption>
+                    <SelectOption value="DELETE">DELETE</SelectOption>
+                    <SelectOption value="PATCH">PATCH</SelectOption>
+                    <SelectOption value="HEAD">HEAD</SelectOption>
+                    <SelectOption value="OPTIONS">OPTIONS</SelectOption>
+                  </Select>
                 </div>
                 <div className="col-span-2">
-                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.url')}</label>
+                  <Label className="mb-2 block">{t('common.url')}</Label>
                   <Input
                     value={newRequest.url}
                     onChange={(e) => setNewRequest({...newRequest, url: e.target.value})}
