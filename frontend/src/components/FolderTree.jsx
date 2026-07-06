@@ -38,7 +38,8 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
 import { getMethodColor, collectRunnableRequests } from '../lib/utils';
-import { ContextMenu, ContextMenuItem } from './ui';
+import { DialogTitle } from '@headlessui/react';
+import { ContextMenu, ContextMenuItem, Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
@@ -528,52 +529,45 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       </DndContext>
       
       {/* New Folder Dialog */}
-      {showNewFolderDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold ${newFolderParentId != null ? '' : 'mb-3'}`}>
+      <Modal isOpen={showNewFolderDialog} onClose={closeNewFolderDialog} size="sm">
+        <ModalHeader onClose={closeNewFolderDialog}>
+          <div>
+            <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
               {newFolderParentId != null ? t('folder.newSubfolder') : t('folder.createFolder')}
-            </h3>
+            </DialogTitle>
             {newFolderParentId != null && (
-              <p className={`${text('xs')} text-muted-foreground mb-3 mt-0.5`}>
+              <p className={`${text('xs')} text-muted-foreground mt-0.5`}>
                 {t('folder.inFolder')} <span className="font-medium">{folders.find(f => f.id === newFolderParentId)?.name}</span>
               </p>
             )}
-
-            <Input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder={t('folder.folderNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateFolder();
-                } else if (e.key === 'Escape') {
-                  closeNewFolderDialog();
-                }
-              }}
-              autoFocus
-            />
-
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="ghost"
-                onClick={closeNewFolderDialog}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleCreateFolder}
-                disabled={!newFolderName.trim()}
-                className={button}
-              >
-                {t('common.create')}
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder={t('folder.folderNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCreateFolder();
+              } else if (e.key === 'Escape') {
+                closeNewFolderDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeNewFolderDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()} className={button}>
+            {t('common.create')}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       
       {/* Folder Context Menu */}
       {showFolderMenu && (
