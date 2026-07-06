@@ -75,16 +75,23 @@ foco inicial y cierre con Escape (gratis vía `Modal`). Build/lint sin regresion
 
 ---
 
-## Fase 2 — Migrar modales Headless UI existentes al primitivo `Modal`
+## Fase 2 — Migrar modales Headless UI existentes al primitivo `Modal` ✅
 
 Ya usan `Dialog`, sólo hay que quitarles el boilerplate de panel/overlay.
 
-- [ ] `ConfirmDialog`, `FolderVariablesModal`, `EnvironmentManager`,
-      `CopyFormatModal`, `ShortcutsHelp`, `OpenAPIImportModal`, `CookieManager`,
-      `CollectionRunner`, `ImportCurlModal`, `GlobalSearch` → usar `<Modal>`.
-- [ ] Normalizar el overlay a la variante única (elimina `bg-black/50`).
+- [x] Tanda 1 (simples): `ConfirmDialog`, `ShortcutsHelp`, `FolderVariablesModal`,
+      `CopyFormatModal` → `<Modal>`.
+- [x] Tanda 2 (layout propio): `EnvironmentManager`, `CookieManager`,
+      `CollectionRunner`, `OpenAPIImportModal`, `ImportCurlModal`, `GlobalSearch`
+      → `<Modal>`. Se añadió la prop `align="top"` al primitivo para el
+      command-palette de `GlobalSearch`.
+- [x] Overlay normalizado: eliminados los `bg-black/50` divergentes
+      (FolderVariablesModal, EnvironmentManager, CookieManager) y los paneles
+      `bg-background` pasan a `bg-card`. Todos comparten `bg-background/80 backdrop-blur-sm`.
 
-**Entregable**: un solo lugar define el aspecto de todos los diálogos.
+**Entregable** ✅: un solo lugar (`ui/Modal.jsx`) define overlay, centrado y chrome
+del panel para los 10 diálogos. Build/lint sin regresiones (38 problemas, solo
+warnings/errores legacy preexistentes).
 
 ---
 

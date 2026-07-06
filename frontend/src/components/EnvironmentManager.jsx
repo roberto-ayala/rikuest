@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { DialogTitle } from '@headlessui/react';
+import { Modal } from './ui';
 import { X, Plus, Trash2, Check, Pencil } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useEnvironmentStore } from '../stores/environmentStore';
@@ -115,12 +116,7 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    >
-      <DialogPanel className="bg-background border border-border rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col">
+    <Modal isOpen={isOpen} onClose={onClose} size="md" className="max-w-[680px] max-h-[80vh]">
         {/* Header */}
         <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
           <DialogTitle as="h2" className={`${text('base')} font-semibold`}>{t('environment.title')}</DialogTitle>
@@ -264,7 +260,6 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
             )}
           </div>
         </div>
-      </DialogPanel>
-    </Dialog>
+    </Modal>
   );
 }

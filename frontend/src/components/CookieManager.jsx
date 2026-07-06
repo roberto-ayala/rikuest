@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { DialogTitle } from '@headlessui/react';
+import { Modal } from './ui';
 import { X, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import ConfirmDialog from './ConfirmDialog';
@@ -49,12 +50,7 @@ export default function CookieManager({ projectId, isOpen, onClose }) {
 
   return (
     <>
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-    >
-      <DialogPanel className="bg-background border border-border rounded-lg shadow-xl w-[680px] max-h-[80vh] flex flex-col">
+    <Modal isOpen={isOpen} onClose={onClose} size="md" className="max-w-[680px] max-h-[80vh]">
         {/* Header */}
         <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
           <DialogTitle as="h2" className={`${text('base')} font-semibold`}>{t('cookies.title')}</DialogTitle>
@@ -112,8 +108,7 @@ export default function CookieManager({ projectId, isOpen, onClose }) {
             {t('cookies.clearAll')}
           </Button>
         </div>
-      </DialogPanel>
-    </Dialog>
+    </Modal>
 
       <ConfirmDialog
         isOpen={showClearConfirm}

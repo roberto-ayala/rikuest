@@ -12,11 +12,14 @@ const sizeClasses = {
   '2xl': 'max-w-2xl lg:max-w-4xl',
 };
 
-// Standard modal shell: single overlay style + centered, size-capped panel.
+// Standard modal shell: single overlay style + size-capped panel.
 // Replaces the three divergent hand-rolled shells (raw div, Dialog-with-overlay,
 // Dialog-with-separate-backdrop). Compose with ModalHeader/Body/Footer.
-function Modal({ isOpen, onClose, size = 'md', className, children, initialFocus }) {
+// `align="top"` positions the panel near the top (command-palette style).
+function Modal({ isOpen, onClose, size = 'md', align = 'center', className, children, initialFocus }) {
   if (!isOpen) return null;
+
+  const alignClass = align === 'top' ? 'items-start pt-24' : 'items-center';
 
   return (
     <Dialog
@@ -29,7 +32,7 @@ function Modal({ isOpen, onClose, size = 'md', className, children, initialFocus
         className="fixed inset-0 bg-background/80 backdrop-blur-sm"
         aria-hidden="true"
       />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+      <div className={cn('fixed inset-0 flex justify-center p-4', alignClass)}>
         <DialogPanel
           className={cn(
             'flex flex-col w-full bg-card border border-border rounded-lg shadow-lg max-h-[calc(100vh-2rem)]',

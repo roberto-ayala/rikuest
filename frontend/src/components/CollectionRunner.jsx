@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { DialogTitle } from '@headlessui/react';
+import { Modal } from './ui';
 import { X, PlayCircle, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -136,17 +137,15 @@ function CollectionRunner({ isOpen, onClose, folder, projectId }) {
   if (!isOpen) return null;
 
   return (
-    <Dialog
-      open={isOpen}
+    <Modal
+      isOpen={isOpen}
       onClose={() => {
         stopRequestedRef.current = true;
         onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      size="md"
+      className={`max-w-xl ${spacing(6)}`}
     >
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
-
-      <DialogPanel className={`relative bg-card border border-border rounded-lg shadow-lg ${spacing(6)} m-4 max-w-xl w-full`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <PlayCircle className={icon} />
@@ -215,8 +214,7 @@ function CollectionRunner({ isOpen, onClose, folder, projectId }) {
             </div>
           </>
         )}
-      </DialogPanel>
-    </Dialog>
+    </Modal>
   );
 }
 

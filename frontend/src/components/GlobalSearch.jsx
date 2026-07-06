@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Dialog, DialogPanel } from '@headlessui/react';
+import { Modal } from './ui';
 import { Search } from 'lucide-react';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -79,16 +79,7 @@ function GlobalSearch({ isOpen, onClose }) {
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-24"
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
-
-      {/* Modal */}
-      <DialogPanel className={`relative bg-card border border-border rounded-lg shadow-lg m-4 max-w-lg w-full overflow-hidden`}>
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" align="top" className="overflow-hidden">
         <div className={`flex items-center gap-2 border-b border-border ${spacing(4)}`}>
           <Search className={`${icon} text-muted-foreground flex-shrink-0`} />
           <input
@@ -147,8 +138,7 @@ function GlobalSearch({ isOpen, onClose }) {
             </div>
           )}
         </div>
-      </DialogPanel>
-    </Dialog>
+    </Modal>
   );
 }
 

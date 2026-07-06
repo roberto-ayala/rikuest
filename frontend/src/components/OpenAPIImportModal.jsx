@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { DialogTitle } from '@headlessui/react';
+import { Modal } from './ui';
 import { X, Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
@@ -215,12 +216,7 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
   if (!isOpen) return null;
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={handleClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-    >
-      <DialogPanel className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <Modal isOpen={isOpen} onClose={handleClose} size="xl" className="p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <DialogTitle as="h2" className={`${text('xl')} font-semibold text-foreground`}>
             {t('openapi.title')}
@@ -425,8 +421,7 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
             </Button>
           </div>
         )}
-      </DialogPanel>
-    </Dialog>
+    </Modal>
   );
 };
 
