@@ -86,7 +86,7 @@ function RootDropZone() {
 }
 
 function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
-  const { text, spacing, button, input, icon, iconMd } = useUISize();
+  const { text, button, icon, iconMd } = useUISize();
   const { t } = useTranslation();
   
   // Load expanded folders from localStorage
@@ -176,6 +176,18 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     setShowNewFolderDialog(false);
     setNewFolderName('');
     setNewFolderParentId(null);
+  };
+
+  const closeNewRequestDialog = () => {
+    setShowNewRequestDialog(false);
+    setNewRequestName('');
+    setSelectedFolder(null);
+  };
+
+  const closeRenameFolderDialog = () => {
+    setShowRenameFolderDialog(false);
+    setRenameFolderName('');
+    setSelectedFolder(null);
   };
 
   const handleCreateFolder = async () => {
@@ -650,102 +662,70 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       />
       
       {/* New Request in Folder Dialog */}
-      {showNewRequestDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>
-              {t('navigation.newRequest')}{selectedFolder ? ` in ${selectedFolder.name}` : ''}
-            </h3>
-
-            <Input
-              value={newRequestName}
-              onChange={(e) => setNewRequestName(e.target.value)}
-              placeholder={t('request.requestNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateRequestInFolder();
-                } else if (e.key === 'Escape') {
-                  setShowNewRequestDialog(false);
-                  setNewRequestName('');
-                  setSelectedFolder(null);
-                }
-              }}
-              autoFocus
-            />
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowNewRequestDialog(false);
-                  setNewRequestName('');
-                  setSelectedFolder(null);
-                }}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleCreateRequestInFolder}
-                disabled={!newRequestName.trim()}
-                className={button}
-              >
-                {t('common.create')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={showNewRequestDialog} onClose={closeNewRequestDialog} size="sm">
+        <ModalHeader onClose={closeNewRequestDialog}>
+          <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+            {t('navigation.newRequest')}{selectedFolder ? ` ${t('folder.inFolder')} ${selectedFolder.name}` : ''}
+          </DialogTitle>
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={newRequestName}
+            onChange={(e) => setNewRequestName(e.target.value)}
+            placeholder={t('request.requestNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCreateRequestInFolder();
+              } else if (e.key === 'Escape') {
+                closeNewRequestDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeNewRequestDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleCreateRequestInFolder} disabled={!newRequestName.trim()} className={button}>
+            {t('common.create')}
+          </Button>
+        </ModalFooter>
+      </Modal>
       
       {/* Rename Folder Dialog */}
-      {showRenameFolderDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>
-              {t('folder.rename')} {t('common.folder')}
-            </h3>
-
-            <Input
-              value={renameFolderName}
-              onChange={(e) => setRenameFolderName(e.target.value)}
-              placeholder={t('folder.folderNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleRenameFolder();
-                } else if (e.key === 'Escape') {
-                  setShowRenameFolderDialog(false);
-                  setRenameFolderName('');
-                  setSelectedFolder(null);
-                }
-              }}
-              autoFocus
-            />
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowRenameFolderDialog(false);
-                  setRenameFolderName('');
-                  setSelectedFolder(null);
-                }}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleRenameFolder}
-                disabled={!renameFolderName.trim()}
-                className={button}
-              >
-                {t('folder.rename')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={showRenameFolderDialog} onClose={closeRenameFolderDialog} size="sm">
+        <ModalHeader onClose={closeRenameFolderDialog}>
+          <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+            {t('folder.rename')} {t('common.folder')}
+          </DialogTitle>
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={renameFolderName}
+            onChange={(e) => setRenameFolderName(e.target.value)}
+            placeholder={t('folder.folderNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleRenameFolder();
+              } else if (e.key === 'Escape') {
+                closeRenameFolderDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeRenameFolderDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleRenameFolder} disabled={!renameFolderName.trim()} className={button}>
+            {t('folder.rename')}
+          </Button>
+        </ModalFooter>
+      </Modal>
       
       {/* Create Menu */}
       {showCreateMenu && (
