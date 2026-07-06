@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Folder,
   FolderOpen,
+  FolderPlus,
   FileText,
   Plus,
   MoreVertical,
@@ -113,6 +114,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   const [expandedFolders, setExpandedFolders] = useState(() => loadExpandedFolders());
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+  const [newFolderParentId, setNewFolderParentId] = useState(null);
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false);
   const [showRenameFolderDialog, setShowRenameFolderDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -163,17 +165,35 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     }
   }, [projectId, fetchFolders]);
   
+  const openNewFolderDialog = (parentId = null) => {
+    setNewFolderParentId(parentId);
+    setNewFolderName('');
+    setShowNewFolderDialog(true);
+  };
+
+  const closeNewFolderDialog = () => {
+    setShowNewFolderDialog(false);
+    setNewFolderName('');
+    setNewFolderParentId(null);
+  };
+
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    
+
     try {
       await createFolder({
         project_id: projectId,
         name: newFolderName.trim(),
-        parent_id: null
+        parent_id: newFolderParentId
       });
-      setShowNewFolderDialog(false);
-      setNewFolderName('');
+      // Expand the parent so the new subfolder is visible right away.
+      if (newFolderParentId != null) {
+        const newExpanded = new Set(expandedFolders);
+        newExpanded.add(newFolderParentId);
+        setExpandedFolders(newExpanded);
+        saveExpandedFolders(newExpanded);
+      }
+      closeNewFolderDialog();
     } catch (error) {
       console.error('Failed to create folder:', error);
     }
@@ -376,7 +396,44 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   const selectedFolderHasRequests = selectedFolder
     ? collectRunnableRequests(selectedFolder, folders, requests).length > 0
     : false;
-  
+
+  // Recursively render a folder node and everything nested under it (child
+  // folders first, then this folder's own requests). Each level is indented via
+  // DOM nesting + a subtle guide line, so arbitrary depth "just works".
+  const renderFolder = (folder) => {
+    const folderRequests = requestsByFolder.folders[folder.id];
+    const childFolders = folder.children || [];
+    const hasContents = childFolders.length > 0 || (folderRequests && folderRequests.length > 0);
+
+    return (
+      <DroppableFolder
+        key={folder.id}
+        folder={folder}
+        isExpanded={expandedFolders.has(folder.id)}
+        onToggle={() => toggleFolder(folder.id)}
+        onShowMenu={handleShowFolderMenu}
+      >
+        {hasContents && (
+          <div className="ml-3 pl-1 mt-0.5 space-y-0.5 border-l border-border/50">
+            {childFolders.map((child) => renderFolder(child))}
+            {folderRequests?.map((request) => (
+              <RequestTreeItem
+                key={request.id}
+                request={request}
+                isSelected={currentRequest?.id === request.id}
+                onSelect={onSelectRequest}
+                getMethodColor={getMethodColor}
+                isBeingDragged={activeId === `request-${request.id}`}
+                onShowMenu={onShowRequestMenu}
+              />
+            ))}
+          </div>
+        )}
+      </DroppableFolder>
+    );
+  };
+
+
   // Only requests are sortable, folders are drop targets
   const sortableItems = [
     'root-drop-zone', // Special drop zone for root level
@@ -429,34 +486,9 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             {/* Root Drop Zone - invisible but functional */}
             <RootDropZone />
             
-            {/* Render folders */}
-            {folderTree.map(folder => (
-              <DroppableFolder
-                key={folder.id}
-                folder={folder}
-                isExpanded={expandedFolders.has(folder.id)}
-                onToggle={() => toggleFolder(folder.id)}
-                onShowMenu={handleShowFolderMenu}
-              >
-                {/* Render requests in this folder */}
-                {requestsByFolder.folders[folder.id] && (
-                  <div className="ml-4 mt-0.5">
-                    {requestsByFolder.folders[folder.id].map((request) => (
-                      <RequestTreeItem
-                        key={request.id}
-                        request={request}
-                        isSelected={currentRequest?.id === request.id}
-                        onSelect={onSelectRequest}
-                        getMethodColor={getMethodColor}
-                        isBeingDragged={activeId === `request-${request.id}`}
-                        onShowMenu={onShowRequestMenu}
-                      />
-                    ))}
-                  </div>
-                )}
-              </DroppableFolder>
-            ))}
-            
+            {/* Render folders (recursive: nested subfolders + requests) */}
+            {folderTree.map((folder) => renderFolder(folder))}
+
             {/* Render root level requests */}
             {requestsByFolder.root.map((request) => (
               <RequestTreeItem
@@ -499,7 +531,14 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {showNewFolderDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>{t('folder.createFolder')}</h3>
+            <h3 className={`${text('base')} font-semibold ${newFolderParentId != null ? '' : 'mb-3'}`}>
+              {newFolderParentId != null ? t('folder.newSubfolder') : t('folder.createFolder')}
+            </h3>
+            {newFolderParentId != null && (
+              <p className={`${text('xs')} text-muted-foreground mb-3 mt-0.5`}>
+                {t('folder.inFolder')} <span className="font-medium">{folders.find(f => f.id === newFolderParentId)?.name}</span>
+              </p>
+            )}
 
             <Input
               value={newFolderName}
@@ -510,20 +549,16 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
                 if (e.key === 'Enter') {
                   handleCreateFolder();
                 } else if (e.key === 'Escape') {
-                  setShowNewFolderDialog(false);
-                  setNewFolderName('');
+                  closeNewFolderDialog();
                 }
               }}
               autoFocus
             />
-            
+
             <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowNewFolderDialog(false);
-                  setNewFolderName('');
-                }}
+              <Button
+                variant="ghost"
+                onClick={closeNewFolderDialog}
                 className={button}
               >
                 {t('common.cancel')}
@@ -556,6 +591,15 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             }}
           >
             {t('navigation.newRequest')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<FolderPlus className={iconMd} />}
+            onClick={() => {
+              openNewFolderDialog(selectedFolder.id);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.newSubfolder')}
           </ContextMenuItem>
           <ContextMenuItem
             icon={<Play className={iconMd} />}
@@ -722,7 +766,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             icon={<Folder className={`${iconMd} text-primary`} />}
             onClick={() => {
               setShowCreateMenu(false);
-              setShowNewFolderDialog(true);
+              openNewFolderDialog(null);
             }}
           >
             {t('navigation.newFolder')}

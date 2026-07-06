@@ -186,7 +186,9 @@
     "createFolder": "Créer un Dossier",
     "rename": "Renommer",
     "dropToRoot": "Déposez ici pour déplacer à la racine",
-    "runCollection": "Exécuter la Collection"
+    "runCollection": "Exécuter la Collection",
+    "newSubfolder": "Nouveau sous-dossier",
+    "inFolder": "dans"
   },
   "settings": {
     "title": "Paramètres",

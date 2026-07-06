@@ -186,7 +186,9 @@
     "createFolder": "Crear Carpeta",
     "rename": "Renombrar",
     "dropToRoot": "Suelta aquí para mover al nivel raíz",
-    "runCollection": "Ejecutar Colección"
+    "runCollection": "Ejecutar Colección",
+    "newSubfolder": "Nueva subcarpeta",
+    "inFolder": "en"
   },
   "settings": {
     "title": "Configuración",
