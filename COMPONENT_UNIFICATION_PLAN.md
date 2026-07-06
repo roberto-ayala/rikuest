@@ -109,7 +109,7 @@ que se aborda como menú anclado en la Fase 5. Build/lint sin regresiones (38).
 
 ---
 
-## Fase 4 — Unificar campos de formulario e inputs sueltos
+## Fase 4 — Unificar campos de formulario e inputs sueltos ✅
 
 Depende de la Fase 0 (Input size-aware + Checkbox + Switch). Los inputs hechos a mano
 no son sólo "sueltos": tienen **diferencias reales de apariencia** respecto al primitivo.
@@ -127,22 +127,27 @@ no son sólo "sueltos": tienen **diferencias reales de apariencia** respecto al 
 Resultado visible: los campos a mano tienen esquinas menos redondeadas, fondo sólido y
 un anillo de foco que salta al hacer clic. Tras la Fase 0 se pueden reemplazar 1:1.
 
-### Trabajo
+### Trabajo (dos tandas)
 
-- [ ] **Inputs de texto**: `ResponseCapturesPanel` (VariableRow), `FolderVariablesModal`
-      (VariableRow), `EnvironmentManager` (VariableRow + edición inline `border-b`) →
-      `Field`+`Input`. Los tres comparten literalmente la misma cadena de clases.
-- [ ] **Checkboxes**: `request-builder/RequestTabs` (3×: settings insecure/redirects) y
-      `OpenAPIImportModal` (2×: selección de endpoints) → `Checkbox`.
-- [ ] **Switch**: `TelemetrySettings` (toggle peer-based) → `Switch`.
-- [ ] **Selects crudos**: `RequestBuilder`, `request-builder/RequestTabs` (método, apikey
-      location), `views/Project.jsx` → primitivo `Select`.
-- [ ] **Labels**: unificar los 7 archivos con `<label>` a mano bajo `Label`/`Field`
-      (hoy mezclan `${text('sm')}` y `text-sm`, con/sin `mb-2 block`).
-- [ ] **Inputs de búsqueda borderless**: `GlobalSearch`, `ResponsePanel` → variante
-      `borderless` del `Input`.
+**Tanda 1 — inputs de texto:**
+- [x] `ResponseCapturesPanel` (CaptureRow), `FolderVariablesModal` (VariableRow),
+      `EnvironmentManager` (VariableRow + input de nuevo entorno) → `<Input>`.
+- [x] Búsqueda borderless: `GlobalSearch`, `ResponsePanel` → `<Input variant="borderless">`.
+- [~] La edición inline de nombre de entorno (`bg-transparent border-b border-primary`)
+      se deja como está: es una afordancia de subrayado distinta, no un campo estándar.
 
-**Entregable**: todos los formularios comparten radio, fondo, foco, tamaño y estados disabled.
+**Tanda 2 — checkbox / switch / select / label:**
+- [x] **Switch**: `TelemetrySettings` (toggle peer-based) → `<Switch>`.
+- [x] **Checkboxes**: `RequestTabs` (3×) y `OpenAPIImportModal` (2×) → `<Checkbox>`.
+- [x] **Selects crudos**: `RequestBuilder` (método), `RequestTabs` (auth/apikey),
+      `Project` (método) → `<Select>`/`<SelectOption>` (se elimina el token `${select}` duplicado).
+- [x] **Labels**: `RequestTabs` (10) y `Project` (3) → `<Label>`.
+- [~] Labels sueltas one-off (`OpenAPIImportModal`, `ImportCurlModal`, `TelemetrySettings`,
+      `RequestTimeoutSelector`) quedan como `<label>`: son visualmente idénticas a `Label`
+      (mismo `${text('sm')} font-medium`), bajo valor migrarlas.
+
+**Entregable** ✅: los formularios comparten radio, fondo, foco, tamaño y estados
+disabled vía primitivos. Build/lint sin regresiones (38) en ambas tandas.
 
 ---
 
