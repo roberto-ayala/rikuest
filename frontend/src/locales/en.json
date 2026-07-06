@@ -189,7 +189,8 @@
     "runCollection": "Run Collection",
     "newSubfolder": "New Subfolder",
     "inFolder": "in",
-    "maxDepthReached": "Maximum nesting depth reached"
+    "maxDepthReached": "Maximum nesting depth reached",
+    "cannotMoveIntoDescendant": "Can't move a folder into itself or one of its subfolders"
   },
   "settings": {
     "title": "Settings",

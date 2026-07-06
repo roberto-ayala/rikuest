@@ -37,7 +37,8 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
-import { getMethodColor, collectRunnableRequests, getFolderPath, getFolderDepth } from '../lib/utils';
+import { getMethodColor, collectRunnableRequests, collectFolderAndDescendantIds, getFolderPath, getFolderDepth } from '../lib/utils';
+import { addToast } from '../stores/toastStore';
 import { DialogTitle } from '@headlessui/react';
 import { ContextMenu, ContextMenuItem, Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import FolderTreeItem from './FolderTreeItem';
@@ -333,11 +334,63 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       overType = 'root';
     }
     
-    // Only allow moving requests, not folders
-    if (activeType !== 'request') {
+    // Folder drag: re-parent the folder (nest under another folder, or to root).
+    if (activeType === 'folder') {
+      const activeFolderId = parseInt(active.id.toString().replace('folder-', ''), 10);
+      const activeFolder = folders.find((f) => f.id === activeFolderId);
+      if (!activeFolder) return;
+
+      let newParentId = null;
+      if (overType === 'folder') {
+        newParentId = parseInt(over.id.toString().replace('folder-', ''), 10);
+      } else if (overType === 'request') {
+        const overReq = getItemById(over.id.toString().replace('request-', ''));
+        newParentId = overReq?.folder_id ?? null;
+      }
+
+      // No-op when the parent doesn't actually change.
+      if ((activeFolder.parent_id ?? null) === (newParentId ?? null)) return;
+
+      // Cycle guard: never drop a folder into itself or one of its descendants.
+      const subtree = collectFolderAndDescendantIds(activeFolder.id, folders);
+      if (newParentId != null && subtree.includes(newParentId)) {
+        addToast('error', t('folder.cannotMoveIntoDescendant'));
+        return;
+      }
+
+      // Depth guard: the deepest descendant must still fit under MAX_FOLDER_DEPTH.
+      const targetDepth = newParentId != null ? getFolderDepth(newParentId, folders) + 1 : 0;
+      const subtreeHeight =
+        Math.max(...subtree.map((id) => getFolderDepth(id, folders))) -
+        getFolderDepth(activeFolder.id, folders);
+      if (targetDepth + subtreeHeight > MAX_FOLDER_DEPTH - 1) {
+        addToast('error', t('folder.maxDepthReached'));
+        return;
+      }
+
+      // Append after the last sibling folder under the new parent.
+      const siblingFolders = folders.filter(
+        (f) => (f.parent_id ?? null) === (newParentId ?? null) && f.id !== activeFolder.id
+      );
+      const position = siblingFolders.length
+        ? Math.max(...siblingFolders.map((f) => f.position ?? 0)) + 1
+        : 0;
+
+      try {
+        await updateFolder(activeFolder.id, { ...activeFolder, parent_id: newParentId, position });
+        if (newParentId != null) {
+          const newExpanded = new Set(expandedFolders);
+          newExpanded.add(newParentId);
+          setExpandedFolders(newExpanded);
+          saveExpandedFolders(newExpanded);
+        }
+        fetchFolders(projectId);
+      } catch (error) {
+        console.error('Failed to move folder:', error);
+      }
       return;
     }
-    
+
     const activeId_clean = active.id.toString().replace('request-', '');
     const overId_clean = over.id.toString().replace('request-', '').replace('folder-', '');
     
@@ -420,6 +473,12 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   // Full "Root / A / B" path label for tooltips and dialog context.
   const folderPathLabel = (folderId) =>
     getFolderPath(folderId, folders).map((f) => f.name).join(' / ');
+
+  // The item currently being dragged, for the DragOverlay (strip the type prefix
+  // so getItemById can resolve the raw folder/request id).
+  const activeOverlayItem = activeId
+    ? getItemById(activeId.toString().replace('request-', '').replace('folder-', ''))
+    : null;
 
   // Recursively render a folder node and everything nested under it (child
   // folders first, then this folder's own requests). Each level is indented via
@@ -530,23 +589,18 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         </SortableContext>
         
         <DragOverlay>
-          {activeId ? (
+          {activeOverlayItem ? (
             <div className="bg-card border border-border rounded shadow-lg p-2">
-              {getItemById(activeId)?.type === 'request' ? (
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                {activeOverlayItem.type === 'request' ? (
                   <FileText className={`${iconMd} text-muted-foreground`} />
-                  <span className={`${text('sm')} font-medium`}>
-                    {getItemById(activeId)?.name}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
+                ) : (
                   <Folder className={`${iconMd} text-primary`} />
-                  <span className={`${text('sm')} font-medium`}>
-                    {getItemById(activeId)?.name}
-                  </span>
-                </div>
-              )}
+                )}
+                <span className={`${text('sm')} font-medium`}>
+                  {activeOverlayItem.name}
+                </span>
+              </div>
             </div>
           ) : null}
         </DragOverlay>
