@@ -60,16 +60,18 @@ Build y lint sin regresiones.
 
 ---
 
-## Fase 1 — Unificar el modal de proyecto (crear/editar) [caso disparador]
+## Fase 1 — Unificar el modal de proyecto (crear/editar) [caso disparador] ✅
 
-- [ ] Extraer `components/ProjectFormDialog.jsx` con prop `mode="create"|"edit"`
+- [x] Extraer `components/ProjectFormDialog.jsx` con prop `mode="create"|"edit"`
       que reciba `initialValues`, `onSubmit`, `isOpen`, `onClose`, usando
       `Modal` + `Field` + `Input`/`Textarea`.
-- [ ] Reemplazar los dos bloques duplicados en `views/Home.jsx` por un único
+- [x] Reemplazar los dos bloques duplicados en `views/Home.jsx` por un único
       `<ProjectFormDialog>`; el título y el label del botón dependen de `mode`.
-- [ ] Verificar: crear navega al proyecto nuevo; editar persiste nombre/descripción.
+- [x] Verificar: crear navega al proyecto nuevo; editar persiste nombre/descripción.
 
-**Entregable**: demostración concreta del patrón; `Home.jsx` pierde ~50 líneas.
+**Entregable** ✅: `Home.jsx` pasó de 322 → 231 líneas (−91). El diálogo ahora tiene
+foco inicial y cierre con Escape (gratis vía `Modal`). Build/lint sin regresiones
+(38 problemas, −1 respecto al baseline por un `input` sin usar eliminado).
 
 ---
 
