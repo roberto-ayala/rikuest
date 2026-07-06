@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Plus, Zap, Settings } from 'lucide-react';
 import { Button } from './components/ui/Button';
-import { Input } from './components/ui/Input';
-import { Textarea } from './components/ui/Textarea';
+import ProjectFormDialog from './components/ProjectFormDialog';
 import { useProjectStore } from './stores/projectStore';
 import { useUIStore } from './stores/uiStore';
 import { useUISize } from './hooks/useUISize';
@@ -57,34 +56,20 @@ function App() {
   const navigate = useNavigate();
   const createProject = useProjectStore(state => state.createProject);
   const layout = useUIStore(state => state.layout);
-  const { text, spacing, button, input } = useUISize();
-  const { t } = useTranslation();
-  
+
   // Apply background colors
   useBackgroundColor();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [newProject, setNewProject] = useState({
-    name: '',
-    description: ''
-  });
 
-  const handleCreateProject = async () => {
-    if (!newProject.name.trim()) return;
-    
+  const handleCreateProject = async (values) => {
     try {
-      const project = await createProject(newProject);
+      const project = await createProject(values);
       setShowNewProjectDialog(false);
-      setNewProject({ name: '', description: '' });
       navigate(`/project/${project.id}`);
     } catch (error) {
       console.error('Failed to create project:', error);
     }
-  };
-
-  const handleCancelNewProject = () => {
-    setShowNewProjectDialog(false);
-    setNewProject({ name: '', description: '' });
   };
 
   return (
@@ -120,45 +105,12 @@ function App() {
       )}
 
       {/* New Project Dialog */}
-      {showNewProjectDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(6)} rounded-lg shadow-lg border border-border w-full max-w-md`}>
-            <h2 className={`${text('lg')} font-semibold mb-4`}>{t('project.create')}</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>{t('project.projectName')}</label>
-                <Input
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
-                  placeholder={t('project.projectNamePlaceholder')}
-                  className={`w-full ${input}`}
-                />
-              </div>
-              
-              <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>{t('project.projectDescription')}</label>
-                <Textarea
-                  value={newProject.description}
-                  onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                  placeholder={t('project.projectDescriptionPlaceholder')}
-                  className={`w-full ${input}`}
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 mt-6">
-              <Button variant="ghost" onClick={handleCancelNewProject} className={button}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={handleCreateProject} disabled={!newProject.name.trim()} className={button}>
-                {t('common.create')} {t('common.project')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectFormDialog
+        isOpen={showNewProjectDialog}
+        onClose={() => setShowNewProjectDialog(false)}
+        mode="create"
+        onSubmit={handleCreateProject}
+      />
 
       {/* Settings Modal */}
       <SettingsModal
