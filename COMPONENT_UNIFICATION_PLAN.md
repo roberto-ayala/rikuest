@@ -1,0 +1,163 @@
+# Plan de Unificación de Componentes React
+
+Objetivo: eliminar la divergencia visual y de código entre componentes que hacen
+lo mismo de forma distinta (modales, formularios, menús contextuales), extrayendo
+primitivos reutilizables en `frontend/src/components/ui/`. El caso disparador es
+el modal de **crear proyecto** vs **editar proyecto** en `views/Home.jsx`: dos
+bloques casi idénticos de ~38 líneas cada uno.
+
+## Diagnóstico (estado actual)
+
+| Problema | Dónde | Impacto |
+|----------|-------|---------|
+| 3 técnicas de shell de modal distintas | raw `div` (Home, SettingsModal, HistoryDrawer, LanguageSelector) vs Headless UI con overlay en className (ConfirmDialog, FolderVariablesModal…) vs Headless UI con backdrop en `div` aparte (DeleteConfirmModal) | Los raw `div` no tienen focus-trap, Escape ni accesibilidad |
+| Overlay inconsistente | `bg-black/50` vs `bg-background/80 backdrop-blur-sm` | Aspecto distinto entre diálogos |
+| Clases de panel duplicadas | `bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md` repetido en cada modal | Cambiar el estilo obliga a tocar N archivos |
+| Crear vs Editar proyecto duplicados | `views/Home.jsx` (2 bloques casi idénticos) | Divergencia futura garantizada |
+| Falta primitivo `Modal`/`Label`/`Field`/`Checkbox`/`Switch` | `components/ui/` sólo tiene Button, Input, Select, Textarea | No hay base común |
+| `ConfirmDialog` ≈ `DeleteConfirmModal` | ~90% solapamiento | Dos componentes para lo mismo |
+| **`Input` no respeta `useUISize`** (tamaño fijo `h-9`), pero `Select` sí | `ui/Input.jsx` vs `ui/Select.jsx` | Es la **causa raíz** de que se hagan inputs a mano: para escalar con el tamaño de UI |
+| Inputs de texto sueltos con clases a mano | `FolderVariablesModal`, `EnvironmentManager`, `ResponseCapturesPanel` | Apariencia distinta (ver tabla Fase 4) |
+| Checkboxes crudos (6 ocurrencias) | `RequestTabs`, `OpenAPIImportModal` | Sin primitivo `Checkbox` |
+| Toggle/switch a mano (peer-based) | `TelemetrySettings` | Sin primitivo `Switch` |
+| `<select>` crudos | `RequestBuilder`, `RequestTabs`, `Project` | No usan el primitivo `Select` |
+| `<label>` con clases inconsistentes | 7 archivos: `${text('sm')} font-medium mb-2 block` vs `text-sm font-medium mb-2 block` vs sin margen | Sin primitivo `Label` |
+| Menús contextuales a mano | `Home`, `FolderTree`, `Project` (todos con `menuPosition` + `role="menu"`) | Lógica de posicionado/teclado triplicada |
+
+## Principios
+
+- **No cambiar comportamiento** en fases de refactor: mismas features, mismo texto i18n, misma validación.
+- **Verificar por fase**: `npm run build` + `npm run lint` (sin regresiones sobre el baseline de ~40 `no-unused-vars`) + sincronía de locales en/es/fr.
+- **Commit por fase** con mensaje descriptivo; actualizar `CLAUDE.md` cuando se agregue un primitivo nuevo a la convención.
+- Un primitivo se adopta **incrementalmente**: se crea, se migra el caso disparador, luego el resto.
+
+---
+
+## Fase 0 — Primitivos base (`ui/Modal`, `ui/Field`, `ui/Label`) ✅
+
+Fundación sobre la que se apoya todo lo demás. Sin migrar consumidores todavía.
+
+- [x] `ui/Modal.jsx` — wrapper de Headless UI `Dialog` con overlay estándar
+      (`bg-background/80 backdrop-blur-sm`), panel centrado y prop `size`
+      (`sm|md|lg|xl`). Exporta subcomponentes `ModalHeader` (título + botón X de
+      cierre), `ModalBody`, `ModalFooter` (área de acciones alineada a la derecha).
+- [x] `ui/Label.jsx` — `<label>` con las clases estándar (`font-medium`, tamaño desde `useUISize`).
+- [x] `ui/Field.jsx` — compone `Label` + control (`children`) + texto de ayuda/error opcional.
+- [x] `ui/IconButton.jsx` — botón ghost cuadrado para iconos (X de cerrar, papelera), hoy repetido inline.
+- [x] **`ui/Input.jsx` — integrarlo con `useUISize`** (como ya hace `Select`) para que
+      escale con el tamaño de UI. Esta es la razón por la que hoy se hacen inputs a mano;
+      sin esto la Fase 4 no puede adoptar el primitivo sin romper la feature de tamaño.
+      Añadir variante `borderless` para los inputs de búsqueda (GlobalSearch, ResponsePanel).
+- [x] `ui/Checkbox.jsx` — hoy hay 6 checkboxes crudos idénticos (`w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary`).
+- [x] `ui/Switch.jsx` — envolver Headless UI `Switch` para reemplazar el toggle peer-based de `TelemetrySettings`.
+- [x] Barrel `ui/index.js` para importar `{ Modal, Field, Label, Button, Input, Checkbox, Switch… }` desde un punto.
+
+**Entregable** ✅: 8 primitivos en `ui/` + barrel. Nota: `Input` pasó a ser
+size-aware y adoptó el lenguaje visual de `Select` (`bg-background`, `rounded`,
+anillo de foco `ring-2`), por lo que los consumidores actuales de `<Input>` ven
+una normalización leve — es intencional (converge con los `<select>` contiguos).
+Build y lint sin regresiones.
+
+---
+
+## Fase 1 — Unificar el modal de proyecto (crear/editar) [caso disparador]
+
+- [ ] Extraer `components/ProjectFormDialog.jsx` con prop `mode="create"|"edit"`
+      que reciba `initialValues`, `onSubmit`, `isOpen`, `onClose`, usando
+      `Modal` + `Field` + `Input`/`Textarea`.
+- [ ] Reemplazar los dos bloques duplicados en `views/Home.jsx` por un único
+      `<ProjectFormDialog>`; el título y el label del botón dependen de `mode`.
+- [ ] Verificar: crear navega al proyecto nuevo; editar persiste nombre/descripción.
+
+**Entregable**: demostración concreta del patrón; `Home.jsx` pierde ~50 líneas.
+
+---
+
+## Fase 2 — Migrar modales Headless UI existentes al primitivo `Modal`
+
+Ya usan `Dialog`, sólo hay que quitarles el boilerplate de panel/overlay.
+
+- [ ] `ConfirmDialog`, `FolderVariablesModal`, `EnvironmentManager`,
+      `CopyFormatModal`, `ShortcutsHelp`, `OpenAPIImportModal`, `CookieManager`,
+      `CollectionRunner`, `ImportCurlModal`, `GlobalSearch` → usar `<Modal>`.
+- [ ] Normalizar el overlay a la variante única (elimina `bg-black/50`).
+
+**Entregable**: un solo lugar define el aspecto de todos los diálogos.
+
+---
+
+## Fase 3 — Migrar modales hechos a mano (raw `div`) a `Modal`
+
+Ganan focus-trap, cierre con Escape y accesibilidad "gratis".
+
+- [ ] `SettingsModal` (mantener su layout de sidebar dentro del `ModalBody`, `size="xl"`).
+- [ ] `request-builder/HistoryDrawer` (evaluar variante `drawer` del primitivo o modal ancho).
+- [ ] `LanguageSelector` (popover/menú — decidir si es Modal o `ContextMenu` de la Fase 5).
+
+**Entregable**: no queda ningún `fixed inset-0` de modal escrito a mano.
+
+---
+
+## Fase 4 — Unificar campos de formulario e inputs sueltos
+
+Depende de la Fase 0 (Input size-aware + Checkbox + Switch). Los inputs hechos a mano
+no son sólo "sueltos": tienen **diferencias reales de apariencia** respecto al primitivo.
+
+### Diferencias concretas medidas (input de texto a mano vs primitivo `Input`)
+
+| Propiedad | A mano (`ResponseCapturesPanel`, `FolderVariablesModal`, `EnvironmentManager`) | Primitivo `Input` |
+|-----------|-------------------------------------------------------------------------------|-------------------|
+| Radio de borde | `rounded` (0.25rem) | `rounded-md` (0.375rem) |
+| Fondo | `bg-background` | `bg-transparent` |
+| Foco | `focus:ring-1` (aparece con clic de ratón) | `focus-visible:ring-1` (sólo teclado) |
+| Sombra | — | `shadow-sm` |
+| Tamaño | `${inputClass}` de `useUISize` (escala) | `h-9` fijo (no escala) ← se arregla en Fase 0 |
+
+Resultado visible: los campos a mano tienen esquinas menos redondeadas, fondo sólido y
+un anillo de foco que salta al hacer clic. Tras la Fase 0 se pueden reemplazar 1:1.
+
+### Trabajo
+
+- [ ] **Inputs de texto**: `ResponseCapturesPanel` (VariableRow), `FolderVariablesModal`
+      (VariableRow), `EnvironmentManager` (VariableRow + edición inline `border-b`) →
+      `Field`+`Input`. Los tres comparten literalmente la misma cadena de clases.
+- [ ] **Checkboxes**: `request-builder/RequestTabs` (3×: settings insecure/redirects) y
+      `OpenAPIImportModal` (2×: selección de endpoints) → `Checkbox`.
+- [ ] **Switch**: `TelemetrySettings` (toggle peer-based) → `Switch`.
+- [ ] **Selects crudos**: `RequestBuilder`, `request-builder/RequestTabs` (método, apikey
+      location), `views/Project.jsx` → primitivo `Select`.
+- [ ] **Labels**: unificar los 7 archivos con `<label>` a mano bajo `Label`/`Field`
+      (hoy mezclan `${text('sm')}` y `text-sm`, con/sin `mb-2 block`).
+- [ ] **Inputs de búsqueda borderless**: `GlobalSearch`, `ResponsePanel` → variante
+      `borderless` del `Input`.
+
+**Entregable**: todos los formularios comparten radio, fondo, foco, tamaño y estados disabled.
+
+---
+
+## Fase 5 — Unificar menús contextuales
+
+- [ ] Extraer `components/ui/ContextMenu.jsx` que encapsule el posicionado por
+      cursor (`menuPosition`), el `role="menu"`/`menuitem` y el manejo de teclado
+      (reusar `handleMenuKeyDown` de `lib/utils.js`).
+- [ ] Migrar `Home`, `FolderTree` y `Project` a `<ContextMenu>`.
+
+**Entregable**: una sola implementación de menú contextual.
+
+---
+
+## Fase 6 — Consolidar diálogos de confirmación
+
+- [ ] Dar a `ConfirmDialog` un slot `children` opcional para detalles extra.
+- [ ] Reemplazar `request-builder/DeleteConfirmModal` por `ConfirmDialog` con el
+      bloque de detalles del historial pasado como `children`.
+- [ ] Enrutar todas las confirmaciones de borrado por `ConfirmDialog`.
+
+**Entregable**: un único componente de confirmación en toda la app.
+
+---
+
+## Orden recomendado
+
+Fase 0 → 1 (valida el patrón con el caso que motivó todo) → 2 → 3 → 4 → 5 → 6.
+Las fases 4, 5 y 6 son independientes entre sí y pueden reordenarse según prioridad.
