@@ -10,12 +10,12 @@ import { useEnvironmentStore } from '../stores/environmentStore';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useAutosave, normalizeRequestData } from '../hooks/useAutosave';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { getMethodColor, createRow } from '../lib/utils';
+import { getMethodColor, createRow, getHistoryStatusColor } from '../lib/utils';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 import RequestTabs from './request-builder/RequestTabs';
 import ResponsePanel from './request-builder/ResponsePanel';
 import HistoryDrawer from './request-builder/HistoryDrawer';
-import DeleteConfirmModal from './request-builder/DeleteConfirmModal';
+import ConfirmDialog from './ConfirmDialog';
 
 function RequestBuilder() {
   const { currentRequest, currentResponse, executing, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
@@ -391,11 +391,30 @@ function RequestBuilder() {
       />
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        deleteConfirmation={deleteConfirmation}
+      <ConfirmDialog
+        isOpen={!!deleteConfirmation}
+        onClose={cancelDeleteHistoryItem}
         onConfirm={confirmDeleteHistoryItem}
-        onCancel={cancelDeleteHistoryItem}
-      />
+        title={t('request.deleteHistoryTitle')}
+        message={t('request.deleteHistoryConfirm')}
+        confirmText={t('common.delete')}
+        variant="danger"
+      >
+        {deleteConfirmation && (
+          <div className={`${text('xs')} text-muted-foreground p-2 bg-muted rounded border mt-3`}>
+            <div className="flex justify-between items-center mb-1">
+              <span>{t('request.executed')}</span>
+              <span>{new Date(deleteConfirmation.historyItem.executed_at).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>{t('common.status')}:</span>
+              <span className={`font-medium ${getHistoryStatusColor(deleteConfirmation.historyItem.response.status)}`}>
+                {deleteConfirmation.historyItem.response.status}
+              </span>
+            </div>
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

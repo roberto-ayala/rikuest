@@ -169,14 +169,18 @@ los 4 menús + `LanguageSelector` sobre Headless UI `Menu`. Build limpio; lint 3
 
 ---
 
-## Fase 6 — Consolidar diálogos de confirmación
+## Fase 6 — Consolidar diálogos de confirmación ✅
 
-- [ ] Dar a `ConfirmDialog` un slot `children` opcional para detalles extra.
-- [ ] Reemplazar `request-builder/DeleteConfirmModal` por `ConfirmDialog` con el
-      bloque de detalles del historial pasado como `children`.
-- [ ] Enrutar todas las confirmaciones de borrado por `ConfirmDialog`.
+- [x] Dar a `ConfirmDialog` un slot `children` opcional para detalles extra
+      (hecho en la Fase 2 al migrar `ConfirmDialog` a `Modal`).
+- [x] Reemplazar `request-builder/DeleteConfirmModal` por `ConfirmDialog` con el
+      bloque de detalles del historial (fecha ejecución + status) pasado como `children`.
+      Se elimina el archivo `DeleteConfirmModal.jsx`.
+- [x] Todas las confirmaciones de borrado pasan por `ConfirmDialog` (proyectos en
+      `Home`, cookies en `CookieManager`, item de historial en `RequestBuilder`).
 
-**Entregable**: un único componente de confirmación en toda la app.
+**Entregable** ✅: un único componente de confirmación (`ConfirmDialog`) en toda la app.
+Build limpio; lint 37.
 
 ---
 
@@ -184,3 +188,18 @@ los 4 menús + `LanguageSelector` sobre Headless UI `Menu`. Build limpio; lint 3
 
 Fase 0 → 1 (valida el patrón con el caso que motivó todo) → 2 → 3 → 4 → 5 → 6.
 Las fases 4, 5 y 6 son independientes entre sí y pueden reordenarse según prioridad.
+
+## Resultado final (todas las fases ✅)
+
+- **11 primitivos** en `components/ui/` + barrel: `Modal`(+Header/Body/Footer),
+  `Drawer`, `ContextMenu`(+Item), `Field`, `Label`, `Input`(size-aware+borderless),
+  `Checkbox`, `Switch`, `Select`, `IconButton`, `Button`, `Textarea`.
+- **Un solo shell de modal** para los ~12 diálogos (antes 3 técnicas distintas);
+  overlay unificado (se eliminaron los `bg-black/50`).
+- **Formularios** sobre primitivos size-aware (inputs/checkboxes/switch/select/label).
+- **Menús contextuales** unificados en `ContextMenu`; `LanguageSelector` sobre Headless UI `Menu`.
+- **Confirmación única** (`ConfirmDialog`); `DeleteConfirmModal` eliminado.
+- **`ProjectFormDialog`** unifica crear/editar proyecto (el caso disparador).
+- Lint: 39 → 37 problemas (sin regresiones; se limpiaron 2 unused legacy de paso).
+  Modales/drawer/menús hechos a mano ahora tienen focus-trap, Escape y teclado
+  accesibles que antes les faltaban.
