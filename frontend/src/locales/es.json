@@ -188,7 +188,8 @@
     "dropToRoot": "Suelta aquí para mover al nivel raíz",
     "runCollection": "Ejecutar Colección",
     "newSubfolder": "Nueva subcarpeta",
-    "inFolder": "en"
+    "inFolder": "en",
+    "maxDepthReached": "Se alcanzó la profundidad máxima de anidamiento"
   },
   "settings": {
     "title": "Configuración",

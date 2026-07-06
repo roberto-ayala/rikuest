@@ -188,7 +188,8 @@
     "dropToRoot": "Drop here to move to root level",
     "runCollection": "Run Collection",
     "newSubfolder": "New Subfolder",
-    "inFolder": "in"
+    "inFolder": "in",
+    "maxDepthReached": "Maximum nesting depth reached"
   },
   "settings": {
     "title": "Settings",

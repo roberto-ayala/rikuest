@@ -188,7 +188,8 @@
     "dropToRoot": "Déposez ici pour déplacer à la racine",
     "runCollection": "Exécuter la Collection",
     "newSubfolder": "Nouveau sous-dossier",
-    "inFolder": "dans"
+    "inFolder": "dans",
+    "maxDepthReached": "Profondeur d'imbrication maximale atteinte"
   },
   "settings": {
     "title": "Paramètres",

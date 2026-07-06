@@ -10,7 +10,7 @@ import {
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 
-function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children }) {
+function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children, title }) {
   const { text, spacing, button, icon, iconMd, itemSpacing } = useUISize();
   
   const {
@@ -55,9 +55,12 @@ function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children })
             <Folder className={`${iconMd} text-primary flex-shrink-0`} />
           )}
           
-          <span className={`${text('sm')} font-medium text-foreground truncate ${
-            isOver ? 'text-primary' : ''
-          }`}>
+          <span
+            title={title}
+            className={`${text('sm')} font-medium text-foreground truncate ${
+              isOver ? 'text-primary' : ''
+            }`}
+          >
             {folder.name}
             {isOver && (
               <span className="ml-2 text-xs opacity-75">

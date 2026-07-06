@@ -37,7 +37,7 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
-import { getMethodColor, collectRunnableRequests } from '../lib/utils';
+import { getMethodColor, collectRunnableRequests, getFolderPath, getFolderDepth } from '../lib/utils';
 import { DialogTitle } from '@headlessui/react';
 import { ContextMenu, ContextMenuItem, Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import FolderTreeItem from './FolderTreeItem';
@@ -45,6 +45,10 @@ import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
 import FolderVariablesModal from './FolderVariablesModal';
 import CollectionRunner from './CollectionRunner';
+
+// Soft cap on folder nesting so deep trees stay usable (indentation + paths
+// readable). A folder at this 0-based depth can't get subfolders.
+const MAX_FOLDER_DEPTH = 6;
 
 // Root Drop Zone Component
 function RootDropZone() {
@@ -409,6 +413,13 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   const selectedFolderHasRequests = selectedFolder
     ? collectRunnableRequests(selectedFolder, folders, requests).length > 0
     : false;
+  const selectedFolderAtMaxDepth = selectedFolder
+    ? getFolderDepth(selectedFolder.id, folders) >= MAX_FOLDER_DEPTH - 1
+    : false;
+
+  // Full "Root / A / B" path label for tooltips and dialog context.
+  const folderPathLabel = (folderId) =>
+    getFolderPath(folderId, folders).map((f) => f.name).join(' / ');
 
   // Recursively render a folder node and everything nested under it (child
   // folders first, then this folder's own requests). Each level is indented via
@@ -422,6 +433,7 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       <DroppableFolder
         key={folder.id}
         folder={folder}
+        title={folderPathLabel(folder.id)}
         isExpanded={expandedFolders.has(folder.id)}
         onToggle={() => toggleFolder(folder.id)}
         onShowMenu={handleShowFolderMenu}
@@ -548,8 +560,8 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
               {newFolderParentId != null ? t('folder.newSubfolder') : t('folder.createFolder')}
             </DialogTitle>
             {newFolderParentId != null && (
-              <p className={`${text('xs')} text-muted-foreground mt-0.5`}>
-                {t('folder.inFolder')} <span className="font-medium">{folders.find(f => f.id === newFolderParentId)?.name}</span>
+              <p className={`${text('xs')} text-muted-foreground mt-0.5 truncate`}>
+                {t('folder.inFolder')} <span className="font-medium">{folderPathLabel(newFolderParentId)}</span>
               </p>
             )}
           </div>
@@ -600,7 +612,10 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
           </ContextMenuItem>
           <ContextMenuItem
             icon={<FolderPlus className={iconMd} />}
+            disabled={selectedFolderAtMaxDepth}
+            title={selectedFolderAtMaxDepth ? t('folder.maxDepthReached') : undefined}
             onClick={() => {
+              if (selectedFolderAtMaxDepth) return;
               openNewFolderDialog(selectedFolder.id);
               setShowFolderMenu(false);
             }}
@@ -664,9 +679,16 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       {/* New Request in Folder Dialog */}
       <Modal isOpen={showNewRequestDialog} onClose={closeNewRequestDialog} size="sm">
         <ModalHeader onClose={closeNewRequestDialog}>
-          <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
-            {t('navigation.newRequest')}{selectedFolder ? ` ${t('folder.inFolder')} ${selectedFolder.name}` : ''}
-          </DialogTitle>
+          <div>
+            <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+              {t('navigation.newRequest')}
+            </DialogTitle>
+            {selectedFolder && (
+              <p className={`${text('xs')} text-muted-foreground mt-0.5 truncate`}>
+                {t('folder.inFolder')} <span className="font-medium">{folderPathLabel(selectedFolder.id)}</span>
+              </p>
+            )}
+          </div>
         </ModalHeader>
         <ModalBody>
           <Input

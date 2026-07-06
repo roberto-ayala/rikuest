@@ -68,6 +68,27 @@ export function collectFolderAndDescendantIds(folderId, folders) {
   return ids;
 }
 
+// Walks the parent_id chain to build the path from the root folder down to
+// `folderId` (inclusive), returning the folder objects in root-first order.
+// Guards against cycles so a corrupt parent_id can't loop forever.
+export function getFolderPath(folderId, folders) {
+  const byId = new Map(folders.map((f) => [f.id, f]));
+  const path = [];
+  const seen = new Set();
+  let current = byId.get(folderId);
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    path.unshift(current);
+    current = current.parent_id != null ? byId.get(current.parent_id) : null;
+  }
+  return path;
+}
+
+// Zero-based nesting depth of a folder (a root-level folder is depth 0).
+export function getFolderDepth(folderId, folders) {
+  return Math.max(0, getFolderPath(folderId, folders).length - 1);
+}
+
 // Builds the ordered list of requests to run for the Collection Runner: every
 // request whose folder_id falls under `folder` (itself or any descendant),
 // grouped by folder in tree order and sorted by position within each folder.
