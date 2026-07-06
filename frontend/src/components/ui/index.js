@@ -9,3 +9,4 @@ export { Checkbox } from './Checkbox';
 export { Switch } from './Switch';
 export { IconButton } from './IconButton';
 export { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
+export { Drawer } from './Drawer';

@@ -95,15 +95,17 @@ warnings/errores legacy preexistentes).
 
 ---
 
-## Fase 3 — Migrar modales hechos a mano (raw `div`) a `Modal`
+## Fase 3 — Migrar modales hechos a mano (raw `div`) a `Modal` ✅
 
 Ganan focus-trap, cierre con Escape y accesibilidad "gratis".
 
-- [ ] `SettingsModal` (mantener su layout de sidebar dentro del `ModalBody`, `size="xl"`).
-- [ ] `request-builder/HistoryDrawer` (evaluar variante `drawer` del primitivo o modal ancho).
-- [ ] `LanguageSelector` (popover/menú — decidir si es Modal o `ContextMenu` de la Fase 5).
+- [x] `SettingsModal` → `<Modal size="2xl">` (el `2xl` mapea exacto a `max-w-2xl lg:max-w-4xl`); se conserva su layout de sidebar/header/footer.
+- [x] `request-builder/HistoryDrawer` → nuevo primitivo `ui/Drawer.jsx` (panel lateral full-height sobre Headless UI `Dialog`), no un modal centrado. Ahora tiene focus-trap y Escape que antes le faltaban.
+- [~] `LanguageSelector` → **diferido a la Fase 5**: no es un modal sino un dropdown/popover anclado al botón del header (`App.jsx`). Encaja con Headless UI `Menu`/`ContextMenu` de la Fase 5, no con `Modal`.
 
-**Entregable**: no queda ningún `fixed inset-0` de modal escrito a mano.
+**Entregable** ✅: no queda ningún `fixed inset-0` de modal centrado escrito a mano
+(`SettingsModal`, `HistoryDrawer`). Queda solo el popover de `LanguageSelector`,
+que se aborda como menú anclado en la Fase 5. Build/lint sin regresiones (38).
 
 ---
 
@@ -150,8 +152,11 @@ un anillo de foco que salta al hacer clic. Tras la Fase 0 se pueden reemplazar 1
       cursor (`menuPosition`), el `role="menu"`/`menuitem` y el manejo de teclado
       (reusar `handleMenuKeyDown` de `lib/utils.js`).
 - [ ] Migrar `Home`, `FolderTree` y `Project` a `<ContextMenu>`.
+- [ ] `LanguageSelector` (dropdown del header, diferido de la Fase 3): migrar a
+      Headless UI `Menu` o al `ContextMenu`/popover anclado — gana teclado y cierre
+      accesibles en lugar del backdrop `fixed inset-0` a mano.
 
-**Entregable**: una sola implementación de menú contextual.
+**Entregable**: una sola implementación de menú contextual / popover anclado.
 
 ---
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BarChart3, Clock, History, Trash2, X } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Drawer } from '../ui';
 import { useUISize } from '../../hooks/useUISize';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatSize, getHistoryStatusColor } from '../../lib/utils';
@@ -9,18 +10,8 @@ function HistoryDrawer({ isOpen, onClose, history, onSelectItem, onDeleteItem })
   const { text, spacing } = useUISize();
   const { t } = useTranslation();
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-background/80"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div className="relative ml-auto w-96 h-full bg-card border-l border-border shadow-lg flex flex-col">
+    <Drawer isOpen={isOpen} onClose={onClose} width="w-96">
         {/* Header */}
         <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
           <div className="flex items-center gap-2">
@@ -89,8 +80,7 @@ function HistoryDrawer({ isOpen, onClose, history, onSelectItem, onDeleteItem })
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </Drawer>
   );
 }
 
