@@ -16,7 +16,7 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { handleMenuKeyDown } from '../lib/utils';
+import { ContextMenu, ContextMenuItem } from '../components/ui';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
 import TabBar from '../components/TabBar';
@@ -35,7 +35,7 @@ function Project({ layout, onNewProject, onSettings }) {
   const projectId = parseInt(id);
   const uiLayout = useUIStore(state => state.layout);
   const currentLayout = layout || uiLayout;
-  const { text, spacing, button, input, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
+  const { text, spacing, button, input, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth } = useUISize();
   const { t } = useTranslation();
   
   const { currentProject, fetchProject } = useProjectStore();
@@ -457,44 +457,22 @@ function Project({ layout, onNewProject, onSettings }) {
       )}
 
       {/* Request Menu */}
-      {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={handleCloseMenus}>
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => handleMenuKeyDown(e, handleCloseMenus)}
-          >
-            <button
-              role="menuitem"
-              autoFocus
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={handleDuplicateRequest}
-            >
-              <Copy className={iconMd} />
-              {t('project.duplicate')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={handleCopyRequest}
-            >
-              <Copy className={iconMd} />
-              {t('request.copyRequest')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
-              onClick={handleDeleteRequest}
-            >
-              <Trash2 className={iconMd} />
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
-      )}
+      <ContextMenu
+        isOpen={showMenu}
+        position={menuPosition}
+        onClose={handleCloseMenus}
+        className="min-w-[140px]"
+      >
+        <ContextMenuItem autoFocus icon={<Copy className={iconMd} />} onClick={handleDuplicateRequest}>
+          {t('project.duplicate')}
+        </ContextMenuItem>
+        <ContextMenuItem icon={<Copy className={iconMd} />} onClick={handleCopyRequest}>
+          {t('request.copyRequest')}
+        </ContextMenuItem>
+        <ContextMenuItem destructive icon={<Trash2 className={iconMd} />} onClick={handleDeleteRequest}>
+          {t('common.delete')}
+        </ContextMenuItem>
+      </ContextMenu>
 
       {/* Copy Format Modal */}
       <CopyFormatModal

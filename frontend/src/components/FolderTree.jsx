@@ -36,7 +36,8 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
-import { getMethodColor, handleMenuKeyDown, collectRunnableRequests } from '../lib/utils';
+import { getMethodColor, collectRunnableRequests } from '../lib/utils';
+import { ContextMenu, ContextMenuItem } from './ui';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
@@ -83,7 +84,7 @@ function RootDropZone() {
 }
 
 function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
-  const { text, spacing, button, input, icon, iconMd, menuItem, itemSpacing } = useUISize();
+  const { text, spacing, button, input, icon, iconMd } = useUISize();
   const { t } = useTranslation();
   
   // Load expanded folders from localStorage
@@ -541,76 +542,60 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       
       {/* Folder Context Menu */}
       {showFolderMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowFolderMenu(false)}>
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[160px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => handleMenuKeyDown(e, () => setShowFolderMenu(false))}
+        <ContextMenu
+          isOpen={showFolderMenu}
+          position={menuPosition}
+          onClose={() => setShowFolderMenu(false)}
+        >
+          <ContextMenuItem
+            autoFocus
+            icon={<FileText className={iconMd} />}
+            onClick={() => {
+              setShowNewRequestDialog(true);
+              setShowFolderMenu(false);
+            }}
           >
-            <button
-              role="menuitem"
-              autoFocus
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowNewRequestDialog(true);
-                setShowFolderMenu(false);
-              }}
-            >
-              <FileText className={iconMd} />
-              {t('navigation.newRequest')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left transition-colors flex items-center gap-2 ${
-                selectedFolderHasRequests ? 'hover:bg-muted' : 'opacity-50 cursor-not-allowed'
-              }`}
-              disabled={!selectedFolderHasRequests}
-              title={selectedFolderHasRequests ? undefined : t('runner.noRequests')}
-              onClick={() => {
-                if (!selectedFolderHasRequests) return;
-                setShowCollectionRunner(true);
-                setShowFolderMenu(false);
-              }}
-            >
-              <Play className={iconMd} />
-              {t('folder.runCollection')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowRenameFolderDialog(true);
-                setRenameFolderName(selectedFolder.name); // Pre-fill with current name
-                setShowFolderMenu(false);
-              }}
-            >
-              <Edit3 className={iconMd} />
-              {t('folder.rename')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowFolderVariables(true);
-                setShowFolderMenu(false);
-              }}
-            >
-              <SlidersHorizontal className={iconMd} />
-              {t('folder.variables')}
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
-              onClick={handleDeleteFolder}
-            >
-              <Trash2 className={iconMd} />
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
+            {t('navigation.newRequest')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Play className={iconMd} />}
+            disabled={!selectedFolderHasRequests}
+            title={selectedFolderHasRequests ? undefined : t('runner.noRequests')}
+            onClick={() => {
+              if (!selectedFolderHasRequests) return;
+              setShowCollectionRunner(true);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.runCollection')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Edit3 className={iconMd} />}
+            onClick={() => {
+              setShowRenameFolderDialog(true);
+              setRenameFolderName(selectedFolder.name); // Pre-fill with current name
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.rename')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<SlidersHorizontal className={iconMd} />}
+            onClick={() => {
+              setShowFolderVariables(true);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.variables')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            destructive
+            icon={<Trash2 className={iconMd} />}
+            onClick={handleDeleteFolder}
+          >
+            {t('common.delete')}
+          </ContextMenuItem>
+        </ContextMenu>
       )}
 
       <FolderVariablesModal
@@ -726,41 +711,33 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       
       {/* Create Menu */}
       {showCreateMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowCreateMenu(false)}>
-          <div
-            role="menu"
-            aria-orientation="vertical"
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => handleMenuKeyDown(e, () => setShowCreateMenu(false))}
+        <ContextMenu
+          isOpen={showCreateMenu}
+          position={menuPosition}
+          onClose={() => setShowCreateMenu(false)}
+          className="min-w-[140px]"
+        >
+          <ContextMenuItem
+            autoFocus
+            icon={<Folder className={`${iconMd} text-primary`} />}
+            onClick={() => {
+              setShowCreateMenu(false);
+              setShowNewFolderDialog(true);
+            }}
           >
-            <button
-              role="menuitem"
-              autoFocus
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
-              onClick={() => {
-                setShowCreateMenu(false);
-                setShowNewFolderDialog(true);
-              }}
-            >
-              <Folder className={`${iconMd} text-primary`} />
-              <span>{t('navigation.newFolder')}</span>
-            </button>
-            <button
-              role="menuitem"
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
-              onClick={() => {
-                setShowCreateMenu(false);
-                setSelectedFolder(null); // Reset folder context for root level request
-                setShowNewRequestDialog(true);
-              }}
-            >
-              <FileText className={iconMd} />
-              <span>{t('navigation.newRequest')}</span>
-            </button>
-          </div>
-        </div>
+            {t('navigation.newFolder')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<FileText className={iconMd} />}
+            onClick={() => {
+              setShowCreateMenu(false);
+              setSelectedFolder(null); // Reset folder context for root level request
+              setShowNewRequestDialog(true);
+            }}
+          >
+            {t('navigation.newRequest')}
+          </ContextMenuItem>
+        </ContextMenu>
       )}
 
       {/* Confirm Delete Folder Dialog */}

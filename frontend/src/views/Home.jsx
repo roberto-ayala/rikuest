@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Zap, Folder, MoreVertical } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { ContextMenu, ContextMenuItem } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProjectFormDialog from '../components/ProjectFormDialog';
 import { useProjectStore } from '../stores/projectStore';
@@ -192,28 +193,19 @@ function Home() {
       />
 
       {/* Project Actions Menu */}
-      {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={handleMenuClose}>
-          <div 
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[120px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
-              onClick={handleEditProject}
-            >
-              {t('common.edit')} {t('common.project')}
-            </button>
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors"
-              onClick={handleDeleteProject}
-            >
-              {t('project.deleteProject')}
-            </button>
-          </div>
-        </div>
-      )}
+      <ContextMenu
+        isOpen={showMenu}
+        position={menuPosition}
+        onClose={handleMenuClose}
+        className="min-w-[120px]"
+      >
+        <ContextMenuItem onClick={handleEditProject}>
+          {t('common.edit')} {t('common.project')}
+        </ContextMenuItem>
+        <ContextMenuItem destructive onClick={handleDeleteProject}>
+          {t('project.deleteProject')}
+        </ContextMenuItem>
+      </ContextMenu>
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog

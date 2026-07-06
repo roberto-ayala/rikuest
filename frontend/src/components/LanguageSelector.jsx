@@ -1,61 +1,47 @@
-import React, { useState } from 'react';
-import { ChevronDown, Globe } from 'lucide-react';
+import React from 'react';
+import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
+import { Globe } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
 const LanguageSelector = () => {
-  const { t, currentLanguage, currentLanguageInfo, changeLanguage, availableLanguages } = useTranslation();
+  const { t, currentLanguage, changeLanguage, availableLanguages } = useTranslation();
   const { icon, iconButton, menuItem } = useUISize();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleLanguageChange = (languageCode) => {
-    changeLanguage(languageCode);
-    setIsOpen(false);
-  };
 
   return (
-    <div className="relative">
-      <Button
+    <Menu as="div" className="relative">
+      <MenuButton
+        as={Button}
         variant="ghost"
-        onClick={() => setIsOpen(!isOpen)}
         className={`${iconButton} bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
         title={t('settings.language')}
       >
         <Globe className={icon} />
-      </Button>
+      </MenuButton>
 
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-lg min-w-[160px]">
-            <div className="p-1">
-              {availableLanguages.map((language) => (
-                <button
-                  key={language.code}
-                  onClick={() => handleLanguageChange(language.code)}
-                  className={`${menuItem} w-full text-left flex items-center space-x-2 hover:bg-accent hover:text-accent-foreground rounded-sm ${
-                    currentLanguage === language.code ? 'bg-accent text-accent-foreground' : ''
-                  }`}
-                >
-                  <span className="text-lg">{language.flag}</span>
-                  <span>{language.name}</span>
-                  {currentLanguage === language.code && (
-                    <span className="ml-auto text-xs">✓</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+      <MenuItems
+        anchor="bottom end"
+        className="z-50 mt-1 min-w-[160px] rounded-md border border-border bg-popover p-1 shadow-lg focus:outline-none"
+      >
+        {availableLanguages.map((language) => (
+          <MenuItem key={language.code}>
+            <button
+              onClick={() => changeLanguage(language.code)}
+              className={`${menuItem} w-full text-left flex items-center space-x-2 rounded-sm data-[focus]:bg-accent data-[focus]:text-accent-foreground ${
+                currentLanguage === language.code ? 'bg-accent text-accent-foreground' : ''
+              }`}
+            >
+              <span className="text-lg">{language.flag}</span>
+              <span>{language.name}</span>
+              {currentLanguage === language.code && (
+                <span className="ml-auto text-xs">✓</span>
+              )}
+            </button>
+          </MenuItem>
+        ))}
+      </MenuItems>
+    </Menu>
   );
 };
 
