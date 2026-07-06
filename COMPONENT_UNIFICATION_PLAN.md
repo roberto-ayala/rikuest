@@ -151,17 +151,21 @@ disabled vía primitivos. Build/lint sin regresiones (38) en ambas tandas.
 
 ---
 
-## Fase 5 — Unificar menús contextuales
+## Fase 5 — Unificar menús contextuales ✅
 
-- [ ] Extraer `components/ui/ContextMenu.jsx` que encapsule el posicionado por
-      cursor (`menuPosition`), el `role="menu"`/`menuitem` y el manejo de teclado
-      (reusar `handleMenuKeyDown` de `lib/utils.js`).
-- [ ] Migrar `Home`, `FolderTree` y `Project` a `<ContextMenu>`.
-- [ ] `LanguageSelector` (dropdown del header, diferido de la Fase 3): migrar a
-      Headless UI `Menu` o al `ContextMenu`/popover anclado — gana teclado y cierre
-      accesibles en lugar del backdrop `fixed inset-0` a mano.
+- [x] Extraer `components/ui/ContextMenu.jsx` (`ContextMenu` + `ContextMenuItem`):
+      encapsula el overlay click-catcher, el posicionado por cursor (`position={x,y}`),
+      el `role="menu"`/`menuitem` y el teclado (`handleMenuKeyDown`). El item es
+      size-aware (`menuItem`), con props `icon`/`destructive`/`disabled`.
+- [x] Migrar `Home` (acciones de proyecto), `Project` (acciones de request) y
+      `FolderTree` (menú de carpeta + menú de creación) a `<ContextMenu>`. El menú de
+      Home gana navegación por teclado y semántica `role` que no tenía; los items de
+      Home/Project pasan a size-aware (antes `text-sm` fijo).
+- [x] `LanguageSelector` (dropdown del header) → Headless UI `Menu` con `anchor`,
+      reemplazando el backdrop `fixed inset-0` a mano; gana teclado y cierre accesibles.
 
-**Entregable**: una sola implementación de menú contextual / popover anclado.
+**Entregable** ✅: una sola implementación de menú contextual (`ui/ContextMenu`) para
+los 4 menús + `LanguageSelector` sobre Headless UI `Menu`. Build limpio; lint 38 → 37.
 
 ---
 
