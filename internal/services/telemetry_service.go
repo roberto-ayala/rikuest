@@ -244,7 +244,34 @@ func (s *TelemetryService) processQueue() {
 	}
 }
 
+// sendEventSync delivers an event immediately (used for session events where
+// the app may be starting up or shutting down).
 func (s *TelemetryService) sendEventSync(event Event) {
+	s.deliver(event)
+}
+
+// sendEvent delivers a queued event, applying per-type rate limiting.
+func (s *TelemetryService) sendEvent(event Event) {
+	// Don't send session events through queue, they're handled separately
+	if event.Type == "session" {
+		return
+	}
+
+	// Rate limiting: max 10 events per minute per type
+	s.rateMutex.Lock()
+	lastTime, exists := s.rateLimiter[event.Type]
+	if exists && time.Since(lastTime) < 6*time.Second { // 10 per minute = 1 every 6 seconds
+		s.rateMutex.Unlock()
+		return // Skip this event
+	}
+	s.rateLimiter[event.Type] = time.Now()
+	s.rateMutex.Unlock()
+
+	s.deliver(event)
+}
+
+// deliver checks enablement and dedup, builds the Discord payload and posts it.
+func (s *TelemetryService) deliver(event Event) {
 	webhookURL := s.getWebhookURL()
 	if webhookURL == "" {
 		return
@@ -255,31 +282,33 @@ func (s *TelemetryService) sendEventSync(event Event) {
 		return
 	}
 
-	// Generate event hash for deduplication
+	// Deduplicate by event content hash
 	eventData := fmt.Sprintf("%s:%s:%v", event.Type, event.Message, event.Metadata)
 	eventHash := fmt.Sprintf("%x", md5.Sum([]byte(eventData)))
-
-	// Check if event is duplicated
 	isDuplicated, err := s.db.IsEventDuplicated(eventHash)
 	if err == nil && isDuplicated {
-		return // Skip duplicated event
+		return
 	}
-
-	// Cache the event hash
 	_ = s.db.CacheEventHash(eventHash)
 
-	// Get installation ID
 	installationID, err := s.ensureInstallationID()
 	if err != nil {
 		return
 	}
 
-	// Get system info
-	osName := runtime.GOOS
-	arch := runtime.GOARCH
-	version := config.Version()
+	payloadJSON, err := json.Marshal(buildDiscordPayload(event, installationID))
+	if err != nil {
+		return
+	}
 
-	// Create Discord embed
+	if _, err := s.httpPost(webhookURL, payloadJSON); err != nil {
+		// Silently fail - telemetry must never disrupt the app
+		fmt.Printf("Telemetry error: %v\n", err)
+	}
+}
+
+// buildDiscordPayload renders an event as a Discord embed payload.
+func buildDiscordPayload(event Event, installationID string) map[string]interface{} {
 	var color int
 	var title string
 	switch event.Type {
@@ -302,18 +331,20 @@ func (s *TelemetryService) sendEventSync(event Event) {
 		title = "ℹ️ Event"
 	}
 
-	// Build description
 	description := fmt.Sprintf("**Message:** %s\n", event.Message)
 	if len(event.Metadata) > 0 {
 		metadataJSON, _ := json.MarshalIndent(event.Metadata, "", "  ")
 		description += fmt.Sprintf("**Metadata:**\n```json\n%s\n```", string(metadataJSON))
 	}
 
-	// Build fields
+	shortID := installationID
+	if len(shortID) > 8 {
+		shortID = shortID[:8]
+	}
 	fields := []map[string]interface{}{
-		{"name": "Version", "value": version, "inline": true},
-		{"name": "OS", "value": fmt.Sprintf("%s/%s", osName, arch), "inline": true},
-		{"name": "Installation ID", "value": fmt.Sprintf("`%s`", installationID[:8]), "inline": true},
+		{"name": "Version", "value": config.Version(), "inline": true},
+		{"name": "OS", "value": fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH), "inline": true},
+		{"name": "Installation ID", "value": fmt.Sprintf("`%s`", shortID), "inline": true},
 	}
 
 	if event.Stack != "" {
@@ -327,8 +358,7 @@ func (s *TelemetryService) sendEventSync(event Event) {
 		})
 	}
 
-	// Create Discord webhook payload
-	payload := map[string]interface{}{
+	return map[string]interface{}{
 		"embeds": []map[string]interface{}{
 			{
 				"title":       title,
@@ -338,134 +368,6 @@ func (s *TelemetryService) sendEventSync(event Event) {
 				"timestamp":   event.Timestamp.Format(time.RFC3339),
 			},
 		},
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return
-	}
-
-	// Send to Discord webhook synchronously (no timeout needed, app is closing)
-	_, err = s.httpPost(webhookURL, payloadJSON)
-	if err != nil {
-		// Silently fail - app is closing anyway
-		fmt.Printf("Telemetry error: %v\n", err)
-	}
-}
-
-func (s *TelemetryService) sendEvent(event Event) {
-	// Don't send session events through queue, they're handled separately
-	if event.Type == "session" {
-		return
-	}
-
-	webhookURL := s.getWebhookURL()
-	if webhookURL == "" {
-		return
-	}
-
-	enabled, _ := s.IsEnabled()
-	if !enabled {
-		return
-	}
-
-	// Rate limiting: max 10 events per minute per type
-	s.rateMutex.Lock()
-	lastTime, exists := s.rateLimiter[event.Type]
-	if exists && time.Since(lastTime) < 6*time.Second { // 10 per minute = 1 every 6 seconds
-		s.rateMutex.Unlock()
-		return // Skip this event
-	}
-	s.rateLimiter[event.Type] = time.Now()
-	s.rateMutex.Unlock()
-
-	// Generate event hash for deduplication
-	eventData := fmt.Sprintf("%s:%s:%v", event.Type, event.Message, event.Metadata)
-	eventHash := fmt.Sprintf("%x", md5.Sum([]byte(eventData)))
-
-	// Check if event is duplicated
-	isDuplicated, err := s.db.IsEventDuplicated(eventHash)
-	if err == nil && isDuplicated {
-		return // Skip duplicated event
-	}
-
-	// Cache the event hash
-	_ = s.db.CacheEventHash(eventHash)
-
-	// Get installation ID
-	installationID, err := s.ensureInstallationID()
-	if err != nil {
-		return
-	}
-
-	// Get system info
-	osName := runtime.GOOS
-	arch := runtime.GOARCH
-	version := config.Version()
-
-	// Create Discord embed
-	var color int
-	var title string
-	switch event.Type {
-	case "error":
-		color = 15158332 // Red
-		title = "🚨 Error Report"
-	case "usage":
-		color = 3447003 // Blue
-		title = "📊 Usage Event"
-	default:
-		color = 9807270 // Grey
-		title = "ℹ️ Event"
-	}
-
-	// Build description
-	description := fmt.Sprintf("**Message:** %s\n", event.Message)
-	if len(event.Metadata) > 0 {
-		metadataJSON, _ := json.MarshalIndent(event.Metadata, "", "  ")
-		description += fmt.Sprintf("**Metadata:**\n```json\n%s\n```", string(metadataJSON))
-	}
-
-	// Build fields
-	fields := []map[string]interface{}{
-		{"name": "Version", "value": version, "inline": true},
-		{"name": "OS", "value": fmt.Sprintf("%s/%s", osName, arch), "inline": true},
-		{"name": "Installation ID", "value": fmt.Sprintf("`%s`", installationID[:8]), "inline": true},
-	}
-
-	if event.Stack != "" {
-		stackPreview := event.Stack
-		if len(stackPreview) > 1000 {
-			stackPreview = stackPreview[:1000] + "..."
-		}
-		fields = append(fields, map[string]interface{}{
-			"name":  "Stack Trace",
-			"value": fmt.Sprintf("```\n%s\n```", stackPreview),
-		})
-	}
-
-	// Create Discord webhook payload
-	payload := map[string]interface{}{
-		"embeds": []map[string]interface{}{
-			{
-				"title":       title,
-				"description": description,
-				"color":       color,
-				"fields":      fields,
-				"timestamp":   event.Timestamp.Format(time.RFC3339),
-			},
-		},
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return
-	}
-
-	// Send to Discord webhook
-	_, err = s.httpPost(webhookURL, payloadJSON)
-	if err != nil {
-		// Silently fail - don't disrupt the app
-		fmt.Printf("Telemetry error: %v\n", err)
 	}
 }
 

@@ -19,9 +19,7 @@ export function useBackgroundColor() {
       
       const currentBgId = effectiveTheme === 'dark' ? backgroundColorDark : backgroundColorLight;
       const currentBgConfig = backgroundColors[effectiveTheme]?.find(bg => bg.id === currentBgId);
-      
-      console.log('Background hook executing:', { theme, effectiveTheme, currentBgId, currentBgConfig });
-      
+
       // Update CSS custom property that Tailwind uses for --background
       const root = document.documentElement;
       
@@ -54,8 +52,7 @@ export function useBackgroundColor() {
 
         const [h, s, l] = hexToHsl(currentBgConfig.preview);
         root.style.setProperty('--background', `${h} ${s}% ${l}%`);
-        console.log('Applied background HSL:', `${h} ${s}% ${l}%`, 'from', currentBgConfig.preview);
-        
+
         // Update card and popover to match background (modals and popovers use these)
         root.style.setProperty('--card', `${h} ${s}% ${l}%`);
         root.style.setProperty('--popover', `${h} ${s}% ${l}%`);
@@ -81,7 +78,6 @@ export function useBackgroundColor() {
         root.style.setProperty('--border', `${h} ${borderS}% ${borderL}%`);
         // Also update --input to match border for consistency
         root.style.setProperty('--input', `${h} ${borderS}% ${borderL}%`);
-        console.log('Applied border HSL:', `${h} ${borderS}% ${borderL}%`);
       } else {
         // Fallback to default background values
         if (effectiveTheme === 'dark') {
@@ -93,7 +89,6 @@ export function useBackgroundColor() {
           // Calculate border for default dark color
           root.style.setProperty('--border', '240 6% 18%');
           root.style.setProperty('--input', '240 6% 18%');
-          console.log('Applied default dark HSL: 240 8% 10%');
         } else {
           root.style.setProperty('--background', '0 0% 100%');
           // Update card and popover to match background
@@ -102,7 +97,6 @@ export function useBackgroundColor() {
           const defaultBorder = '214.3 31.8% 91.4%';
           root.style.setProperty('--border', defaultBorder);
           root.style.setProperty('--input', defaultBorder);
-          console.log('Applied default light HSL: 0 0% 100%');
         }
       }
     };

@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   Folder,
   FolderOpen,
+  FolderPlus,
   FileText,
   Plus,
   MoreVertical,
@@ -26,7 +27,8 @@ import {
   ChevronDown,
   Edit3,
   Trash2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Play
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -35,13 +37,23 @@ import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFolderStore } from '../stores/folderStore';
 import { useRequestStore } from '../stores/requestStore';
+import { getMethodColor, collectRunnableRequests, collectFolderAndDescendantIds, getFolderPath, getFolderDepth } from '../lib/utils';
+import { addToast } from '../stores/toastStore';
+import { DialogTitle } from '@headlessui/react';
+import { ContextMenu, ContextMenuItem, Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
 import FolderVariablesModal from './FolderVariablesModal';
+import CollectionRunner from './CollectionRunner';
+
+// Soft cap on folder nesting so deep trees stay usable (indentation + paths
+// readable). A folder at this 0-based depth can't get subfolders.
+const MAX_FOLDER_DEPTH = 6;
 
 // Root Drop Zone Component
 function RootDropZone() {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -71,7 +83,7 @@ function RootDropZone() {
     >
       {isOver && (
         <span className="text-xs text-primary font-medium">
-          Drop here to move to root level
+          {t('folder.dropToRoot')}
         </span>
       )}
     </div>
@@ -79,7 +91,7 @@ function RootDropZone() {
 }
 
 function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved, onShowRequestMenu }) {
-  const { text, spacing, button, input, icon, iconMd, menuItem, itemSpacing } = useUISize();
+  const { text, button, icon, iconMd } = useUISize();
   const { t } = useTranslation();
   
   // Load expanded folders from localStorage
@@ -108,11 +120,13 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   const [expandedFolders, setExpandedFolders] = useState(() => loadExpandedFolders());
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+  const [newFolderParentId, setNewFolderParentId] = useState(null);
   const [showNewRequestDialog, setShowNewRequestDialog] = useState(false);
   const [showRenameFolderDialog, setShowRenameFolderDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const [showFolderVariables, setShowFolderVariables] = useState(false);
+  const [showCollectionRunner, setShowCollectionRunner] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -151,24 +165,53 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
   
   useEffect(() => {
     if (projectId) {
-      console.log('Fetching folders for project:', projectId);
       fetchFolders(projectId);
       // Reload expanded folders when project changes
       setExpandedFolders(loadExpandedFolders());
     }
   }, [projectId, fetchFolders]);
   
+  const openNewFolderDialog = (parentId = null) => {
+    setNewFolderParentId(parentId);
+    setNewFolderName('');
+    setShowNewFolderDialog(true);
+  };
+
+  const closeNewFolderDialog = () => {
+    setShowNewFolderDialog(false);
+    setNewFolderName('');
+    setNewFolderParentId(null);
+  };
+
+  const closeNewRequestDialog = () => {
+    setShowNewRequestDialog(false);
+    setNewRequestName('');
+    setSelectedFolder(null);
+  };
+
+  const closeRenameFolderDialog = () => {
+    setShowRenameFolderDialog(false);
+    setRenameFolderName('');
+    setSelectedFolder(null);
+  };
+
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    
+
     try {
       await createFolder({
         project_id: projectId,
         name: newFolderName.trim(),
-        parent_id: null
+        parent_id: newFolderParentId
       });
-      setShowNewFolderDialog(false);
-      setNewFolderName('');
+      // Expand the parent so the new subfolder is visible right away.
+      if (newFolderParentId != null) {
+        const newExpanded = new Set(expandedFolders);
+        newExpanded.add(newFolderParentId);
+        setExpandedFolders(newExpanded);
+        saveExpandedFolders(newExpanded);
+      }
+      closeNewFolderDialog();
     } catch (error) {
       console.error('Failed to create folder:', error);
     }
@@ -291,11 +334,63 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       overType = 'root';
     }
     
-    // Only allow moving requests, not folders
-    if (activeType !== 'request') {
+    // Folder drag: re-parent the folder (nest under another folder, or to root).
+    if (activeType === 'folder') {
+      const activeFolderId = parseInt(active.id.toString().replace('folder-', ''), 10);
+      const activeFolder = folders.find((f) => f.id === activeFolderId);
+      if (!activeFolder) return;
+
+      let newParentId = null;
+      if (overType === 'folder') {
+        newParentId = parseInt(over.id.toString().replace('folder-', ''), 10);
+      } else if (overType === 'request') {
+        const overReq = getItemById(over.id.toString().replace('request-', ''));
+        newParentId = overReq?.folder_id ?? null;
+      }
+
+      // No-op when the parent doesn't actually change.
+      if ((activeFolder.parent_id ?? null) === (newParentId ?? null)) return;
+
+      // Cycle guard: never drop a folder into itself or one of its descendants.
+      const subtree = collectFolderAndDescendantIds(activeFolder.id, folders);
+      if (newParentId != null && subtree.includes(newParentId)) {
+        addToast('error', t('folder.cannotMoveIntoDescendant'));
+        return;
+      }
+
+      // Depth guard: the deepest descendant must still fit under MAX_FOLDER_DEPTH.
+      const targetDepth = newParentId != null ? getFolderDepth(newParentId, folders) + 1 : 0;
+      const subtreeHeight =
+        Math.max(...subtree.map((id) => getFolderDepth(id, folders))) -
+        getFolderDepth(activeFolder.id, folders);
+      if (targetDepth + subtreeHeight > MAX_FOLDER_DEPTH - 1) {
+        addToast('error', t('folder.maxDepthReached'));
+        return;
+      }
+
+      // Append after the last sibling folder under the new parent.
+      const siblingFolders = folders.filter(
+        (f) => (f.parent_id ?? null) === (newParentId ?? null) && f.id !== activeFolder.id
+      );
+      const position = siblingFolders.length
+        ? Math.max(...siblingFolders.map((f) => f.position ?? 0)) + 1
+        : 0;
+
+      try {
+        await updateFolder(activeFolder.id, { ...activeFolder, parent_id: newParentId, position });
+        if (newParentId != null) {
+          const newExpanded = new Set(expandedFolders);
+          newExpanded.add(newParentId);
+          setExpandedFolders(newExpanded);
+          saveExpandedFolders(newExpanded);
+        }
+        fetchFolders(projectId);
+      } catch (error) {
+        console.error('Failed to move folder:', error);
+      }
       return;
     }
-    
+
     const activeId_clean = active.id.toString().replace('request-', '');
     const overId_clean = over.id.toString().replace('request-', '').replace('folder-', '');
     
@@ -324,10 +419,9 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
       targetFolderId = overItem?.folder_id || null;
     }
     
-    const position = calculateNewPosition(activeItem.id, overId_clean);
-    
+    const position = calculateNewPosition(targetFolderId, overType === 'request' ? overItem : null);
+
     try {
-      console.log('Moving request', activeItem.id, 'to folder', targetFolderId, 'at position', position);
       await moveRequest(activeItem.id, targetFolderId, position);
       // Refresh requests to reflect the change
       if (onRequestMoved) {
@@ -354,28 +448,76 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
     return null;
   };
   
-  const calculateNewPosition = (activeId, overId) => {
-    // Simple position calculation - in a real implementation,
-    // you would calculate based on drop position
-    return Date.now() % 1000;
-  };
-  
-  const getMethodColor = (method) => {
-    const colors = {
-      'GET': 'text-blue-500',
-      'POST': 'text-green-500',
-      'PUT': 'text-orange-500',
-      'DELETE': 'text-red-500',
-      'PATCH': 'text-purple-500',
-      'HEAD': 'text-gray-400',
-      'OPTIONS': 'text-gray-400'
-    };
-    return colors[method] || 'text-gray-400';
+  const calculateNewPosition = (targetFolderId, overRequest) => {
+    // Dropped on a request: take its slot (ties broken by created_at)
+    if (overRequest) {
+      return overRequest.position ?? 0;
+    }
+    // Dropped into a folder or the root: append after the last sibling
+    const siblings = requests.filter(
+      (r) => (r.folder_id ?? null) === (targetFolderId ?? null)
+    );
+    if (siblings.length === 0) return 0;
+    return Math.max(...siblings.map((r) => r.position ?? 0)) + 1;
   };
   
   const folderTree = getFolderTree();
   const requestsByFolder = getRequestsByFolder();
-  
+  const selectedFolderHasRequests = selectedFolder
+    ? collectRunnableRequests(selectedFolder, folders, requests).length > 0
+    : false;
+  const selectedFolderAtMaxDepth = selectedFolder
+    ? getFolderDepth(selectedFolder.id, folders) >= MAX_FOLDER_DEPTH - 1
+    : false;
+
+  // Full "Root / A / B" path label for tooltips and dialog context.
+  const folderPathLabel = (folderId) =>
+    getFolderPath(folderId, folders).map((f) => f.name).join(' / ');
+
+  // The item currently being dragged, for the DragOverlay (strip the type prefix
+  // so getItemById can resolve the raw folder/request id).
+  const activeOverlayItem = activeId
+    ? getItemById(activeId.toString().replace('request-', '').replace('folder-', ''))
+    : null;
+
+  // Recursively render a folder node and everything nested under it (child
+  // folders first, then this folder's own requests). Each level is indented via
+  // DOM nesting + a subtle guide line, so arbitrary depth "just works".
+  const renderFolder = (folder) => {
+    const folderRequests = requestsByFolder.folders[folder.id];
+    const childFolders = folder.children || [];
+    const hasContents = childFolders.length > 0 || (folderRequests && folderRequests.length > 0);
+
+    return (
+      <DroppableFolder
+        key={folder.id}
+        folder={folder}
+        title={folderPathLabel(folder.id)}
+        isExpanded={expandedFolders.has(folder.id)}
+        onToggle={() => toggleFolder(folder.id)}
+        onShowMenu={handleShowFolderMenu}
+      >
+        {hasContents && (
+          <div className="ml-3 pl-1 mt-0.5 space-y-0.5 border-l border-border/50">
+            {childFolders.map((child) => renderFolder(child))}
+            {folderRequests?.map((request) => (
+              <RequestTreeItem
+                key={request.id}
+                request={request}
+                isSelected={currentRequest?.id === request.id}
+                onSelect={onSelectRequest}
+                getMethodColor={getMethodColor}
+                isBeingDragged={activeId === `request-${request.id}`}
+                onShowMenu={onShowRequestMenu}
+              />
+            ))}
+          </div>
+        )}
+      </DroppableFolder>
+    );
+  };
+
+
   // Only requests are sortable, folders are drop targets
   const sortableItems = [
     'root-drop-zone', // Special drop zone for root level
@@ -428,34 +570,9 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
             {/* Root Drop Zone - invisible but functional */}
             <RootDropZone />
             
-            {/* Render folders */}
-            {folderTree.map(folder => (
-              <DroppableFolder
-                key={folder.id}
-                folder={folder}
-                isExpanded={expandedFolders.has(folder.id)}
-                onToggle={() => toggleFolder(folder.id)}
-                onShowMenu={handleShowFolderMenu}
-              >
-                {/* Render requests in this folder */}
-                {requestsByFolder.folders[folder.id] && (
-                  <div className="ml-4 mt-0.5">
-                    {requestsByFolder.folders[folder.id].map((request) => (
-                      <RequestTreeItem
-                        key={request.id}
-                        request={request}
-                        isSelected={currentRequest?.id === request.id}
-                        onSelect={onSelectRequest}
-                        getMethodColor={getMethodColor}
-                        isBeingDragged={activeId === `request-${request.id}`}
-                        onShowMenu={onShowRequestMenu}
-                      />
-                    ))}
-                  </div>
-                )}
-              </DroppableFolder>
-            ))}
-            
+            {/* Render folders (recursive: nested subfolders + requests) */}
+            {folderTree.map((folder) => renderFolder(folder))}
+
             {/* Render root level requests */}
             {requestsByFolder.root.map((request) => (
               <RequestTreeItem
@@ -472,121 +589,132 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         </SortableContext>
         
         <DragOverlay>
-          {activeId ? (
+          {activeOverlayItem ? (
             <div className="bg-card border border-border rounded shadow-lg p-2">
-              {getItemById(activeId)?.type === 'request' ? (
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                {activeOverlayItem.type === 'request' ? (
                   <FileText className={`${iconMd} text-muted-foreground`} />
-                  <span className={`${text('sm')} font-medium`}>
-                    {getItemById(activeId)?.name}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
+                ) : (
                   <Folder className={`${iconMd} text-primary`} />
-                  <span className={`${text('sm')} font-medium`}>
-                    {getItemById(activeId)?.name}
-                  </span>
-                </div>
-              )}
+                )}
+                <span className={`${text('sm')} font-medium`}>
+                  {activeOverlayItem.name}
+                </span>
+              </div>
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
       
       {/* New Folder Dialog */}
-      {showNewFolderDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>{t('folder.createFolder')}</h3>
-
-            <Input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder={t('folder.folderNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateFolder();
-                } else if (e.key === 'Escape') {
-                  setShowNewFolderDialog(false);
-                  setNewFolderName('');
-                }
-              }}
-              autoFocus
-            />
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowNewFolderDialog(false);
-                  setNewFolderName('');
-                }}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleCreateFolder}
-                disabled={!newFolderName.trim()}
-                className={button}
-              >
-                {t('common.create')}
-              </Button>
-            </div>
+      <Modal isOpen={showNewFolderDialog} onClose={closeNewFolderDialog} size="sm">
+        <ModalHeader onClose={closeNewFolderDialog}>
+          <div>
+            <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+              {newFolderParentId != null ? t('folder.newSubfolder') : t('folder.createFolder')}
+            </DialogTitle>
+            {newFolderParentId != null && (
+              <p className={`${text('xs')} text-muted-foreground mt-0.5 truncate`}>
+                {t('folder.inFolder')} <span className="font-medium">{folderPathLabel(newFolderParentId)}</span>
+              </p>
+            )}
           </div>
-        </div>
-      )}
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder={t('folder.folderNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCreateFolder();
+              } else if (e.key === 'Escape') {
+                closeNewFolderDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeNewFolderDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()} className={button}>
+            {t('common.create')}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       
       {/* Folder Context Menu */}
       {showFolderMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowFolderMenu(false)}>
-          <div 
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[160px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
+        <ContextMenu
+          isOpen={showFolderMenu}
+          position={menuPosition}
+          onClose={() => setShowFolderMenu(false)}
+        >
+          <ContextMenuItem
+            autoFocus
+            icon={<FileText className={iconMd} />}
+            onClick={() => {
+              setShowNewRequestDialog(true);
+              setShowFolderMenu(false);
+            }}
           >
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowNewRequestDialog(true);
-                setShowFolderMenu(false);
-              }}
-            >
-              <FileText className={iconMd} />
-              {t('navigation.newRequest')}
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowRenameFolderDialog(true);
-                setRenameFolderName(selectedFolder.name); // Pre-fill with current name
-                setShowFolderMenu(false);
-              }}
-            >
-              <Edit3 className={iconMd} />
-              {t('folder.rename')}
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={() => {
-                setShowFolderVariables(true);
-                setShowFolderMenu(false);
-              }}
-            >
-              <SlidersHorizontal className={iconMd} />
-              {t('folder.variables')}
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
-              onClick={handleDeleteFolder}
-            >
-              <Trash2 className={iconMd} />
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
+            {t('navigation.newRequest')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<FolderPlus className={iconMd} />}
+            disabled={selectedFolderAtMaxDepth}
+            title={selectedFolderAtMaxDepth ? t('folder.maxDepthReached') : undefined}
+            onClick={() => {
+              if (selectedFolderAtMaxDepth) return;
+              openNewFolderDialog(selectedFolder.id);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.newSubfolder')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Play className={iconMd} />}
+            disabled={!selectedFolderHasRequests}
+            title={selectedFolderHasRequests ? undefined : t('runner.noRequests')}
+            onClick={() => {
+              if (!selectedFolderHasRequests) return;
+              setShowCollectionRunner(true);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.runCollection')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Edit3 className={iconMd} />}
+            onClick={() => {
+              setShowRenameFolderDialog(true);
+              setRenameFolderName(selectedFolder.name); // Pre-fill with current name
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.rename')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<SlidersHorizontal className={iconMd} />}
+            onClick={() => {
+              setShowFolderVariables(true);
+              setShowFolderMenu(false);
+            }}
+          >
+            {t('folder.variables')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            destructive
+            icon={<Trash2 className={iconMd} />}
+            onClick={handleDeleteFolder}
+          >
+            {t('common.delete')}
+          </ContextMenuItem>
+        </ContextMenu>
       )}
 
       <FolderVariablesModal
@@ -594,136 +722,116 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         isOpen={showFolderVariables}
         onClose={() => setShowFolderVariables(false)}
       />
+
+      <CollectionRunner
+        isOpen={showCollectionRunner}
+        onClose={() => setShowCollectionRunner(false)}
+        folder={selectedFolder}
+        projectId={projectId}
+      />
       
       {/* New Request in Folder Dialog */}
-      {showNewRequestDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>
-              {t('navigation.newRequest')}{selectedFolder ? ` in ${selectedFolder.name}` : ''}
-            </h3>
-
-            <Input
-              value={newRequestName}
-              onChange={(e) => setNewRequestName(e.target.value)}
-              placeholder={t('request.requestNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateRequestInFolder();
-                } else if (e.key === 'Escape') {
-                  setShowNewRequestDialog(false);
-                  setNewRequestName('');
-                  setSelectedFolder(null);
-                }
-              }}
-              autoFocus
-            />
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowNewRequestDialog(false);
-                  setNewRequestName('');
-                  setSelectedFolder(null);
-                }}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleCreateRequestInFolder}
-                disabled={!newRequestName.trim()}
-                className={button}
-              >
-                {t('common.create')}
-              </Button>
-            </div>
+      <Modal isOpen={showNewRequestDialog} onClose={closeNewRequestDialog} size="sm">
+        <ModalHeader onClose={closeNewRequestDialog}>
+          <div>
+            <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+              {t('navigation.newRequest')}
+            </DialogTitle>
+            {selectedFolder && (
+              <p className={`${text('xs')} text-muted-foreground mt-0.5 truncate`}>
+                {t('folder.inFolder')} <span className="font-medium">{folderPathLabel(selectedFolder.id)}</span>
+              </p>
+            )}
           </div>
-        </div>
-      )}
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={newRequestName}
+            onChange={(e) => setNewRequestName(e.target.value)}
+            placeholder={t('request.requestNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleCreateRequestInFolder();
+              } else if (e.key === 'Escape') {
+                closeNewRequestDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeNewRequestDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleCreateRequestInFolder} disabled={!newRequestName.trim()} className={button}>
+            {t('common.create')}
+          </Button>
+        </ModalFooter>
+      </Modal>
       
       {/* Rename Folder Dialog */}
-      {showRenameFolderDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className={`bg-card ${spacing(4)} rounded-lg shadow-lg border border-border w-full max-w-sm`}>
-            <h3 className={`${text('base')} font-semibold mb-3`}>
-              {t('folder.rename')} {t('common.folder')}
-            </h3>
-
-            <Input
-              value={renameFolderName}
-              onChange={(e) => setRenameFolderName(e.target.value)}
-              placeholder={t('folder.folderNamePlaceholder')}
-              className={`w-full ${input} mb-4`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleRenameFolder();
-                } else if (e.key === 'Escape') {
-                  setShowRenameFolderDialog(false);
-                  setRenameFolderName('');
-                  setSelectedFolder(null);
-                }
-              }}
-              autoFocus
-            />
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setShowRenameFolderDialog(false);
-                  setRenameFolderName('');
-                  setSelectedFolder(null);
-                }}
-                className={button}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleRenameFolder}
-                disabled={!renameFolderName.trim()}
-                className={button}
-              >
-                {t('folder.rename')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={showRenameFolderDialog} onClose={closeRenameFolderDialog} size="sm">
+        <ModalHeader onClose={closeRenameFolderDialog}>
+          <DialogTitle as="h3" className={`${text('base')} font-semibold`}>
+            {t('folder.rename')} {t('common.folder')}
+          </DialogTitle>
+        </ModalHeader>
+        <ModalBody>
+          <Input
+            value={renameFolderName}
+            onChange={(e) => setRenameFolderName(e.target.value)}
+            placeholder={t('folder.folderNamePlaceholder')}
+            className="w-full"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleRenameFolder();
+              } else if (e.key === 'Escape') {
+                closeRenameFolderDialog();
+              }
+            }}
+            autoFocus
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="ghost" onClick={closeRenameFolderDialog} className={button}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleRenameFolder} disabled={!renameFolderName.trim()} className={button}>
+            {t('folder.rename')}
+          </Button>
+        </ModalFooter>
+      </Modal>
       
       {/* Create Menu */}
       {showCreateMenu && (
-        <div className="fixed inset-0 z-50" onClick={() => setShowCreateMenu(false)}>
-          <div 
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
+        <ContextMenu
+          isOpen={showCreateMenu}
+          position={menuPosition}
+          onClose={() => setShowCreateMenu(false)}
+          className="min-w-[140px]"
+        >
+          <ContextMenuItem
+            autoFocus
+            icon={<Folder className={`${iconMd} text-primary`} />}
+            onClick={() => {
+              setShowCreateMenu(false);
+              openNewFolderDialog(null);
+            }}
           >
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
-              onClick={() => {
-                setShowCreateMenu(false);
-                setShowNewFolderDialog(true);
-              }}
-            >
-              <Folder className={`${iconMd} text-primary`} />
-              <span>{t('navigation.newFolder')}</span>
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center ${itemSpacing}`}
-              onClick={() => {
-                setShowCreateMenu(false);
-                setSelectedFolder(null); // Reset folder context for root level request
-                setShowNewRequestDialog(true);
-              }}
-            >
-              <FileText className={iconMd} />
-              <span>{t('navigation.newRequest')}</span>
-            </button>
-          </div>
-        </div>
+            {t('navigation.newFolder')}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<FileText className={iconMd} />}
+            onClick={() => {
+              setShowCreateMenu(false);
+              setSelectedFolder(null); // Reset folder context for root level request
+              setShowNewRequestDialog(true);
+            }}
+          >
+            {t('navigation.newRequest')}
+          </ContextMenuItem>
+        </ContextMenu>
       )}
 
       {/* Confirm Delete Folder Dialog */}

@@ -1,14 +1,17 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useUISize } from '../hooks/useUISize';
+import { useIsDark } from '../hooks/useIsDark';
 import { useUIStore } from '../stores/uiStore';
+import { useTranslation } from '../hooks/useTranslation';
 import './JsonEditor.css';
 
 const JsonEditor = ({ value, onChange, placeholder, className }) => {
   const editorRef = useRef(null);
   const [isValidJson, setIsValidJson] = useState(true);
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const isDark = useIsDark();
   const { config } = useUISize();
+  const { t } = useTranslation();
   
   // Subscribe to background color changes
   const { theme, backgroundColorLight, backgroundColorDark } = useUIStore();
@@ -149,9 +152,8 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
           'editor.background': backgroundColor,
         }
       });
-    } catch (error) {
+    } catch {
       // Theme might already be defined, that's okay
-      console.debug('Theme definition:', error);
     }
     
     return themeName;
@@ -162,21 +164,6 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     // Define theme before mount to prevent white background flash
     setupAppTheme(monaco);
   }, [setupAppTheme]);
-
-  // Listen for theme changes
-  useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, { attributes: true });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Update theme when dark mode changes or background colors change
   useEffect(() => {
@@ -299,12 +286,12 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
           type="button"
           onClick={formatJson}
           className="format-button absolute top-2 right-2 z-10"
-          title="Format JSON (Ctrl+Shift+F)"
+          title={t('jsonEditor.formatTooltip')}
           style={{
             fontSize: Math.max(10, getFontSize() - 3) + 'px'
           }}
         >
-          Format
+          {t('jsonEditor.format')}
         </button>
       )}
       
@@ -313,7 +300,7 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
         <div className="absolute bottom-2 right-2 flex items-center z-10">
           <div 
             className={`status-indicator ${isValidJson ? 'valid' : 'invalid'}`}
-            title={isValidJson ? 'Valid JSON' : 'Invalid JSON'}
+            title={isValidJson ? t('jsonEditor.validJson') : t('jsonEditor.invalidJson')}
             style={{
               width: Math.max(6, getFontSize() * 0.6) + 'px',
               height: Math.max(6, getFontSize() * 0.6) + 'px'
@@ -325,7 +312,7 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
               fontSize: Math.max(9, getFontSize() - 4) + 'px'
             }}
           >
-            {isValidJson ? 'Valid JSON' : 'Invalid JSON'}
+            {isValidJson ? t('jsonEditor.validJson') : t('jsonEditor.invalidJson')}
           </div>
         </div>
       )}

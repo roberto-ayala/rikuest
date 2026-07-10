@@ -21,9 +21,7 @@ export class WailsAdapter {
   }
 
   async updateProject(id, project) {
-    // Add the ID to the project object for the binding
-    project.id = id;
-    return await this.app.UpdateProject(project);
+    return await this.app.UpdateProject({ ...project, id });
   }
 
   async deleteProject(id) {
@@ -44,9 +42,7 @@ export class WailsAdapter {
   }
 
   async updateRequest(id, request) {
-    // Add the ID to the request object for the binding
-    request.id = id;
-    return await this.app.UpdateRequest(request);
+    return await this.app.UpdateRequest({ ...request, id });
   }
 
   async deleteRequest(id) {
@@ -94,9 +90,7 @@ export class WailsAdapter {
   }
 
   async updateFolder(id, folder) {
-    // Add the ID to the folder object for the binding
-    folder.id = id;
-    return await this.app.UpdateFolder(folder);
+    return await this.app.UpdateFolder({ ...folder, id });
   }
 
   async deleteFolder(id) {
@@ -158,6 +152,19 @@ export class WailsAdapter {
 
   async updateResponseCaptures(requestId, captures) {
     await this.app.UpdateResponseCaptures(requestId, captures || []);
+  }
+
+  // ===== COOKIE METHODS =====
+  async getCookies(projectId) {
+    return await this.app.GetCookies(projectId);
+  }
+
+  async deleteCookie(id) {
+    await this.app.DeleteCookie(id);
+  }
+
+  async clearProjectCookies(projectId) {
+    await this.app.ClearProjectCookies(projectId);
   }
 
   // ===== CONFIG METHODS =====

@@ -47,7 +47,8 @@
     "settings": "Settings",
     "newProject": "New Project",
     "newRequest": "New Request",
-    "newFolder": "New Folder"
+    "newFolder": "New Folder",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Create New Project",
@@ -66,6 +67,7 @@
     "deleteProject": "Delete Project",
     "deleteProjectConfirm": "Are you sure you want to delete this project?",
     "deleteProjectWarning": "This action cannot be undone",
+    "deleted": "Project deleted",
     "noDescription": "No description",
     "selectRequest": "Select a request",
     "selectRequestDesc": "Choose a request from the sidebar or create a new one",
@@ -101,6 +103,11 @@
     "urlPlaceholder": "Enter request URL",
     "send": "Send",
     "sending": "Sending...",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "saveFailed": "Save failed",
+    "retrySave": "Click to retry",
+    "deleted": "Request deleted",
     "historyTitle": "Request History",
     "noSelected": "No request selected",
     "noResponse": "No Response",
@@ -136,7 +143,30 @@
     "password": "Password",
     "passwordPlaceholder": "Enter password",
     "createRequest": "Create Request",
-    "copyRequest": "Copy Request"
+    "copyRequest": "Copy Request",
+    "tabParams": "Params",
+    "tabHeaders": "Headers",
+    "tabBody": "Body",
+    "tabAuthorization": "Authorization",
+    "tabCaptures": "Captures",
+    "tabRawRequest": "Raw Request",
+    "tabSettings": "Settings",
+    "untitled": "Untitled",
+    "closeTab": "Close tab",
+    "openTabs": "Open request tabs",
+    "apiKeyName": "Key Name",
+    "apiKeyNamePlaceholder": "e.g. X-API-Key",
+    "apiKeyValue": "Key Value",
+    "apiKeyValuePlaceholder": "Enter API key value",
+    "apiKeyLocation": "Add to",
+    "locationHeader": "Header",
+    "locationQuery": "Query Params",
+    "skipTlsVerify": "Skip TLS/SSL verification",
+    "skipTlsVerifyWarning": "Disables certificate validation - only use for local/dev servers you trust.",
+    "followRedirects": "Follow redirects",
+    "maxRedirects": "Max redirects",
+    "timeoutOverride": "Request timeout override (seconds)",
+    "timeoutOverridePlaceholder": "0 or empty = use global default"
   },
   "folder": {
     "create": "Create New Folder",
@@ -154,7 +184,13 @@
     "foldersAndRequests": "Folders & Requests",
     "createNew": "Create New",
     "createFolder": "Create Folder",
-    "rename": "Rename"
+    "rename": "Rename",
+    "dropToRoot": "Drop here to move to root level",
+    "runCollection": "Run Collection",
+    "newSubfolder": "New Subfolder",
+    "inFolder": "in",
+    "maxDepthReached": "Maximum nesting depth reached",
+    "cannotMoveIntoDescendant": "Can't move a folder into itself or one of its subfolders"
   },
   "settings": {
     "title": "Settings",
@@ -291,5 +327,82 @@
       "noEndpoints": "No endpoints found in the OpenAPI specification",
       "invalidFormat": "Invalid file format. Expected JSON or YAML."
     }
+  },
+  "curlImport": {
+    "title": "Import cURL",
+    "triggerTitle": "Import cURL command",
+    "placeholder": "Paste a curl command here, e.g. curl -X POST 'https://api.example.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+    "preview": "Preview",
+    "nameLabel": "Request Name",
+    "namePlaceholder": "Enter request name",
+    "import": "Import",
+    "importing": "Importing...",
+    "errors": {
+      "parseFailed": "Failed to parse curl command",
+      "importFailed": "Failed to import request"
+    },
+    "imported": "Request imported from curl"
+  },
+  "jsonEditor": {
+    "format": "Format",
+    "formatTooltip": "Format JSON (Ctrl+Shift+F)",
+    "validJson": "Valid JSON",
+    "invalidJson": "Invalid JSON"
+  },
+  "copyFormats": {
+    "rawHttp": "Raw HTTP",
+    "curl": "cURL",
+    "fetch": "JavaScript Fetch",
+    "python": "Python Requests"
+  },
+  "response": {
+    "copy": "Copy",
+    "copied": "Copied to clipboard",
+    "copyFailed": "Failed to copy",
+    "switchToRaw": "Switch to raw view",
+    "switchToPretty": "Switch to pretty view",
+    "toggleWrap": "Toggle word wrap",
+    "search": "Search in body",
+    "searchPlaceholder": "Search...",
+    "noMatches": "No matches",
+    "matchCounter": "{current} of {total}",
+    "prevMatch": "Previous match",
+    "nextMatch": "Next match",
+    "closeSearch": "Close search",
+    "binaryPreviewTitle": "Binary response",
+    "binaryPreviewDesc": "{type} — {size} — preview not supported"
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "execute": "Send request",
+    "save": "Save request",
+    "search": "Search requests",
+    "help": "Show shortcuts"
+  },
+  "runner": {
+    "title": "Collection Runner",
+    "stop": "Stop",
+    "noRequests": "This folder has no requests to run",
+    "completed": "Completed",
+    "succeeded": "succeeded",
+    "failed": "failed"
+  },
+  "search": {
+    "placeholder": "Search requests by name or URL...",
+    "typeToSearch": "Type to search",
+    "noResults": "No requests found"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "No cookies stored for this project yet",
+    "domain": "Domain",
+    "name": "Name",
+    "value": "Value",
+    "expires": "Expires",
+    "session": "Session",
+    "clearAll": "Clear all",
+    "clearAllConfirm": "Are you sure you want to delete all cookies for this project? This action cannot be undone.",
+    "deleted": "Cookie deleted",
+    "cleared": "Cookies cleared"
   }
 }

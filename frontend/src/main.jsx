@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Buffer } from 'buffer';
 import './index.css';
 import App from './App.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ThemeProvider from './components/ThemeProvider.jsx';
 import { setupErrorHandlers } from './utils/errorHandler.js';
 
@@ -16,20 +17,14 @@ if (typeof window !== 'undefined') {
 // Setup global error handlers for telemetry
 setupErrorHandlers();
 
-// Debug logs only, no alerts
-console.log('main.jsx loaded - Environment check:', {
-  wailsContext: !!window.__WAILS_CONTEXT__,
-  goObject: !!window.go,
-  location: window.location.href,
-  userAgent: navigator.userAgent
-});
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

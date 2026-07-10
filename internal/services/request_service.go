@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -8,29 +10,40 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	
+
 	"rikuest/internal/database"
 	"rikuest/internal/models"
 )
 
+// defaultMaxRedirects is used when a request's MaxRedirects is 0, which means
+// "use the default" rather than "follow zero redirects" (0 stored in the DB
+// is ambiguous between "not configured" and "explicitly zero"; we choose the
+// more useful interpretation since a hard cap of zero redirects has little
+// practical value and would surprise users).
+const defaultMaxRedirects = 10
+
+// maxResponseBodyBytes caps how much of a response body is kept in memory
+// and stored in request_history (bodies beyond this are truncated).
+const maxResponseBodyBytes int64 = 10 * 1024 * 1024 // 10 MB
+
 type RequestService struct {
-	db              *database.DB
-	config          *ConfigService
-	resolver        *VariableResolver
-	captureService  *ResponseCaptureService
+	db             *database.DB
+	config         *ConfigService
+	format         *FormatService
+	resolver       *VariableResolver
+	captureService *ResponseCaptureService
+	cookies        *CookieService
 }
 
-func NewRequestService(db *database.DB) *RequestService {
+func NewRequestService(db *database.DB, resolver *VariableResolver, capture *ResponseCaptureService, cookies *CookieService) *RequestService {
 	return &RequestService{
-		db:     db,
-		config: NewConfigService(db),
+		db:             db,
+		config:         NewConfigService(db),
+		format:         NewFormatService(),
+		resolver:       resolver,
+		captureService: capture,
+		cookies:        cookies,
 	}
-}
-
-// SetCollaborators wires in the variable resolver and capture service after construction.
-func (s *RequestService) SetCollaborators(resolver *VariableResolver, capture *ResponseCaptureService) {
-	s.resolver = resolver
-	s.captureService = capture
 }
 
 func (s *RequestService) GetRequests(projectID int) ([]models.Request, error) {
@@ -69,27 +82,25 @@ func (s *RequestService) MoveRequest(requestID int, folderID *int, position int)
 	return s.db.MoveRequest(requestID, folderID, position)
 }
 
-func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
+func (s *RequestService) ExecuteRequest(ctx context.Context, requestID int) (*models.RequestResponse, error) {
 	request, err := s.GetRequest(requestID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Resolve {{variables}} before executing
-	if s.resolver != nil {
-		vars, err := s.resolver.BuildVariableMap(request.ProjectID, request.FolderID)
-		if err == nil && len(vars) > 0 {
-			request = s.resolver.ResolveRequest(request, vars)
-		}
+	vars, err := s.resolver.BuildVariableMap(request.ProjectID, request.FolderID)
+	if err == nil && len(vars) > 0 {
+		request = s.resolver.ResolveRequest(request, vars)
 	}
 
-	response, err := s.executeHTTPRequest(request)
+	response, err := s.executeHTTPRequest(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
 	// Apply response captures on successful responses
-	if s.captureService != nil && response.Status >= 200 && response.Status < 300 {
+	if response.Status >= 200 && response.Status < 300 {
 		s.captureService.ApplyCaptures(requestID, request.ProjectID, response.Body)
 	}
 
@@ -104,7 +115,7 @@ func (s *RequestService) ExecuteRequest(requestID int) (*models.RequestResponse,
 	return response, nil
 }
 
-func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.RequestResponse, error) {
+func (s *RequestService) executeHTTPRequest(ctx context.Context, request *models.Request) (*models.RequestResponse, error) {
 	start := time.Now()
 
 	// Get configured timeout, default to 5 minutes
@@ -113,8 +124,35 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 		timeout = 300 * time.Second // Default to 5 minutes on error
 	}
 
+	// A per-request timeout override takes precedence over the global
+	// configured default. Clamp using the same bounds ConfigService applies
+	// (1s - 3h) so behavior stays consistent regardless of which value wins.
+	if request.TimeoutSeconds > 0 {
+		timeout = clampTimeoutSeconds(request.TimeoutSeconds)
+	}
+
+	maxRedirects := request.MaxRedirects
+	if maxRedirects <= 0 {
+		maxRedirects = defaultMaxRedirects
+	}
+
 	client := &http.Client{
 		Timeout: timeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: request.InsecureSkipVerify},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if !request.FollowRedirects {
+				// Returning ErrUseLastResponse makes the client stop following
+				// and hand back the redirect (3xx) response itself, rather than
+				// silently following it or erroring out.
+				return http.ErrUseLastResponse
+			}
+			if len(via) >= maxRedirects {
+				return fmt.Errorf("stopped after %d redirects", maxRedirects)
+			}
+			return nil
+		},
 	}
 
 	// Build the complete URL with query parameters
@@ -123,14 +161,14 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 		parsedURL, err := url.Parse(request.URL)
 		if err == nil {
 			queryValues := parsedURL.Query()
-			
+
 			// Add query parameters from the request
 			for _, param := range request.QueryParams {
 				if param.Enabled && param.Key != "" {
 					queryValues.Add(param.Key, param.Value)
 				}
 			}
-			
+
 			parsedURL.RawQuery = queryValues.Encode()
 			finalURL = parsedURL.String()
 		}
@@ -139,7 +177,7 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	// Prepare the request body based on body type
 	var body io.Reader
 	var bodyString string
-	
+
 	if request.BodyType == "form" && len(request.FormData) > 0 {
 		// Handle form data
 		formValues := url.Values{}
@@ -156,14 +194,14 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 		body = strings.NewReader(request.Body)
 	}
 
-	req, err := http.NewRequest(request.Method, finalURL, body)
+	req, err := http.NewRequestWithContext(ctx, request.Method, finalURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set custom User-Agent header
 	req.Header.Set("User-Agent", "Rikuest/1.0 (HTTP API Client)")
-	
+
 	// Set headers from the request
 	for key, value := range request.Headers {
 		req.Header.Set(key, value)
@@ -181,6 +219,16 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 			req.Header.Set("Authorization", "Basic "+encodedAuth)
 		}
+	case "apikey":
+		if request.ApiKeyName != "" {
+			if request.ApiKeyLocation == "query" {
+				q := req.URL.Query()
+				q.Add(request.ApiKeyName, request.ApiKeyValue)
+				req.URL.RawQuery = q.Encode()
+			} else {
+				req.Header.Set(request.ApiKeyName, request.ApiKeyValue)
+			}
+		}
 	}
 
 	// Ensure Content-Type is set for form data if not already present
@@ -190,17 +238,33 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 		}
 	}
 
+	// Attach the per-project cookie jar unless the user already set an
+	// explicit Cookie header — respecting an explicit header avoids sending
+	// two Cookie headers (req.Header.Get canonicalizes the key, so this check
+	// is case-insensitive regardless of how the user typed it).
+	if req.Header.Get("Cookie") == "" {
+		jar, jarErr := s.cookies.BuildJarForRequest(request.ProjectID, req.URL)
+		if jarErr == nil {
+			client.Jar = jar
+		}
+	}
+
 	resp, err := client.Do(req)
+	if err == nil {
+		if syncErr := s.cookies.SyncFromResponse(request.ProjectID, req.URL, resp); syncErr != nil {
+			fmt.Printf("Warning: failed to sync cookies: %v\n", syncErr)
+		}
+	}
 	duration := time.Since(start)
-	
+
 	// Generate raw request
-	rawRequestString := s.buildRawRequest(request)
-	
+	rawRequestString := s.format.BuildRawRequest(request)
+
 	var response models.RequestResponse
-	
+
 	if err != nil {
 		// Handle network/connection errors as a response
-		statusText := s.getErrorStatusText(err.Error())
+		statusText := errorStatusText(err.Error())
 		response = models.RequestResponse{
 			Status:     0,
 			StatusText: statusText,
@@ -213,7 +277,16 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	} else {
 		defer resp.Body.Close()
 
-		responseBody, err := io.ReadAll(resp.Body)
+		// Cap how much of the body is kept in memory (and later stored in
+		// request_history): an unbounded ReadAll on a large download would
+		// exhaust memory and bloat the SQLite file.
+		limited := io.LimitReader(resp.Body, maxResponseBodyBytes+1)
+		responseBody, err := io.ReadAll(limited)
+		truncated := false
+		if err == nil && int64(len(responseBody)) > maxResponseBodyBytes {
+			responseBody = responseBody[:maxResponseBodyBytes]
+			truncated = true
+		}
 		if err != nil {
 			// Handle body read errors as a response
 			response = models.RequestResponse{
@@ -231,11 +304,16 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 				responseHeaders[key] = strings.Join(values, ", ")
 			}
 
+			bodyText := string(responseBody)
+			if truncated {
+				bodyText += fmt.Sprintf("\n\n[Rikuest] Response truncated: body exceeded the %d MB limit", maxResponseBodyBytes/(1024*1024))
+			}
+
 			response = models.RequestResponse{
 				Status:     resp.StatusCode,
 				StatusText: resp.Status,
 				Headers:    responseHeaders,
-				Body:       string(responseBody),
+				Body:       bodyText,
 				Duration:   duration.Milliseconds(),
 				Size:       int64(len(responseBody)),
 				RawRequest: rawRequestString,
@@ -246,111 +324,10 @@ func (s *RequestService) executeHTTPRequest(request *models.Request) (*models.Re
 	return &response, nil
 }
 
-// buildRawRequest constructs the raw HTTP request string
-func (s *RequestService) buildRawRequest(request *models.Request) string {
-	var rawRequest strings.Builder
-	
-	// Parse URL to extract query parameters
-	parsedURL, err := url.Parse(request.URL)
-	if err != nil {
-		parsedURL = &url.URL{Path: request.URL}
-	}
-	
-	// Build query parameters from request.QueryParams
-	queryParams := url.Values{}
-	for _, param := range request.QueryParams {
-		if param.Enabled && param.Key != "" {
-			queryParams.Add(param.Key, param.Value)
-		}
-	}
-	
-	// Construct the request line
-	requestPath := parsedURL.Path
-	if requestPath == "" {
-		requestPath = "/"
-	}
-	
-	if len(queryParams) > 0 {
-		requestPath += "?" + queryParams.Encode()
-	}
-	
-	// Add host from URL
-	host := parsedURL.Host
-	if host == "" {
-		host = "unknown-host"
-	}
-	
-	rawRequest.WriteString(fmt.Sprintf("%s %s HTTP/1.1\r\n", request.Method, requestPath))
-	rawRequest.WriteString(fmt.Sprintf("Host: %s\r\n", host))
-	
-	// Add custom User-Agent header
-	rawRequest.WriteString("User-Agent: Rikuest/1.0 (HTTP API Client)\r\n")
-	
-	// Add headers
-	for key, value := range request.Headers {
-		rawRequest.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
-	}
-	
-	// Add authorization headers based on auth type
-	switch request.AuthType {
-	case "bearer":
-		if request.BearerToken != "" {
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Bearer %s\r\n", request.BearerToken))
-		}
-	case "basic":
-		if request.BasicAuth.Username != "" || request.BasicAuth.Password != "" {
-			auth := request.BasicAuth.Username + ":" + request.BasicAuth.Password
-			encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-			rawRequest.WriteString(fmt.Sprintf("Authorization: Basic %s\r\n", encodedAuth))
-		}
-	}
-	
-	// Add Content-Type for form data if not already present
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		hasContentType := false
-		for key := range request.Headers {
-			if strings.ToLower(key) == "content-type" {
-				hasContentType = true
-				break
-			}
-		}
-		if !hasContentType {
-			rawRequest.WriteString("Content-Type: application/x-www-form-urlencoded\r\n")
-		}
-	}
-	
-	// Add Content-Length if there's a body
-	var bodyContent string
-	if request.BodyType == "form" && len(request.FormData) > 0 {
-		formValues := url.Values{}
-		for _, item := range request.FormData {
-			if item.Key != "" {
-				formValues.Add(item.Key, item.Value)
-			}
-		}
-		bodyContent = formValues.Encode()
-	} else if request.Body != "" {
-		bodyContent = request.Body
-	}
-	
-	if bodyContent != "" {
-		rawRequest.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(bodyContent)))
-	}
-	
-	rawRequest.WriteString("\r\n")
-	
-	// Add body if present
-	if bodyContent != "" {
-		rawRequest.WriteString(bodyContent)
-	}
-	
-	return rawRequest.String()
-}
-
-// getErrorStatusText returns a user-friendly status text based on the error message
-func (s *RequestService) getErrorStatusText(errorMsg string) string {
+// errorStatusText returns a user-friendly status text based on the error message
+func errorStatusText(errorMsg string) string {
 	errorMsg = strings.ToLower(errorMsg)
-	
+
 	if strings.Contains(errorMsg, "connection refused") {
 		return "Connection Refused"
 	}
@@ -372,7 +349,20 @@ func (s *RequestService) getErrorStatusText(errorMsg string) string {
 	if strings.Contains(errorMsg, "dns") {
 		return "DNS Error"
 	}
-	
+
 	// Default for unknown network errors
 	return "Connection Failed"
+}
+
+// clampTimeoutSeconds mirrors ConfigService's bounds (1s - 3h) for the
+// per-request timeout override, so a per-request value is clamped the same
+// way the global default is.
+func clampTimeoutSeconds(seconds int) time.Duration {
+	if seconds < 1 {
+		seconds = 1
+	}
+	if seconds > 10800 {
+		seconds = 10800
+	}
+	return time.Duration(seconds) * time.Second
 }

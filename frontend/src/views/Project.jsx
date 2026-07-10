@@ -1,22 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Send, Copy, Trash2, Zap, Settings, Upload, Layers, Terminal, Cookie } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Select, SelectOption } from '../components/ui/Select';
+import { Label } from '../components/ui/Label';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useProjectStore } from '../stores/projectStore';
 import { useRequestStore } from '../stores/requestStore';
 import { useFolderStore } from '../stores/folderStore';
 import { useUIStore } from '../stores/uiStore';
 import { useEnvironmentStore } from '../stores/environmentStore';
+import { addToast } from '../stores/toastStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
+import { useResizablePanel } from '../hooks/useResizablePanel';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { ContextMenu, ContextMenuItem } from '../components/ui';
 import ThemeSelector from '../components/ThemeSelector';
 import RequestBuilder from '../components/RequestBuilder';
+import TabBar from '../components/TabBar';
 import FolderTree from '../components/FolderTree';
 import CopyFormatModal from '../components/CopyFormatModal.jsx';
 import OpenAPIImportModal from '../components/OpenAPIImportModal';
+import ImportCurlModal from '../components/ImportCurlModal';
 import EnvironmentManager from '../components/EnvironmentManager';
+import CookieManager from '../components/CookieManager';
+import ShortcutsHelp from '../components/ShortcutsHelp';
+import GlobalSearch from '../components/GlobalSearch';
 
 function Project({ layout, onNewProject, onSettings }) {
   const { id } = useParams();
@@ -24,11 +35,11 @@ function Project({ layout, onNewProject, onSettings }) {
   const projectId = parseInt(id);
   const uiLayout = useUIStore(state => state.layout);
   const currentLayout = layout || uiLayout;
-  const { text, spacing, button, input, select, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth, menuItem } = useUISize();
+  const { text, spacing, button, input, sidebar, card, icon, iconButton, iconMd, sidebarMinWidth } = useUISize();
   const { t } = useTranslation();
   
   const { currentProject, fetchProject } = useProjectStore();
-  const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest } = useRequestStore();
+  const { requests, loading, currentRequest, fetchRequests, createRequest, deleteRequest, setCurrentRequest, loadTabsForProject } = useRequestStore();
   const { fetchFolders } = useFolderStore();
   
   const [showRequestDialog, setShowRequestDialog] = useState(false);
@@ -38,7 +49,11 @@ function Project({ layout, onNewProject, onSettings }) {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [copyModal, setCopyModal] = useState({ isOpen: false, format: '', content: '' });
   const [showOpenAPIModal, setShowOpenAPIModal] = useState(false);
+  const [showCurlImportModal, setShowCurlImportModal] = useState(false);
   const [showEnvManager, setShowEnvManager] = useState(false);
+  const [showCookieManager, setShowCookieManager] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const { activeEnvironment } = useEnvironmentStore();
   const [newRequest, setNewRequest] = useState({
     name: '',
@@ -49,112 +64,31 @@ function Project({ layout, onNewProject, onSettings }) {
   });
 
   // Panel resizing with percentage-based persistence
-  const [sidebarWidth, setSidebarWidth] = useState(320); // Initial pixel value
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = React.useRef(null);
-
-  // Save sidebar width percentage to localStorage
-  const saveWidthPercentage = React.useCallback((width) => {
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.getBoundingClientRect().width;
-      const percentage = (width / containerWidth) * 100;
-      localStorage.setItem('project-sidebarPercentage', percentage.toString());
-    }
-  }, []);
-
-  // Load and apply saved percentage
-  const loadSavedWidth = React.useCallback(() => {
-    if (containerRef.current) {
-      const savedPercentage = localStorage.getItem('project-sidebarPercentage');
-      if (savedPercentage) {
-        const containerWidth = containerRef.current.getBoundingClientRect().width;
-        const percentage = parseFloat(savedPercentage);
-        
-        // Apply constraints (10% to 40%)
-        const constrainedPercentage = Math.min(Math.max(percentage, 10), 40);
-        const calculatedWidth = (constrainedPercentage / 100) * containerWidth;
-        
-        // Ensure minimum width is respected
-        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
-        const newWidth = Math.max(calculatedWidth, minWidth);
-        
-        setSidebarWidth(newWidth);
-      } else {
-        // Default to 25% if no saved value, but respect minimum width
-        const containerWidth = containerRef.current.getBoundingClientRect().width;
-        const defaultWidth = containerWidth * 0.25;
-        const minWidth = Math.max(sidebarMinWidth, containerWidth * 0.1);
-        setSidebarWidth(Math.max(defaultWidth, minWidth));
-      }
-    }
-  }, [sidebarMinWidth]);
-
-  // Handle resizing
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    setIsResizing(true);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  const handleMouseMove = React.useCallback((e) => {
-    if (!isResizing || !containerRef.current) return;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const mouseX = e.clientX - containerRect.left;
-    
-    // Calculate minimum width: max between sidebarMinWidth and 10% of container
-    const percentageMinWidth = containerWidth * 0.1;
-    const minWidth = Math.max(sidebarMinWidth, percentageMinWidth);
-    const maxWidth = containerWidth * 0.4;
-    
-    // Clamp the width between min and max
-    const newWidth = Math.min(Math.max(mouseX, minWidth), maxWidth);
-    
-    setSidebarWidth(newWidth);
-    saveWidthPercentage(newWidth);
-  }, [isResizing, saveWidthPercentage, sidebarMinWidth]);
-
-  const handleMouseUp = React.useCallback(() => {
-    setIsResizing(false);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  React.useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isResizing, handleMouseMove, handleMouseUp]);
-
-  // Initialize sidebar width responsively and load saved width
-  React.useEffect(() => {
-    const handleResize = () => {
-      loadSavedWidth();
-    };
-
-    // Load saved width on mount
-    loadSavedWidth();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [loadSavedWidth]);
+  const {
+    size: sidebarWidth,
+    isResizing,
+    startResize,
+    containerRef
+  } = useResizablePanel({
+    storageKey: 'project-sidebarPercentage',
+    initialSize: 320,
+    defaultPercent: 25,
+    minPercent: 10,
+    maxPercent: 40,
+    minPx: sidebarMinWidth
+  });
 
   useEffect(() => {
     if (projectId) {
       fetchProject(projectId);
-      fetchRequests(projectId);
-      // Clear current request when switching projects
-      setCurrentRequest(null);
+      // Tabs from a previous project must not leak into this one: load tabs
+      // only after requests for the new project have resolved, then restore
+      // (and filter) whatever was persisted for this project.
+      fetchRequests(projectId).then(() => {
+        loadTabsForProject(projectId);
+      });
     }
-  }, [projectId, fetchProject, fetchRequests, setCurrentRequest]);
+  }, [projectId, fetchProject, fetchRequests, loadTabsForProject]);
 
   const handleSelectRequest = (request) => {
     setCurrentRequest(request);
@@ -213,9 +147,16 @@ function Project({ layout, onNewProject, onSettings }) {
         auth_type: selectedRequest.auth_type || 'none',
         bearer_token: selectedRequest.bearer_token || '',
         basic_auth: selectedRequest.basic_auth || { username: '', password: '' },
+        api_key_name: selectedRequest.api_key_name || '',
+        api_key_value: selectedRequest.api_key_value || '',
+        api_key_location: selectedRequest.api_key_location || 'header',
         body_type: selectedRequest.body_type || 'none',
         body: selectedRequest.body || '',
         form_data: selectedRequest.form_data || [],
+        insecure_skip_verify: selectedRequest.insecure_skip_verify || false,
+        follow_redirects: selectedRequest.follow_redirects !== undefined ? selectedRequest.follow_redirects : true,
+        max_redirects: selectedRequest.max_redirects !== undefined ? selectedRequest.max_redirects : 10,
+        timeout_seconds: selectedRequest.timeout_seconds || 0,
         position: selectedRequest.position + 1
       };
       
@@ -239,12 +180,12 @@ function Project({ layout, onNewProject, onSettings }) {
     if (!selectedRequest) return;
     
       try {
-        // If deleting the current request, clear it
-        if (currentRequest && currentRequest.id === selectedRequest.id) {
-          setCurrentRequest(null);
-        }
-        
+        // deleteRequest itself removes the request from any open tab and
+        // picks the next active tab if it was the active one - no need to
+        // pre-clear currentRequest here (doing so would blow away the tab
+        // selection before deleteRequest can hand off to a neighboring tab).
         await deleteRequest(selectedRequest.id);
+        addToast('success', t('request.deleted'));
         setSelectedRequest(null);
       } catch (error) {
         console.error('Failed to delete request:', error);
@@ -263,14 +204,21 @@ function Project({ layout, onNewProject, onSettings }) {
     // Close menus
     setShowMenu(false);
     setSelectedRequest(null);
-    
-    console.log('✅ Opening copy request modal');
   };
 
   const handleCloseMenus = () => {
     setShowMenu(false);
     setSelectedRequest(null);
   };
+
+  // Cmd/Ctrl+/ opens the shortcuts help modal from anywhere in the project view.
+  // Cmd/Ctrl+K opens global search - allowInInputs so it works even while
+  // focus is inside the URL bar or other inputs, and to preempt the
+  // browser's own address-bar-focus binding on that combo.
+  useKeyboardShortcuts([
+    { key: '/', mod: true, handler: () => setShowShortcutsHelp(true) },
+    { key: 'k', mod: true, allowInInputs: true, handler: () => setShowGlobalSearch(true) }
+  ]);
 
   return (
     <div 
@@ -354,11 +302,31 @@ function Project({ layout, onNewProject, onSettings }) {
             </Button>
             <Button
               variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCurlImportModal(true);
+              }}
+              className={iconButton}
+              title={t('curlImport.triggerTitle')}
+            >
+              <Terminal className={icon} />
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setShowEnvManager(true)}
               className={`${iconButton} ${activeEnvironment ? 'text-green-600 dark:text-green-400 border-green-500/40' : ''}`}
               title={t('environment.title')}
             >
               <Layers className={icon} />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowCookieManager(true)}
+              className={iconButton}
+              title={t('navigation.cookies')}
+            >
+              <Cookie className={icon} />
             </Button>
           </div>
           {activeEnvironment && (
@@ -390,7 +358,7 @@ function Project({ layout, onNewProject, onSettings }) {
         className={`w-1 bg-border hover:bg-primary/50 cursor-col-resize transition-colors relative group ${
           isResizing ? 'bg-primary' : ''
         }`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={startResize}
       >
         <div className="absolute inset-0 w-3 -translate-x-1 z-10" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-muted-foreground/30 rounded-full group-hover:bg-primary/70 transition-colors" />
@@ -398,6 +366,7 @@ function Project({ layout, onNewProject, onSettings }) {
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <TabBar />
         {currentRequest ? (
           <RequestBuilder />
         ) : (
@@ -437,7 +406,7 @@ function Project({ layout, onNewProject, onSettings }) {
 
             <div className="space-y-4">
               <div>
-                <label className={`${text('sm')} font-medium mb-2 block`}>{t('request.requestName')}</label>
+                <Label className="mb-2 block">{t('request.requestName')}</Label>
                 <Input
                   value={newRequest.name}
                   onChange={(e) => setNewRequest({...newRequest, name: e.target.value})}
@@ -448,23 +417,23 @@ function Project({ layout, onNewProject, onSettings }) {
               
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.method')}</label>
-                  <select
+                  <Label className="mb-2 block">{t('common.method')}</Label>
+                  <Select
                     value={newRequest.method}
                     onChange={(e) => setNewRequest({...newRequest, method: e.target.value})}
-                    className={`${select} w-full shadow-sm`}
+                    className="w-full shadow-sm"
                   >
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                    <option value="PUT">PUT</option>
-                    <option value="DELETE">DELETE</option>
-                    <option value="PATCH">PATCH</option>
-                    <option value="HEAD">HEAD</option>
-                    <option value="OPTIONS">OPTIONS</option>
-                  </select>
+                    <SelectOption value="GET">GET</SelectOption>
+                    <SelectOption value="POST">POST</SelectOption>
+                    <SelectOption value="PUT">PUT</SelectOption>
+                    <SelectOption value="DELETE">DELETE</SelectOption>
+                    <SelectOption value="PATCH">PATCH</SelectOption>
+                    <SelectOption value="HEAD">HEAD</SelectOption>
+                    <SelectOption value="OPTIONS">OPTIONS</SelectOption>
+                  </Select>
                 </div>
                 <div className="col-span-2">
-                  <label className={`${text('sm')} font-medium mb-2 block`}>{t('common.url')}</label>
+                  <Label className="mb-2 block">{t('common.url')}</Label>
                   <Input
                     value={newRequest.url}
                     onChange={(e) => setNewRequest({...newRequest, url: e.target.value})}
@@ -488,37 +457,22 @@ function Project({ layout, onNewProject, onSettings }) {
       )}
 
       {/* Request Menu */}
-      {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={handleCloseMenus}>
-          <div 
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={handleDuplicateRequest}
-            >
-              <Copy className={iconMd} />
-              {t('project.duplicate')}
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted transition-colors flex items-center gap-2`}
-              onClick={handleCopyRequest}
-            >
-              <Copy className={iconMd} />
-              {t('request.copyRequest')}
-            </button>
-            <button
-              className={`w-full ${menuItem} text-left hover:bg-muted text-destructive transition-colors flex items-center gap-2`}
-              onClick={handleDeleteRequest}
-            >
-              <Trash2 className={iconMd} />
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
-      )}
+      <ContextMenu
+        isOpen={showMenu}
+        position={menuPosition}
+        onClose={handleCloseMenus}
+        className="min-w-[140px]"
+      >
+        <ContextMenuItem autoFocus icon={<Copy className={iconMd} />} onClick={handleDuplicateRequest}>
+          {t('project.duplicate')}
+        </ContextMenuItem>
+        <ContextMenuItem icon={<Copy className={iconMd} />} onClick={handleCopyRequest}>
+          {t('request.copyRequest')}
+        </ContextMenuItem>
+        <ContextMenuItem destructive icon={<Trash2 className={iconMd} />} onClick={handleDeleteRequest}>
+          {t('common.delete')}
+        </ContextMenuItem>
+      </ContextMenu>
 
       {/* Copy Format Modal */}
       <CopyFormatModal
@@ -545,11 +499,37 @@ function Project({ layout, onNewProject, onSettings }) {
         projectId={projectId}
       />
 
+      {/* cURL Import Modal */}
+      <ImportCurlModal
+        isOpen={showCurlImportModal}
+        onClose={() => setShowCurlImportModal(false)}
+        projectId={projectId}
+      />
+
       {/* Environment Manager */}
       <EnvironmentManager
         projectId={projectId}
         isOpen={showEnvManager}
         onClose={() => setShowEnvManager(false)}
+      />
+
+      {/* Cookie Manager */}
+      <CookieManager
+        projectId={projectId}
+        isOpen={showCookieManager}
+        onClose={() => setShowCookieManager(false)}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <ShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+      />
+
+      {/* Global Search */}
+      <GlobalSearch
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
       />
     </div>
   );

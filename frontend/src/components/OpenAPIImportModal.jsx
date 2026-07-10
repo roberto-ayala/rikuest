@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { DialogTitle } from '@headlessui/react';
+import { Modal, Checkbox } from './ui';
 import { X, Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
@@ -214,20 +216,13 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-      onClick={handleClose}
-    >
-      <div 
-        className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal isOpen={isOpen} onClose={handleClose} size="xl" className="p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h2 className={`${text('xl')} font-semibold text-foreground`}>
+          <DialogTitle as="h2" className={`${text('xl')} font-semibold text-foreground`}>
             {t('openapi.title')}
-          </h2>
-          <button 
-            onClick={handleClose} 
+          </DialogTitle>
+          <button
+            onClick={handleClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
             disabled={importing}
           >
@@ -320,12 +315,10 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="create-folders"
                   checked={createFoldersFromTags}
                   onChange={(e) => setCreateFoldersFromTags(e.target.checked)}
-                  className="rounded border-border"
                   disabled={importing}
                 />
                 <label 
@@ -359,11 +352,9 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
                       }`}
                       onClick={() => !importing && toggleEndpoint(idx)}
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedEndpoints.has(idx)}
                         onChange={() => toggleEndpoint(idx)}
-                        className="rounded border-border"
                         onClick={(e) => e.stopPropagation()}
                         disabled={importing}
                       />
@@ -426,8 +417,7 @@ const OpenAPIImportModal = ({ isOpen, onClose, projectId }) => {
             </Button>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 };
 

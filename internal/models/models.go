@@ -39,24 +39,31 @@ type Folder struct {
 }
 
 type Request struct {
-	ID          int               `json:"id" db:"id"`
-	ProjectID   int               `json:"project_id" db:"project_id"`
-	FolderID    *int              `json:"folder_id" db:"folder_id"`
-	Name        string            `json:"name" db:"name"`
-	Method      string            `json:"method" db:"method"`
-	URL         string            `json:"url" db:"url"`
-	Headers     map[string]string `json:"headers" db:"headers"`
-	Body        string            `json:"body" db:"body"`
-	QueryParams []QueryParam      `json:"query_params" db:"query_params"`
-	AuthType    string            `json:"auth_type" db:"auth_type"`
-	BearerToken string            `json:"bearer_token" db:"bearer_token"`
-	BasicAuth   BasicAuth         `json:"basic_auth" db:"basic_auth"`
-	BodyType    string            `json:"body_type" db:"body_type"`
-	FormData    []FormData        `json:"form_data" db:"form_data"`
-	Position    int               `json:"position" db:"position"`
-	Response    *RequestResponse  `json:"response,omitempty"`
-	CreatedAt   time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at" db:"updated_at"`
+	ID                 int               `json:"id" db:"id"`
+	ProjectID          int               `json:"project_id" db:"project_id"`
+	FolderID           *int              `json:"folder_id" db:"folder_id"`
+	Name               string            `json:"name" db:"name"`
+	Method             string            `json:"method" db:"method"`
+	URL                string            `json:"url" db:"url"`
+	Headers            map[string]string `json:"headers" db:"headers"`
+	Body               string            `json:"body" db:"body"`
+	QueryParams        []QueryParam      `json:"query_params" db:"query_params"`
+	AuthType           string            `json:"auth_type" db:"auth_type"`
+	BearerToken        string            `json:"bearer_token" db:"bearer_token"`
+	BasicAuth          BasicAuth         `json:"basic_auth" db:"basic_auth"`
+	ApiKeyName         string            `json:"api_key_name" db:"api_key_name"`
+	ApiKeyValue        string            `json:"api_key_value" db:"api_key_value"`
+	ApiKeyLocation     string            `json:"api_key_location" db:"api_key_location"`
+	BodyType           string            `json:"body_type" db:"body_type"`
+	FormData           []FormData        `json:"form_data" db:"form_data"`
+	Position           int               `json:"position" db:"position"`
+	InsecureSkipVerify bool              `json:"insecure_skip_verify" db:"insecure_skip_verify"`
+	FollowRedirects    bool              `json:"follow_redirects" db:"follow_redirects"`
+	MaxRedirects       int               `json:"max_redirects" db:"max_redirects"`
+	TimeoutSeconds     int               `json:"timeout_seconds" db:"timeout_seconds"`
+	Response           *RequestResponse  `json:"response,omitempty"`
+	CreatedAt          time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt          time.Time         `json:"updated_at" db:"updated_at"`
 }
 
 type RequestResponse struct {
@@ -105,6 +112,23 @@ type Environment struct {
 	Variables []Variable `json:"variables"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+// ===== COOKIE JAR =====
+
+type Cookie struct {
+	ID        int        `json:"id" db:"id"`
+	ProjectID int        `json:"project_id" db:"project_id"`
+	Domain    string     `json:"domain" db:"domain"`
+	Path      string     `json:"path" db:"path"`
+	Name      string     `json:"name" db:"name"`
+	Value     string     `json:"value" db:"value"`
+	ExpiresAt *time.Time `json:"expires_at" db:"expires_at"`
+	Secure    bool       `json:"secure" db:"secure"`
+	HttpOnly  bool       `json:"http_only" db:"http_only"`
+	SameSite  string     `json:"same_site" db:"same_site"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 type ResponseCapture struct {

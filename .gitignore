@@ -197,3 +197,6 @@ settings.local.*
 rikuest.db
 
 build/
+# SQLite WAL sidecar files
+*.db-wal
+*.db-shm

@@ -1,9 +1,11 @@
 import React from 'react';
 import { Palette, ChevronDown } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { useTranslation } from '../hooks/useTranslation';
 
 function ColorSelector({ modal = false }) {
   const { primaryColor, setPrimaryColor, getColorConfig, getSizeConfig, uiSize } = useUIStore();
+  const { t } = useTranslation();
   const config = getSizeConfig(uiSize);
 
   const colors = [
@@ -110,7 +112,7 @@ function ColorSelector({ modal = false }) {
       
       <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[180px]">
         <div className={`${config.spacing[1]}`}>
-          <div className={`${config.text.xs} text-muted-foreground font-medium mb-2`}>Primary Color</div>
+          <div className={`${config.text.xs} text-muted-foreground font-medium mb-2`}>{t('settings.primaryColor')}</div>
           <div className="grid grid-cols-5 gap-1 mb-2">
             {colors.map((color) => (
               <button

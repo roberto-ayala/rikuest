@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Zap, Folder, MoreVertical } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Textarea } from '../components/ui/Textarea';
+import { ContextMenu, ContextMenuItem } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ProjectFormDialog from '../components/ProjectFormDialog';
 import { useProjectStore } from '../stores/projectStore';
+import { addToast } from '../stores/toastStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 
 function Home() {
   const navigate = useNavigate();
-  const { text, spacing, button, input, card } = useUISize();
+  const { text, spacing, button, card } = useUISize();
   const { projects, loading, fetchProjects, createProject, updateProject, deleteProject } = useProjectStore();
   const { t } = useTranslation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -20,8 +21,6 @@ function Home() {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [newProject, setNewProject] = useState({ name: '', description: '' });
-  const [editProject, setEditProject] = useState({ id: null, name: '', description: '' });
 
   useEffect(() => {
     fetchProjects();
@@ -31,22 +30,14 @@ function Home() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const handleCreateProject = async () => {
-    if (!newProject.name.trim()) return;
-    
+  const handleCreateProject = async (values) => {
     try {
-      const project = await createProject(newProject);
+      const project = await createProject(values);
       setShowCreateDialog(false);
-      setNewProject({ name: '', description: '' });
       navigate(`/project/${project.id}`);
     } catch (error) {
       console.error('Failed to create project:', error);
     }
-  };
-
-  const handleCancelCreate = () => {
-    setShowCreateDialog(false);
-    setNewProject({ name: '', description: '' });
   };
 
   const handleShowProjectMenu = (project, event) => {
@@ -57,35 +48,21 @@ function Home() {
 
   const handleEditProject = () => {
     if (!selectedProject) return;
-    
-    setEditProject({
-      id: selectedProject.id,
-      name: selectedProject.name,
-      description: selectedProject.description || ''
-    });
+
     setShowMenu(false);
     setShowEditDialog(true);
   };
 
-  const handleUpdateProject = async () => {
-    if (!editProject.name.trim()) return;
-    
+  const handleUpdateProject = async (values) => {
+    if (!selectedProject) return;
+
     try {
-      await updateProject(editProject.id, {
-        name: editProject.name,
-        description: editProject.description
-      });
+      await updateProject(selectedProject.id, values);
       setShowEditDialog(false);
-      setEditProject({ id: null, name: '', description: '' });
       setSelectedProject(null);
     } catch (error) {
       console.error('Failed to update project:', error);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setShowEditDialog(false);
-    setEditProject({ id: null, name: '', description: '' });
   };
 
   const handleDeleteProject = () => {
@@ -100,6 +77,7 @@ function Home() {
     
     try {
       await deleteProject(selectedProject.id);
+      addToast('success', t('project.deleted'));
       setSelectedProject(null);
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -198,110 +176,36 @@ function Home() {
       )}
 
       {/* Create Project Dialog */}
-      {showCreateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">{t('project.create')}</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('project.projectName')}</label>
-                <Input
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({...newProject, name: e.target.value})}
-                  placeholder={t('project.projectNamePlaceholder')}
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('project.projectDescription')}</label>
-                <Textarea
-                  value={newProject.description}
-                  onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-                  placeholder={t('project.projectDescriptionPlaceholder')}
-                  className="w-full"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 mt-6">
-              <Button variant="ghost" onClick={handleCancelCreate}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={handleCreateProject} disabled={!newProject.name.trim()}>
-                {t('common.create')} {t('common.project')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectFormDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        mode="create"
+        onSubmit={handleCreateProject}
+      />
 
       {/* Edit Project Dialog */}
-      {showEditDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card p-6 rounded-lg shadow-lg border border-border w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">{t('common.edit')} {t('common.project')}</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('project.projectName')}</label>
-                <Input
-                  value={editProject.name}
-                  onChange={(e) => setEditProject({...editProject, name: e.target.value})}
-                  placeholder={t('project.projectNamePlaceholder')}
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium mb-2 block">{t('project.projectDescription')}</label>
-                <Textarea
-                  value={editProject.description}
-                  onChange={(e) => setEditProject({...editProject, description: e.target.value})}
-                  placeholder={t('project.projectDescriptionPlaceholder')}
-                  className="w-full"
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 mt-6">
-              <Button variant="ghost" onClick={handleCancelEdit}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={handleUpdateProject} disabled={!editProject.name.trim()}>
-                {t('common.save')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectFormDialog
+        isOpen={showEditDialog}
+        onClose={() => { setShowEditDialog(false); setSelectedProject(null); }}
+        mode="edit"
+        initialValues={selectedProject}
+        onSubmit={handleUpdateProject}
+      />
 
       {/* Project Actions Menu */}
-      {showMenu && (
-        <div className="fixed inset-0 z-50" onClick={handleMenuClose}>
-          <div 
-            className="absolute bg-card border border-border rounded-md shadow-lg py-1 min-w-[120px]"
-            style={{ left: menuPosition.x + 'px', top: menuPosition.y + 'px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
-              onClick={handleEditProject}
-            >
-              {t('common.edit')} {t('common.project')}
-            </button>
-            <button
-              className="w-full px-3 py-2 text-sm text-left hover:bg-muted text-destructive transition-colors"
-              onClick={handleDeleteProject}
-            >
-              {t('project.deleteProject')}
-            </button>
-          </div>
-        </div>
-      )}
+      <ContextMenu
+        isOpen={showMenu}
+        position={menuPosition}
+        onClose={handleMenuClose}
+        className="min-w-[120px]"
+      >
+        <ContextMenuItem onClick={handleEditProject}>
+          {t('common.edit')} {t('common.project')}
+        </ContextMenuItem>
+        <ContextMenuItem destructive onClick={handleDeleteProject}>
+          {t('project.deleteProject')}
+        </ContextMenuItem>
+      </ContextMenu>
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog

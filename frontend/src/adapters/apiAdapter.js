@@ -203,6 +203,19 @@ export class APIAdapter {
     });
   }
 
+  // ===== COOKIE METHODS =====
+  async getCookies(projectId) {
+    return this.request(`/api/project/${projectId}/cookies`);
+  }
+
+  async deleteCookie(id) {
+    await this.request(`/api/cookie/${id}`, { method: 'DELETE' });
+  }
+
+  async clearProjectCookies(projectId) {
+    await this.request(`/api/project/${projectId}/cookies`, { method: 'DELETE' });
+  }
+
   // ===== CONFIG METHODS =====
   async getRequestTimeout() {
     // In web mode, get from localStorage or default to 300

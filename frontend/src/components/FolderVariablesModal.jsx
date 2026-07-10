@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { DialogTitle } from '@headlessui/react';
+import { Plus, Trash2 } from 'lucide-react';
+import { Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 
-function VariableRow({ variable, onChange, onDelete, inputClass, iconClass, t }) {
+function VariableRow({ variable, onChange, onDelete, iconClass, t }) {
   return (
     <div className="flex items-center gap-2">
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.variablePlaceholder')}
         value={variable.key}
         onChange={e => onChange({ ...variable, key: e.target.value })}
       />
-      <input
-        className={`flex-1 ${inputClass} rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
+      <Input
+        className="flex-1"
         placeholder={t('environment.valuePlaceholder')}
         value={variable.value}
         onChange={e => onChange({ ...variable, value: e.target.value })}
@@ -33,7 +36,7 @@ function VariableRow({ variable, onChange, onDelete, inputClass, iconClass, t })
 export default function FolderVariablesModal({ folder, isOpen, onClose }) {
   const { folderVariables, fetchFolderVariables, updateFolderVariables } = useEnvironmentStore();
   const { t } = useTranslation();
-  const { text, spacing, input, icon, iconMd, button: buttonClass } = useUISize();
+  const { text, icon, button: buttonClass } = useUISize();
   const [variables, setVariables] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -63,55 +66,46 @@ export default function FolderVariablesModal({ folder, isOpen, onClose }) {
   if (!isOpen || !folder) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-[480px] max-h-[70vh] flex flex-col">
-        {/* Header */}
-        <div className={`flex items-center justify-between border-b border-border ${spacing(4)}`}>
-          <div>
-            <h2 className={`${text('sm')} font-semibold`}>{t('environment.folderVariables')}</h2>
-            <p className={`${text('xs')} text-muted-foreground mt-0.5`}>
-              {t('environment.folderVariablesDesc')} <span className="font-medium">{folder.name}</span>
-            </p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className={iconMd} />
-          </button>
+    <Modal isOpen={isOpen} onClose={onClose} size="md" className="max-w-[480px] max-h-[70vh]">
+      <ModalHeader onClose={onClose}>
+        <div>
+          <DialogTitle as="h2" className={`${text('sm')} font-semibold`}>{t('environment.folderVariables')}</DialogTitle>
+          <p className={`${text('xs')} text-muted-foreground mt-0.5`}>
+            {t('environment.folderVariablesDesc')} <span className="font-medium">{folder.name}</span>
+          </p>
         </div>
+      </ModalHeader>
 
-        {/* Content */}
-        <div className={`flex-1 overflow-y-auto space-y-2 min-h-0 ${spacing(4)}`}>
-          <div className="flex items-center gap-2 mb-1 px-0.5">
-            <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.variable')}</span>
-            <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.value')}</span>
-            <span className="w-5" />
-          </div>
-          {variables.map((v, i) => (
-            <VariableRow
-              key={i}
-              variable={v}
-              onChange={updated => updateVariable(i, updated)}
-              onDelete={() => removeVariable(i)}
-              inputClass={input}
-              iconClass={icon}
-              t={t}
-            />
-          ))}
-          <button
-            onClick={addVariable}
-            className={`flex items-center gap-1 ${text('xs')} text-muted-foreground hover:text-foreground py-1`}
-          >
-            <Plus className={icon} /> {t('environment.addVariable')}
-          </button>
+      <ModalBody className="space-y-2">
+        <div className="flex items-center gap-2 mb-1 px-0.5">
+          <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.variable')}</span>
+          <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.value')}</span>
+          <span className="w-5" />
         </div>
+        {variables.map((v, i) => (
+          <VariableRow
+            key={i}
+            variable={v}
+            onChange={updated => updateVariable(i, updated)}
+            onDelete={() => removeVariable(i)}
+            iconClass={icon}
+            t={t}
+          />
+        ))}
+        <button
+          onClick={addVariable}
+          className={`flex items-center gap-1 ${text('xs')} text-muted-foreground hover:text-foreground py-1`}
+        >
+          <Plus className={icon} /> {t('environment.addVariable')}
+        </button>
+      </ModalBody>
 
-        {/* Footer */}
-        <div className={`flex justify-end gap-2 border-t border-border ${spacing(4)}`}>
-          <Button variant="outline" className={buttonClass} onClick={onClose}>{t('common.cancel')}</Button>
-          <Button className={buttonClass} onClick={handleSave} disabled={saving}>
-            {saving ? t('environment.saving') : t('common.save')}
-          </Button>
-        </div>
-      </div>
-    </div>
+      <ModalFooter>
+        <Button variant="outline" className={buttonClass} onClick={onClose}>{t('common.cancel')}</Button>
+        <Button className={buttonClass} onClick={handleSave} disabled={saving}>
+          {saving ? t('environment.saving') : t('common.save')}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

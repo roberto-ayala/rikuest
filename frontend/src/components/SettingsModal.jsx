@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Palette, Type, Settings, Layout, Paintbrush, Globe, Clock, Activity } from 'lucide-react';
 import { Button } from './ui/Button';
+import { Modal } from './ui';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
 import ColorSelector from './ColorSelector';
@@ -109,8 +110,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-2 sm:p-4">
-      <div className="bg-card border border-border rounded-lg shadow-xl w-full max-w-2xl lg:max-w-4xl mx-auto max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] flex flex-col">
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
         {/* Header - Fixed */}
         <div className={`flex items-center justify-between flex-shrink-0 border-b border-border ${spacing(4)}`}>
           <div className="flex items-center gap-3">
@@ -186,8 +186,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             {t('settings.done')}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

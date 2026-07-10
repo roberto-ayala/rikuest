@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { 
   Folder, 
   FolderOpen,
@@ -10,24 +10,40 @@ import {
 import { Button } from './ui/Button';
 import { useUISize } from '../hooks/useUISize';
 
-function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children }) {
+function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children, title }) {
   const { text, spacing, button, icon, iconMd, itemSpacing } = useUISize();
   
-  const {
-    setNodeRef,
-    isOver,
-  } = useDroppable({
+  // The folder is both a drop target (accepts requests + other folders) and a
+  // drag source (can be re-parented). Both hooks share the same id; their refs
+  // are merged onto the header row, which doubles as the drag handle.
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `folder-${folder.id}`,
   });
+  const {
+    setNodeRef: setDraggableRef,
+    listeners,
+    attributes,
+    isDragging,
+  } = useDraggable({
+    id: `folder-${folder.id}`,
+  });
+  const setNodeRef = (node) => {
+    setDroppableRef(node);
+    setDraggableRef(node);
+  };
 
   return (
     <div>
-      {/* Folder Header */}
+      {/* Folder Header (drag handle) */}
       <div
         ref={setNodeRef}
+        {...attributes}
+        {...listeners}
         className={`group flex items-center ${spacing(2)} rounded cursor-pointer transition-all ${
-          isOver 
-            ? 'bg-primary/10 border-2 border-dashed border-primary' 
+          isDragging ? 'opacity-50' : ''
+        } ${
+          isOver
+            ? 'bg-primary/10 border-2 border-dashed border-primary'
             : 'hover:bg-muted'
         }`}
         onClick={onToggle}
@@ -35,6 +51,7 @@ function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children })
         <Button
           variant="ghost"
           size="sm"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
@@ -55,21 +72,20 @@ function DroppableFolder({ folder, isExpanded, onToggle, onShowMenu, children })
             <Folder className={`${iconMd} text-primary flex-shrink-0`} />
           )}
           
-          <span className={`${text('sm')} font-medium text-foreground truncate ${
-            isOver ? 'text-primary' : ''
-          }`}>
+          <span
+            title={title}
+            className={`${text('sm')} font-medium text-foreground truncate ${
+              isOver ? 'text-primary' : ''
+            }`}
+          >
             {folder.name}
-            {isOver && (
-              <span className="ml-2 text-xs opacity-75">
-                Drop request here
-              </span>
-            )}
           </span>
         </div>
         
         <Button
           variant="ghost"
           className={`opacity-0 group-hover:opacity-100 ${button} h-6 w-6 p-0`}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             if (onShowMenu) {

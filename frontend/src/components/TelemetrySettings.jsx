@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Switch } from './ui';
 import { useTelemetryStore } from '../stores/telemetryStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
@@ -35,16 +36,7 @@ const TelemetrySettings = () => {
               {t('settings.telemetryDescription')}
             </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={localEnabled}
-              onChange={handleToggle}
-              disabled={loading}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ring rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
+          <Switch checked={localEnabled} onChange={handleToggle} disabled={loading} />
         </div>
 
         <div className={`${spacing(4)} bg-muted/50 rounded-lg border border-border`}>

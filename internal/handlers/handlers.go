@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"rikuest/internal/models"
 	"rikuest/internal/services"
@@ -13,36 +12,6 @@ import (
 
 type Handler struct {
 	services *services.Services
-}
-
-// getErrorStatusText returns a user-friendly status text based on the error message
-func getErrorStatusText(errorMsg string) string {
-	errorMsg = strings.ToLower(errorMsg)
-
-	if strings.Contains(errorMsg, "connection refused") {
-		return "Connection Refused"
-	}
-	if strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "no such domain") {
-		return "Host Not Found"
-	}
-	if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "timed out") {
-		return "Request Timeout"
-	}
-	if strings.Contains(errorMsg, "eof") {
-		return "Connection Closed"
-	}
-	if strings.Contains(errorMsg, "certificate") || strings.Contains(errorMsg, "tls") || strings.Contains(errorMsg, "ssl") {
-		return "SSL/TLS Error"
-	}
-	if strings.Contains(errorMsg, "network") {
-		return "Network Error"
-	}
-	if strings.Contains(errorMsg, "dns") {
-		return "DNS Error"
-	}
-
-	// Default for unknown network errors
-	return "Connection Failed"
 }
 
 func NewHandler(services *services.Services) *Handler {
@@ -60,6 +29,11 @@ func (h *Handler) CreateProject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.services.Telemetry.ReportUsageEvent("project_created", map[string]interface{}{
+		"project_id":   project.ID,
+		"project_name": project.Name,
+	})
 
 	c.JSON(http.StatusCreated, project)
 }
@@ -218,11 +192,17 @@ func (h *Handler) ExecuteRequest(c *gin.Context) {
 		return
 	}
 
-	response, err := h.services.Request.ExecuteRequest(id)
+	response, err := h.services.Request.ExecuteRequest(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.services.Telemetry.ReportUsageEvent("request_executed", map[string]interface{}{
+		"request_id": id,
+		"status":     response.Status,
+		"duration":   response.Duration,
+	})
 
 	c.JSON(http.StatusOK, response)
 }
@@ -276,6 +256,12 @@ func (h *Handler) CreateFolder(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.services.Telemetry.ReportUsageEvent("folder_created", map[string]interface{}{
+		"folder_id":   folder.ID,
+		"folder_name": folder.Name,
+		"project_id":  folder.ProjectID,
+	})
 
 	c.JSON(http.StatusCreated, folder)
 }
@@ -389,6 +375,59 @@ func (h *Handler) CopyRequestFormats(c *gin.Context) {
 		"format":  format,
 		"content": formattedRequest,
 	})
+}
+
+// Cookie handlers
+
+func (h *Handler) GetProjectCookies(c *gin.Context) {
+	projectID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	cookies, err := h.services.Cookie.GetCookies(projectID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure we return an empty array instead of null
+	if cookies == nil {
+		cookies = []models.Cookie{}
+	}
+
+	c.JSON(http.StatusOK, cookies)
+}
+
+func (h *Handler) DeleteCookie(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid cookie ID"})
+		return
+	}
+
+	if err := h.services.Cookie.DeleteCookie(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Cookie deleted successfully"})
+}
+
+func (h *Handler) ClearProjectCookies(c *gin.Context) {
+	projectID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+
+	if err := h.services.Cookie.ClearProjectCookies(projectID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Project cookies cleared successfully"})
 }
 
 // CopyAllRequestFormats returns the request in all available formats

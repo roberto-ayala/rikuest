@@ -47,7 +47,8 @@
     "settings": "Configuración",
     "newProject": "Nuevo Proyecto",
     "newRequest": "Nueva Solicitud",
-    "newFolder": "Nueva Carpeta"
+    "newFolder": "Nueva Carpeta",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Crear Nuevo Proyecto",
@@ -66,6 +67,7 @@
     "deleteProject": "Eliminar Proyecto",
     "deleteProjectConfirm": "¿Estás seguro de que quieres eliminar este proyecto?",
     "deleteProjectWarning": "Esta acción no se puede deshacer",
+    "deleted": "Proyecto eliminado",
     "noDescription": "Sin descripción",
     "selectRequest": "Selecciona un request",
     "selectRequestDesc": "Elige un request de la barra lateral o crea uno nuevo",
@@ -101,6 +103,11 @@
     "urlPlaceholder": "Ingresa la URL del request",
     "send": "Enviar",
     "sending": "Enviando...",
+    "saving": "Guardando…",
+    "saved": "Guardado",
+    "saveFailed": "Error al guardar",
+    "retrySave": "Clic para reintentar",
+    "deleted": "Solicitud eliminada",
     "historyTitle": "Historial de Solicitudes",
     "noSelected": "Ningún request seleccionado",
     "noResponse": "Sin Respuesta",
@@ -136,7 +143,30 @@
     "password": "Contraseña",
     "passwordPlaceholder": "Ingresa la contraseña",
     "createRequest": "Crear Solicitud",
-    "copyRequest": "Copiar Solicitud"
+    "copyRequest": "Copiar Solicitud",
+    "tabParams": "Parámetros",
+    "tabHeaders": "Encabezados",
+    "tabBody": "Cuerpo",
+    "tabAuthorization": "Autorización",
+    "tabCaptures": "Capturas",
+    "tabRawRequest": "Petición sin procesar",
+    "tabSettings": "Configuración",
+    "untitled": "Sin título",
+    "closeTab": "Cerrar pestaña",
+    "openTabs": "Pestañas de solicitudes abiertas",
+    "apiKeyName": "Nombre de la Clave",
+    "apiKeyNamePlaceholder": "ej. X-API-Key",
+    "apiKeyValue": "Valor de la Clave",
+    "apiKeyValuePlaceholder": "Ingresa el valor de la clave API",
+    "apiKeyLocation": "Agregar a",
+    "locationHeader": "Encabezado",
+    "locationQuery": "Parámetros de Consulta",
+    "skipTlsVerify": "Omitir verificación TLS/SSL",
+    "skipTlsVerifyWarning": "Deshabilita la validación de certificados - úsalo solo para servidores locales/de desarrollo en los que confíes.",
+    "followRedirects": "Seguir redirecciones",
+    "maxRedirects": "Máximo de redirecciones",
+    "timeoutOverride": "Timeout personalizado de la solicitud (segundos)",
+    "timeoutOverridePlaceholder": "0 o vacío = usar el valor global por defecto"
   },
   "folder": {
     "create": "Crear Nueva Carpeta",
@@ -154,7 +184,13 @@
     "foldersAndRequests": "Carpetas y Solicitudes",
     "createNew": "Crear Nuevo",
     "createFolder": "Crear Carpeta",
-    "rename": "Renombrar"
+    "rename": "Renombrar",
+    "dropToRoot": "Suelta aquí para mover al nivel raíz",
+    "runCollection": "Ejecutar Colección",
+    "newSubfolder": "Nueva subcarpeta",
+    "inFolder": "en",
+    "maxDepthReached": "Se alcanzó la profundidad máxima de anidamiento",
+    "cannotMoveIntoDescendant": "No se puede mover una carpeta dentro de sí misma o de una subcarpeta suya"
   },
   "settings": {
     "title": "Configuración",
@@ -291,5 +327,82 @@
       "noEndpoints": "No se encontraron endpoints en la especificación OpenAPI",
       "invalidFormat": "Formato de archivo inválido. Se esperaba JSON o YAML."
     }
+  },
+  "curlImport": {
+    "title": "Importar cURL",
+    "triggerTitle": "Importar comando cURL",
+    "placeholder": "Pega aquí un comando curl, ej. curl -X POST 'https://api.ejemplo.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+    "preview": "Vista previa",
+    "nameLabel": "Nombre de la Solicitud",
+    "namePlaceholder": "Ingresa el nombre de la solicitud",
+    "import": "Importar",
+    "importing": "Importando...",
+    "errors": {
+      "parseFailed": "Error al analizar el comando curl",
+      "importFailed": "Error al importar la solicitud"
+    },
+    "imported": "Solicitud importada desde curl"
+  },
+  "jsonEditor": {
+    "format": "Formatear",
+    "formatTooltip": "Formatear JSON (Ctrl+Shift+F)",
+    "validJson": "JSON válido",
+    "invalidJson": "JSON no válido"
+  },
+  "copyFormats": {
+    "rawHttp": "HTTP sin procesar",
+    "curl": "cURL",
+    "fetch": "JavaScript Fetch",
+    "python": "Python Requests"
+  },
+  "response": {
+    "copy": "Copiar",
+    "copied": "Copiado al portapapeles",
+    "copyFailed": "Error al copiar",
+    "switchToRaw": "Cambiar a vista sin procesar",
+    "switchToPretty": "Cambiar a vista formateada",
+    "toggleWrap": "Alternar ajuste de línea",
+    "search": "Buscar en el cuerpo",
+    "searchPlaceholder": "Buscar...",
+    "noMatches": "Sin coincidencias",
+    "matchCounter": "{current} de {total}",
+    "prevMatch": "Coincidencia anterior",
+    "nextMatch": "Siguiente coincidencia",
+    "closeSearch": "Cerrar búsqueda",
+    "binaryPreviewTitle": "Respuesta binaria",
+    "binaryPreviewDesc": "{type} — {size} — vista previa no disponible"
+  },
+  "shortcuts": {
+    "title": "Atajos de Teclado",
+    "execute": "Enviar solicitud",
+    "save": "Guardar solicitud",
+    "search": "Buscar solicitudes",
+    "help": "Mostrar atajos"
+  },
+  "runner": {
+    "title": "Ejecutor de Colección",
+    "stop": "Detener",
+    "noRequests": "Esta carpeta no tiene solicitudes para ejecutar",
+    "completed": "Completado",
+    "succeeded": "exitosas",
+    "failed": "fallidas"
+  },
+  "search": {
+    "placeholder": "Buscar solicitudes por nombre o URL...",
+    "typeToSearch": "Escribe para buscar",
+    "noResults": "No se encontraron solicitudes"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "Aún no hay cookies almacenadas para este proyecto",
+    "domain": "Dominio",
+    "name": "Nombre",
+    "value": "Valor",
+    "expires": "Expira",
+    "session": "Sesión",
+    "clearAll": "Borrar todo",
+    "clearAllConfirm": "¿Seguro que quieres eliminar todas las cookies de este proyecto? Esta acción no se puede deshacer.",
+    "deleted": "Cookie eliminada",
+    "cleared": "Cookies borradas"
   }
 }

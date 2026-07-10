@@ -2,9 +2,11 @@ import React from 'react';
 import { Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { useUISize } from '../hooks/useUISize';
+import { useTranslation } from '../hooks/useTranslation';
 
 function ThemeSelector() {
   const { theme, setTheme, getSizeConfig, uiSize } = useUIStore();
+  const { t } = useTranslation();
   const { themeButton, icon } = useUISize();
   const config = getSizeConfig(uiSize);
 
@@ -30,7 +32,7 @@ function ThemeSelector() {
       
       <div className="absolute top-full right-0 mt-1 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[120px]">
         <div className={`${config.spacing[1]}`}>
-          <div className={`${config.text.xs} text-muted-foreground font-medium mb-2`}>Theme</div>
+          <div className={`${config.text.xs} text-muted-foreground font-medium mb-2`}>{t('settings.theme')}</div>
           {themes.map((themeOption) => {
             const Icon = themeOption.icon;
             return (

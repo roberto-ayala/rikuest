@@ -61,15 +61,10 @@ func (a *App) OnStartup(ctx context.Context) {
 	// Get webhook URL from centralized config
 	webhookURL := config.DiscordWebhookURL()
 
-	// Initialize services
+	// Initialize services. The telemetry service falls back to the webhook
+	// stored in telemetry_config when the env var is not set, so no
+	// re-creation is needed here.
 	a.services = services.NewServices(db, webhookURL)
-
-	// Update webhook URL from config if available (allows runtime override from DB)
-	telemetryConfig, err := a.services.Telemetry.GetConfig()
-	if err == nil && telemetryConfig.WebhookURL != "" {
-		// Use webhook from config (allows users to override via DB)
-		a.services.Telemetry = services.NewTelemetryService(db, telemetryConfig.WebhookURL)
-	}
 
 	// Setup panic recovery
 	defer func() {
@@ -129,8 +124,8 @@ func (a *App) CreateProject(project models.Project) (*models.Project, error) {
 		"project_id":   project.ID,
 		"project_name": project.Name,
 	})
-	// Return the created project with ID
-	return a.services.Project.GetProject(project.ID)
+	// CreateProject fully populates the struct via RETURNING; no re-fetch needed
+	return &project, nil
 }
 
 func (a *App) UpdateProject(project models.Project) (*models.Project, error) {
@@ -160,7 +155,8 @@ func (a *App) CreateRequest(request models.Request) (*models.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	return a.services.Request.GetRequest(request.ID)
+	// CreateRequest fully populates the struct via RETURNING; no re-fetch needed
+	return &request, nil
 }
 
 func (a *App) UpdateRequest(request models.Request) (*models.Request, error) {
@@ -180,7 +176,7 @@ func (a *App) GetRequestHistory(requestID int) ([]models.RequestHistory, error) 
 }
 
 func (a *App) ExecuteRequest(requestID int) (*models.RequestResponse, error) {
-	response, err := a.services.Request.ExecuteRequest(requestID)
+	response, err := a.services.Request.ExecuteRequest(a.ctx, requestID)
 	if err != nil {
 		a.services.Telemetry.ReportError(err, string(debug.Stack()))
 		return nil, err
@@ -325,6 +321,20 @@ func (a *App) UpdateResponseCaptures(requestID int, captures []models.ResponseCa
 		captures = []models.ResponseCapture{}
 	}
 	return a.services.ResponseCapture.UpdateCaptures(requestID, captures)
+}
+
+// ===== COOKIE BINDINGS =====
+
+func (a *App) GetCookies(projectID int) ([]models.Cookie, error) {
+	return a.services.Cookie.GetCookies(projectID)
+}
+
+func (a *App) DeleteCookie(id int) error {
+	return a.services.Cookie.DeleteCookie(id)
+}
+
+func (a *App) ClearProjectCookies(projectID int) error {
+	return a.services.Cookie.ClearProjectCookies(projectID)
 }
 
 // ===== TELEMETRY BINDINGS =====

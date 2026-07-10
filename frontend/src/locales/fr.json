@@ -47,7 +47,8 @@
     "settings": "Paramètres",
     "newProject": "Nouveau Projet",
     "newRequest": "Nouvelle Requête",
-    "newFolder": "Nouveau Dossier"
+    "newFolder": "Nouveau Dossier",
+    "cookies": "Cookies"
   },
   "project": {
     "create": "Créer un Nouveau Projet",
@@ -66,6 +67,7 @@
     "deleteProject": "Supprimer le Projet",
     "deleteProjectConfirm": "Êtes-vous sûr de vouloir supprimer ce projet ?",
     "deleteProjectWarning": "Cette action ne peut pas être annulée",
+    "deleted": "Projet supprimé",
     "noDescription": "Aucune description",
     "selectRequest": "Sélectionner une requête",
     "selectRequestDesc": "Choisissez une requête dans la barre latérale ou créez-en une nouvelle",
@@ -101,6 +103,11 @@
     "urlPlaceholder": "Entrez l'URL de la requête",
     "send": "Envoyer",
     "sending": "Envoi...",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "saveFailed": "Échec de l'enregistrement",
+    "retrySave": "Cliquez pour réessayer",
+    "deleted": "Requête supprimée",
     "historyTitle": "Historique des Requêtes",
     "noSelected": "Aucune requête sélectionnée",
     "noResponse": "Aucune Réponse",
@@ -136,7 +143,30 @@
     "password": "Mot de passe",
     "passwordPlaceholder": "Entrez le mot de passe",
     "createRequest": "Créer la Requête",
-    "copyRequest": "Copier la Requête"
+    "copyRequest": "Copier la Requête",
+    "tabParams": "Paramètres",
+    "tabHeaders": "En-têtes",
+    "tabBody": "Corps",
+    "tabAuthorization": "Autorisation",
+    "tabCaptures": "Captures",
+    "tabRawRequest": "Requête brute",
+    "tabSettings": "Paramètres",
+    "untitled": "Sans titre",
+    "closeTab": "Fermer l'onglet",
+    "openTabs": "Onglets de requêtes ouverts",
+    "apiKeyName": "Nom de la Clé",
+    "apiKeyNamePlaceholder": "ex. X-API-Key",
+    "apiKeyValue": "Valeur de la Clé",
+    "apiKeyValuePlaceholder": "Entrez la valeur de la clé API",
+    "apiKeyLocation": "Ajouter à",
+    "locationHeader": "En-tête",
+    "locationQuery": "Paramètres de Requête",
+    "skipTlsVerify": "Ignorer la vérification TLS/SSL",
+    "skipTlsVerifyWarning": "Désactive la validation des certificats - à utiliser uniquement pour des serveurs locaux/de développement de confiance.",
+    "followRedirects": "Suivre les redirections",
+    "maxRedirects": "Redirections maximales",
+    "timeoutOverride": "Délai d'attente personnalisé (secondes)",
+    "timeoutOverridePlaceholder": "0 ou vide = utiliser la valeur globale par défaut"
   },
   "folder": {
     "create": "Créer un Nouveau Dossier",
@@ -154,7 +184,13 @@
     "foldersAndRequests": "Dossiers et Requêtes",
     "createNew": "Créer Nouveau",
     "createFolder": "Créer un Dossier",
-    "rename": "Renommer"
+    "rename": "Renommer",
+    "dropToRoot": "Déposez ici pour déplacer à la racine",
+    "runCollection": "Exécuter la Collection",
+    "newSubfolder": "Nouveau sous-dossier",
+    "inFolder": "dans",
+    "maxDepthReached": "Profondeur d'imbrication maximale atteinte",
+    "cannotMoveIntoDescendant": "Impossible de déplacer un dossier dans lui-même ou un de ses sous-dossiers"
   },
   "settings": {
     "title": "Paramètres",
@@ -291,5 +327,82 @@
       "noEndpoints": "Aucun point de terminaison trouvé dans la spécification OpenAPI",
       "invalidFormat": "Format de fichier invalide. JSON ou YAML attendu."
     }
+  },
+  "curlImport": {
+    "title": "Importer cURL",
+    "triggerTitle": "Importer une commande cURL",
+    "placeholder": "Collez une commande curl ici, ex. curl -X POST 'https://api.exemple.com' -H 'Content-Type: application/json' -d '{\"a\":1}'",
+    "preview": "Aperçu",
+    "nameLabel": "Nom de la Requête",
+    "namePlaceholder": "Entrez le nom de la requête",
+    "import": "Importer",
+    "importing": "Importation en cours...",
+    "errors": {
+      "parseFailed": "Échec de l'analyse de la commande curl",
+      "importFailed": "Échec de l'importation de la requête"
+    },
+    "imported": "Requête importée depuis curl"
+  },
+  "jsonEditor": {
+    "format": "Formater",
+    "formatTooltip": "Formater le JSON (Ctrl+Shift+F)",
+    "validJson": "JSON valide",
+    "invalidJson": "JSON invalide"
+  },
+  "copyFormats": {
+    "rawHttp": "HTTP brut",
+    "curl": "cURL",
+    "fetch": "JavaScript Fetch",
+    "python": "Python Requests"
+  },
+  "response": {
+    "copy": "Copier",
+    "copied": "Copié dans le presse-papiers",
+    "copyFailed": "Échec de la copie",
+    "switchToRaw": "Passer à la vue brute",
+    "switchToPretty": "Passer à la vue formatée",
+    "toggleWrap": "Activer/désactiver le retour à la ligne",
+    "search": "Rechercher dans le corps",
+    "searchPlaceholder": "Rechercher...",
+    "noMatches": "Aucune correspondance",
+    "matchCounter": "{current} sur {total}",
+    "prevMatch": "Correspondance précédente",
+    "nextMatch": "Correspondance suivante",
+    "closeSearch": "Fermer la recherche",
+    "binaryPreviewTitle": "Réponse binaire",
+    "binaryPreviewDesc": "{type} — {size} — aperçu non disponible"
+  },
+  "shortcuts": {
+    "title": "Raccourcis Clavier",
+    "execute": "Envoyer la requête",
+    "save": "Enregistrer la requête",
+    "search": "Rechercher des requêtes",
+    "help": "Afficher les raccourcis"
+  },
+  "runner": {
+    "title": "Exécuteur de Collection",
+    "stop": "Arrêter",
+    "noRequests": "Ce dossier n'a aucune requête à exécuter",
+    "completed": "Terminé",
+    "succeeded": "réussies",
+    "failed": "échouées"
+  },
+  "search": {
+    "placeholder": "Rechercher des requêtes par nom ou URL...",
+    "typeToSearch": "Tapez pour rechercher",
+    "noResults": "Aucune requête trouvée"
+  },
+  "cookies": {
+    "title": "Cookies",
+    "empty": "Aucun cookie enregistré pour ce projet",
+    "domain": "Domaine",
+    "name": "Nom",
+    "value": "Valeur",
+    "expires": "Expire",
+    "session": "Session",
+    "clearAll": "Tout effacer",
+    "clearAllConfirm": "Voulez-vous vraiment supprimer tous les cookies de ce projet ? Cette action est irréversible.",
+    "deleted": "Cookie supprimé",
+    "cleared": "Cookies effacés"
   }
 }

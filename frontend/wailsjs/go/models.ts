@@ -14,6 +14,61 @@ export namespace models {
 	        this.password = source["password"];
 	    }
 	}
+	export class Cookie {
+	    id: number;
+	    project_id: number;
+	    domain: string;
+	    path: string;
+	    name: string;
+	    value: string;
+	    // Go type: time
+	    expires_at?: any;
+	    secure: boolean;
+	    http_only: boolean;
+	    same_site: string;
+	    // Go type: time
+	    created_at: any;
+	    // Go type: time
+	    updated_at: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new Cookie(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.project_id = source["project_id"];
+	        this.domain = source["domain"];
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.value = source["value"];
+	        this.expires_at = this.convertValues(source["expires_at"], null);
+	        this.secure = source["secure"];
+	        this.http_only = source["http_only"];
+	        this.same_site = source["same_site"];
+	        this.created_at = this.convertValues(source["created_at"], null);
+	        this.updated_at = this.convertValues(source["updated_at"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Variable {
 	    id: number;
 	    key: string;
@@ -249,9 +304,16 @@ export namespace models {
 	    auth_type: string;
 	    bearer_token: string;
 	    basic_auth: BasicAuth;
+	    api_key_name: string;
+	    api_key_value: string;
+	    api_key_location: string;
 	    body_type: string;
 	    form_data: FormData[];
 	    position: number;
+	    insecure_skip_verify: boolean;
+	    follow_redirects: boolean;
+	    max_redirects: number;
+	    timeout_seconds: number;
 	    response?: RequestResponse;
 	    // Go type: time
 	    created_at: any;
@@ -276,9 +338,16 @@ export namespace models {
 	        this.auth_type = source["auth_type"];
 	        this.bearer_token = source["bearer_token"];
 	        this.basic_auth = this.convertValues(source["basic_auth"], BasicAuth);
+	        this.api_key_name = source["api_key_name"];
+	        this.api_key_value = source["api_key_value"];
+	        this.api_key_location = source["api_key_location"];
 	        this.body_type = source["body_type"];
 	        this.form_data = this.convertValues(source["form_data"], FormData);
 	        this.position = source["position"];
+	        this.insecure_skip_verify = source["insecure_skip_verify"];
+	        this.follow_redirects = source["follow_redirects"];
+	        this.max_redirects = source["max_redirects"];
+	        this.timeout_seconds = source["timeout_seconds"];
 	        this.response = this.convertValues(source["response"], RequestResponse);
 	        this.created_at = this.convertValues(source["created_at"], null);
 	        this.updated_at = this.convertValues(source["updated_at"], null);
