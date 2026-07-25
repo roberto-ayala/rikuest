@@ -27,7 +27,12 @@ func TestExtractDotPath(t *testing.T) {
 		{"null value", "null_field", nil, false},
 		{"missing key", "nope", nil, true},
 		{"missing nested key", "data.nope", nil, true},
-		{"through array fails", "data.list.0", nil, true},
+		{"array index", "data.list.0", float64(1), false},
+		{"array index in brackets", "data.list[1]", float64(2), false},
+		{"array index out of range", "data.list.9", nil, true},
+		{"array index not numeric", "data.list.nope", nil, true},
+		{"unclosed bracket", "data.list[0", nil, true},
+		{"empty path", "", nil, true},
 		{"through scalar fails", "token.sub", nil, true},
 	}
 
@@ -62,8 +67,15 @@ func TestApplyCapturesStoresIntoActiveEnvironment(t *testing.T) {
 	}
 
 	svc := NewResponseCaptureService(db)
-	if err := svc.ApplyCaptures(req.ID, p.ID, `{"data": {"token": "tok-123"}}`); err != nil {
-		t.Fatalf("ApplyCaptures: %v", err)
+	results := svc.ApplyCaptures(req.ID, p.ID, `{"data": {"token": "tok-123"}}`)
+	if len(results) != 2 {
+		t.Fatalf("results = %+v; want one per rule", results)
+	}
+	if results[0].Status != models.CaptureApplied || results[0].Value != "tok-123" {
+		t.Errorf("applied rule reported as %+v", results[0])
+	}
+	if results[1].Status != models.CapturePathNotFound {
+		t.Errorf("missing-path rule reported as %+v", results[1])
 	}
 
 	active, err := db.GetActiveEnvironment(p.ID)
@@ -85,17 +97,74 @@ func TestApplyCapturesStoresIntoActiveEnvironment(t *testing.T) {
 	}
 }
 
-func TestApplyCapturesIsSilentOnNonJSONOrNoEnv(t *testing.T) {
+func TestApplyCapturesReportsWhyItDidNothing(t *testing.T) {
 	db := newTestDB(t)
 	p := createProject(t, db, "p")
 	req := &models.Request{ProjectID: p.ID, Name: "r", Method: "GET", URL: "http://x"}
 	if err := db.CreateRequest(req); err != nil {
 		t.Fatalf("CreateRequest: %v", err)
 	}
-
 	svc := NewResponseCaptureService(db)
-	// No captures, no env, non-JSON body: all must be nil errors
-	if err := svc.ApplyCaptures(req.ID, p.ID, "not json at all"); err != nil {
-		t.Errorf("ApplyCaptures on non-JSON = %v; want nil", err)
+
+	// No rules at all: nothing to report.
+	if results := svc.ApplyCaptures(req.ID, p.ID, "not json at all"); results != nil {
+		t.Errorf("ApplyCaptures without rules = %+v; want nil", results)
+	}
+
+	if err := db.UpdateResponseCaptures(req.ID, []models.ResponseCapture{
+		{VariableName: "token", JSONPath: "token"},
+		{VariableName: "", JSONPath: "ignored"}, // half-written row, must be dropped
+	}); err != nil {
+		t.Fatalf("UpdateResponseCaptures: %v", err)
+	}
+
+	// A project with no active environment has nowhere to store captures: the
+	// rule must be reported rather than silently skipped.
+	results := svc.ApplyCaptures(req.ID, p.ID, `{"token": "abc"}`)
+	if len(results) != 1 || results[0].Status != models.CaptureNoEnvironment {
+		t.Fatalf("without active env = %+v; want single no_active_environment", results)
+	}
+
+	createActiveEnv(t, db, p.ID, nil)
+	results = svc.ApplyCaptures(req.ID, p.ID, "not json at all")
+	if len(results) != 1 || results[0].Status != models.CaptureInvalidJSON {
+		t.Fatalf("on non-JSON = %+v; want single invalid_json", results)
+	}
+
+	skipped := svc.SkippedResults(req.ID, models.CaptureSkippedErrorStatus, "status 500")
+	if len(skipped) != 1 || skipped[0].Status != models.CaptureSkippedErrorStatus {
+		t.Fatalf("SkippedResults = %+v", skipped)
+	}
+}
+
+func TestStringifyCaptured(t *testing.T) {
+	var data interface{}
+	if err := json.Unmarshal([]byte(`{
+		"int": 42,
+		"float": 1.5,
+		"bool": true,
+		"null": null,
+		"obj": {"a": 1},
+		"arr": [1, "two"]
+	}`), &data); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := map[string]string{
+		"int":   "42",
+		"float": "1.5",
+		"bool":  "true",
+		"null":  "",
+		"obj":   `{"a":1}`,
+		"arr":   `[1,"two"]`,
+	}
+	for path, want := range tests {
+		value, err := extractDotPath(data, path)
+		if err != nil {
+			t.Fatalf("extractDotPath(%q): %v", path, err)
+		}
+		if got := stringifyCaptured(value); got != want {
+			t.Errorf("stringifyCaptured(%s) = %q; want %q", path, got, want)
+		}
 	}
 }

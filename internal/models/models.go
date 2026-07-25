@@ -74,6 +74,29 @@ type RequestResponse struct {
 	Duration   int64             `json:"duration"`
 	Size       int64             `json:"size"`
 	RawRequest string            `json:"raw_request"`
+	// Captures reports, per configured capture rule, whether the value was
+	// stored into the active environment and why not when it wasn't. It is
+	// diagnostic output for the UI, so it is omitted when there are no rules.
+	Captures []CaptureResult `json:"captures,omitempty"`
+}
+
+// Capture result statuses, reported back to the UI so a rule that silently
+// does nothing (no active environment, non-JSON body, wrong path) is visible.
+const (
+	CaptureApplied            = "applied"
+	CaptureNoEnvironment      = "no_active_environment"
+	CaptureInvalidJSON        = "invalid_json"
+	CapturePathNotFound       = "path_not_found"
+	CaptureSkippedErrorStatus = "skipped_error_status"
+	CaptureFailed             = "failed"
+)
+
+type CaptureResult struct {
+	VariableName string `json:"variable_name"`
+	JSONPath     string `json:"json_path"`
+	Status       string `json:"status"`
+	Value        string `json:"value,omitempty"`
+	Detail       string `json:"detail,omitempty"`
 }
 
 type RequestHistory struct {
@@ -102,6 +125,22 @@ type Variable struct {
 	Value     string    `json:"value"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Variable sources, as reported by VariableResolver.ListVariables.
+const (
+	VariableSourceEnvironment = "environment"
+	VariableSourceFolder      = "folder"
+)
+
+// VariableInfo is a resolved variable plus where its winning value came from.
+// It feeds the {{name}} autocomplete/highlighting in the request builder, so
+// the shape mirrors resolution precedence: one entry per effective key.
+type VariableInfo struct {
+	Key        string `json:"key"`
+	Value      string `json:"value"`
+	Source     string `json:"source"`
+	SourceName string `json:"source_name"`
 }
 
 type Environment struct {
