@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Send, Loader2, History, Check, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import { VariableInput } from './ui/VariableInput';
 import { Select, SelectOption } from './ui/Select';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
@@ -9,6 +10,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useAutosave, normalizeRequestData } from '../hooks/useAutosave';
+import { useRequestVariables } from '../hooks/useRequestVariables';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { getMethodColor, createRow, getHistoryStatusColor } from '../lib/utils';
 import { adapterFactory } from '../adapters/adapterFactory.js';
@@ -22,6 +24,8 @@ function RequestBuilder() {
   const { text, spacing, button, input } = useUISize();
   const { t } = useTranslation();
   const { fetchEnvironments } = useEnvironmentStore();
+  // Variables visible to this request, for {{name}} highlighting/autocomplete.
+  const { variables, reload: reloadVariables } = useRequestVariables(currentRequest?.id ?? null);
 
   // Local state for the request data
   const [requestData, setRequestData] = useState({
@@ -136,10 +140,12 @@ function RequestBuilder() {
     try {
       await executeRequest(requestData.id);
       loadHistory();
-      // Refresh active environment to reflect any response captures
+      // Refresh active environment to reflect any response captures, then the
+      // variable list that feeds autocomplete.
       if (currentRequest?.project_id) {
-        fetchEnvironments(currentRequest.project_id);
+        await fetchEnvironments(currentRequest.project_id);
       }
+      reloadVariables();
     } catch (error) {
       console.error('Failed to execute request:', error);
     }
@@ -270,12 +276,14 @@ function RequestBuilder() {
             <SelectOption value="OPTIONS">OPTIONS</SelectOption>
           </Select>
 
-          <Input
+          <VariableInput
+            variables={variables}
             value={requestData.url}
             onChange={(e) => updateRequestData({ url: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Enter' && requestData.url?.trim() && !executing) handleExecuteRequest(); }}
             placeholder={t('request.urlPlaceholder')}
-            className={`flex-1 ${input} not-box-shadow`}
+            wrapperClassName="flex-1"
+            className={`${input} not-box-shadow`}
           />
 
           <Button
@@ -355,6 +363,8 @@ function RequestBuilder() {
             updateRequestData={updateRequestData}
             setRequestData={setRequestData}
             panelWidth={leftPanelWidth}
+            variables={variables}
+            captureResults={currentResponse?.captures}
           />
         </div>
 

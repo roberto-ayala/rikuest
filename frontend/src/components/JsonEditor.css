@@ -76,3 +76,23 @@
   opacity: 1;
   transform: translateY(0);
 }
+/* {{variable}} placeholders inside the body editor. Monaco's own token colors
+   are more specific, hence !important. Same semantics as VariableInput:
+   green resolves at execution time, amber is sent literally. */
+.rikuest-variable-known {
+  color: #059669 !important;
+  font-weight: 500;
+}
+
+.rikuest-variable-unknown {
+  color: #d97706 !important;
+  font-weight: 500;
+}
+
+.dark .rikuest-variable-known {
+  color: #34d399 !important;
+}
+
+.dark .rikuest-variable-unknown {
+  color: #fbbf24 !important;
+}

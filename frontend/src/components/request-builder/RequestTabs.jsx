@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { VariableInput } from '../ui/VariableInput';
 import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
 import { Select, SelectOption } from '../ui/Select';
@@ -12,7 +13,7 @@ import { useUISize } from '../../hooks/useUISize';
 import { useTranslation } from '../../hooks/useTranslation';
 import { createRow } from '../../lib/utils';
 
-function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidth }) {
+function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidth, variables = [], captureResults }) {
   const { text, spacing, button, input, tab: tabStyle } = useUISize();
   const { t } = useTranslation();
   const [activeRequestTab, setActiveRequestTab] = useState('params');
@@ -237,7 +238,9 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     }}
                     aria-label={t('request.paramEnabled', 'Parameter enabled')}
                   />
-                  <Input
+                  <VariableInput
+                    variables={variables}
+                    wrapperClassName="flex-1"
                     value={param.key}
                     onChange={(e) => {
                       const newParams = [...requestData.query_params];
@@ -245,10 +248,12 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                       updateRequestData({ query_params: newParams });
                     }}
                     placeholder={t('request.paramName')}
-                    className={`flex-1 ${input}`}
+                    className={input}
                     aria-label={t('request.paramName')}
                   />
-                  <Input
+                  <VariableInput
+                    variables={variables}
+                    wrapperClassName="flex-1"
                     value={param.value}
                     onChange={(e) => {
                       const newParams = [...requestData.query_params];
@@ -256,7 +261,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                       updateRequestData({ query_params: newParams });
                     }}
                     placeholder={t('request.paramValue')}
-                    className={`flex-1 ${input}`}
+                    className={input}
                     aria-label={t('request.paramValue')}
                   />
                   <Button
@@ -283,7 +288,9 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
             <div className="space-y-3">
               {requestData.headers_array.map((header, index) => (
                 <div key={header._id ?? index} className="flex items-center space-x-2">
-                  <Input
+                  <VariableInput
+                    variables={variables}
+                    wrapperClassName="flex-1"
                     value={header.key}
                     onChange={(e) => {
                       const newHeadersArray = [...requestData.headers_array];
@@ -291,10 +298,12 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                       updateHeadersFromArray(newHeadersArray);
                     }}
                     placeholder={t('request.headerName')}
-                    className={`flex-1 ${input}`}
+                    className={input}
                     aria-label={t('request.headerName')}
                   />
-                  <Input
+                  <VariableInput
+                    variables={variables}
+                    wrapperClassName="flex-1"
                     value={header.value}
                     onChange={(e) => {
                       const newHeadersArray = [...requestData.headers_array];
@@ -302,7 +311,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                       updateHeadersFromArray(newHeadersArray);
                     }}
                     placeholder={t('request.headerValue')}
-                    className={`flex-1 ${input}`}
+                    className={input}
                     aria-label={t('request.headerValue')}
                   />
                   <Button
@@ -349,7 +358,9 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                 <div className="space-y-3">
                   {requestData.form_data.map((item, index) => (
                     <div key={item._id ?? index} className="flex items-center space-x-2">
-                      <Input
+                      <VariableInput
+                        variables={variables}
+                        wrapperClassName="flex-1"
                         value={item.key}
                         onChange={(e) => {
                           const newFormData = [...requestData.form_data];
@@ -357,10 +368,12 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                           updateRequestData({ form_data: newFormData });
                         }}
                         placeholder={t('request.formKey')}
-                        className={`flex-1 ${input}`}
+                        className={input}
                         aria-label={t('request.formKey')}
                       />
-                      <Input
+                      <VariableInput
+                        variables={variables}
+                        wrapperClassName="flex-1"
                         value={item.value}
                         onChange={(e) => {
                           const newFormData = [...requestData.form_data];
@@ -368,7 +381,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                           updateRequestData({ form_data: newFormData });
                         }}
                         placeholder={t('request.formValue')}
-                        className={`flex-1 ${input}`}
+                        className={input}
                         aria-label={t('request.formValue')}
                       />
                       <Button
@@ -394,6 +407,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                     value={requestData.body}
                     onChange={(e) => updateRequestData({ body: e.target.value })}
                     placeholder={t('request.jsonPlaceholder')}
+                    variables={variables}
                   />
                 </div>
               )}
@@ -412,7 +426,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
 
         {/* Captures Tab */}
         {activeRequestTab === 'captures' && (
-          <ResponseCapturesPanel requestId={requestData.id} />
+          <ResponseCapturesPanel requestId={requestData.id} results={captureResults} />
         )}
 
         {/* Auth Tab */}
@@ -433,7 +447,8 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
               {requestData.auth_type === 'bearer' && (
                 <div className="space-y-3">
                   <Label>{t('request.token')}</Label>
-                  <Input
+                  <VariableInput
+                    variables={variables}
                     value={requestData.bearer_token}
                     onChange={(e) => updateRequestData({ bearer_token: e.target.value })}
                     placeholder={t('request.tokenPlaceholder')}
@@ -446,7 +461,8 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                 <div className="space-y-3">
                   <div>
                     <Label>{t('request.username')}</Label>
-                    <Input
+                    <VariableInput
+                      variables={variables}
                       value={requestData.basic_auth.username}
                       onChange={(e) => updateRequestData({
                         basic_auth: { ...requestData.basic_auth, username: e.target.value }
@@ -457,7 +473,8 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                   </div>
                   <div>
                     <Label>{t('request.password')}</Label>
-                    <Input
+                    <VariableInput
+                      variables={variables}
                       value={requestData.basic_auth.password}
                       onChange={(e) => updateRequestData({
                         basic_auth: { ...requestData.basic_auth, password: e.target.value }
@@ -474,7 +491,8 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                 <div className="space-y-3">
                   <div>
                     <Label>{t('request.apiKeyName')}</Label>
-                    <Input
+                    <VariableInput
+                      variables={variables}
                       value={requestData.api_key_name}
                       onChange={(e) => updateRequestData({ api_key_name: e.target.value })}
                       placeholder={t('request.apiKeyNamePlaceholder')}
@@ -483,7 +501,8 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
                   </div>
                   <div>
                     <Label>{t('request.apiKeyValue')}</Label>
-                    <Input
+                    <VariableInput
+                      variables={variables}
                       value={requestData.api_key_value}
                       onChange={(e) => updateRequestData({ api_key_value: e.target.value })}
                       type="password"
