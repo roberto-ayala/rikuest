@@ -14,6 +14,26 @@ export namespace models {
 	        this.password = source["password"];
 	    }
 	}
+	export class CaptureResult {
+	    variable_name: string;
+	    json_path: string;
+	    status: string;
+	    value?: string;
+	    detail?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CaptureResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.variable_name = source["variable_name"];
+	        this.json_path = source["json_path"];
+	        this.status = source["status"];
+	        this.value = source["value"];
+	        this.detail = source["detail"];
+	    }
+	}
 	export class Cookie {
 	    id: number;
 	    project_id: number;
@@ -275,6 +295,7 @@ export namespace models {
 	    duration: number;
 	    size: number;
 	    raw_request: string;
+	    captures?: CaptureResult[];
 	
 	    static createFrom(source: any = {}) {
 	        return new RequestResponse(source);
@@ -289,7 +310,26 @@ export namespace models {
 	        this.duration = source["duration"];
 	        this.size = source["size"];
 	        this.raw_request = source["raw_request"];
+	        this.captures = this.convertValues(source["captures"], CaptureResult);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Request {
 	    id: number;
@@ -425,6 +465,25 @@ export namespace models {
 	        this.request_id = source["request_id"];
 	        this.variable_name = source["variable_name"];
 	        this.json_path = source["json_path"];
+	    }
+	}
+	
+	export class VariableInfo {
+	    key: string;
+	    value: string;
+	    source: string;
+	    source_name: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new VariableInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.value = source["value"];
+	        this.source = source["source"];
+	        this.source_name = source["source_name"];
 	    }
 	}
 

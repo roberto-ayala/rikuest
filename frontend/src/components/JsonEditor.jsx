@@ -4,10 +4,16 @@ import { useUISize } from '../hooks/useUISize';
 import { useIsDark } from '../hooks/useIsDark';
 import { useUIStore } from '../stores/uiStore';
 import { useTranslation } from '../hooks/useTranslation';
+import { VARIABLE_PATTERN } from '../lib/variables';
 import './JsonEditor.css';
 
-const JsonEditor = ({ value, onChange, placeholder, className }) => {
+const JsonEditor = ({ value, onChange, placeholder, className, variables = [] }) => {
   const editorRef = useRef(null);
+  const completionRef = useRef(null);
+  const decorationsRef = useRef(null);
+  // Read inside the completion provider, which is registered once per mount.
+  const variablesRef = useRef(variables);
+  variablesRef.current = variables;
   const [isValidJson, setIsValidJson] = useState(true);
   const isDark = useIsDark();
   const { config } = useUISize();
@@ -206,8 +212,52 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
     onChange({ target: { value: newValue || '' } });
   };
 
+  // Registers {{name}} completion for the body editor. Kept in a ref so the
+  // provider is disposed on unmount instead of stacking up per mount.
+  const registerVariableCompletion = (monaco) => {
+    completionRef.current?.dispose();
+    completionRef.current = monaco.languages.registerCompletionItemProvider('json', {
+      triggerCharacters: ['{'],
+      provideCompletionItems: (model, position) => {
+        const line = model.getValueInRange({
+          startLineNumber: position.lineNumber,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+        const open = /\{\{(\w*)$/.exec(line);
+        if (!open) return { suggestions: [] };
+
+        const typed = open[1];
+        const startColumn = position.column - typed.length;
+        // Auto-closing brackets may already have inserted the `}}`; only add
+        // the closing braces when they are not there yet.
+        const afterCursor = model.getLineContent(position.lineNumber).slice(position.column - 1);
+        const closer = afterCursor.startsWith('}}') ? '' : '}}';
+
+        return {
+          suggestions: (variablesRef.current || []).map(variable => ({
+            label: variable.key,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            detail: variable.value,
+            documentation: variable.source_name || variable.source,
+            insertText: `${variable.key}${closer}`,
+            range: {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn,
+              endColumn: position.column,
+            },
+          })),
+        };
+      },
+    });
+  };
+
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
+    registerVariableCompletion(monaco);
+    decorationsRef.current = editor.createDecorationsCollection([]);
     
     // Setup custom theme
     setupAppTheme(monaco);
@@ -235,6 +285,47 @@ const JsonEditor = ({ value, onChange, placeholder, className }) => {
       formatJson();
     });
   };
+
+  // Colors {{name}} placeholders inside the body: resolvable ones green,
+  // undefined ones amber, matching the VariableInput fields.
+  useEffect(() => {
+    const editor = editorRef.current;
+    const collection = decorationsRef.current;
+    if (!editor || !collection) return;
+
+    const model = editor.getModel();
+    if (!model) return;
+
+    const known = new Set((variables || []).map(v => v.key));
+    const decorations = [];
+    const pattern = new RegExp(VARIABLE_PATTERN.source, 'g');
+
+    for (let line = 1; line <= model.getLineCount(); line++) {
+      const content = model.getLineContent(line);
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        decorations.push({
+          range: {
+            startLineNumber: line,
+            endLineNumber: line,
+            startColumn: match.index + 1,
+            endColumn: match.index + match[0].length + 1,
+          },
+          options: {
+            inlineClassName: known.has(match[1]) ? 'rikuest-variable-known' : 'rikuest-variable-unknown',
+          },
+        });
+      }
+    }
+    collection.set(decorations);
+  }, [value, variables]);
+
+  // Drop the completion provider when the editor goes away.
+  useEffect(() => () => {
+    completionRef.current?.dispose();
+    completionRef.current = null;
+  }, []);
 
   const formatJson = () => {
     if (editorRef.current) {

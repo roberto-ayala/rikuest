@@ -150,6 +150,10 @@ export class WailsAdapter {
     return await this.app.GetResponseCaptures(requestId);
   }
 
+  async getRequestVariables(requestId) {
+    return await this.app.GetRequestVariables(requestId);
+  }
+
   async updateResponseCaptures(requestId, captures) {
     await this.app.UpdateResponseCaptures(requestId, captures || []);
   }

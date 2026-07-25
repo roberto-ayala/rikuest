@@ -2,6 +2,7 @@ package services
 
 import (
 	"regexp"
+	"sort"
 
 	"rikuest/internal/database"
 	"rikuest/internal/models"
@@ -55,6 +56,56 @@ func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[s
 	}
 
 	return vars, nil
+}
+
+// ListVariables returns the variables visible to a request context, one entry
+// per effective key, each tagged with the layer its winning value came from.
+// Same precedence as BuildVariableMap; sorted by key for a stable UI order.
+func (r *VariableResolver) ListVariables(projectID int, folderID *int) ([]models.VariableInfo, error) {
+	byKey := make(map[string]models.VariableInfo)
+
+	activeEnv, err := r.db.GetActiveEnvironment(projectID)
+	if err != nil {
+		return nil, err
+	}
+	if activeEnv != nil {
+		for _, v := range activeEnv.Variables {
+			byKey[v.Key] = models.VariableInfo{
+				Key:        v.Key,
+				Value:      v.Value,
+				Source:     models.VariableSourceEnvironment,
+				SourceName: activeEnv.Name,
+			}
+		}
+	}
+
+	if folderID != nil {
+		chain, err := r.db.GetFolderAncestry(*folderID)
+		if err == nil {
+			for _, id := range chain {
+				folderVars, err := r.db.GetFolderVariables(id)
+				if err != nil {
+					continue
+				}
+				folderName, _ := r.db.GetFolderName(id)
+				for _, v := range folderVars {
+					byKey[v.Key] = models.VariableInfo{
+						Key:        v.Key,
+						Value:      v.Value,
+						Source:     models.VariableSourceFolder,
+						SourceName: folderName,
+					}
+				}
+			}
+		}
+	}
+
+	list := make([]models.VariableInfo, 0, len(byKey))
+	for _, info := range byKey {
+		list = append(list, info)
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].Key < list[j].Key })
+	return list, nil
 }
 
 // Resolve substitutes {{varName}} in text. Unknown variables are left unchanged.

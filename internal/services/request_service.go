@@ -99,9 +99,17 @@ func (s *RequestService) ExecuteRequest(ctx context.Context, requestID int) (*mo
 		return nil, err
 	}
 
-	// Apply response captures on successful responses
+	// Apply response captures on successful responses. Rules that could not run
+	// are still reported so the UI can explain the no-op instead of looking
+	// like captures are broken.
 	if response.Status >= 200 && response.Status < 300 {
-		s.captureService.ApplyCaptures(requestID, request.ProjectID, response.Body)
+		response.Captures = s.captureService.ApplyCaptures(requestID, request.ProjectID, response.Body)
+	} else {
+		response.Captures = s.captureService.SkippedResults(
+			requestID,
+			models.CaptureSkippedErrorStatus,
+			fmt.Sprintf("response status %d is not 2xx", response.Status),
+		)
 	}
 
 	history := &models.RequestHistory{

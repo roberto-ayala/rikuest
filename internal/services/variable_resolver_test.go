@@ -153,3 +153,35 @@ func TestBuildVariableMapNoActiveEnvironment(t *testing.T) {
 		t.Errorf("expected empty map, got %v", vars)
 	}
 }
+
+func TestListVariablesReportsSource(t *testing.T) {
+	db := newTestDB(t)
+	p := createProject(t, db, "p")
+	env := createActiveEnv(t, db, p.ID, map[string]string{"host": "env-host", "shared": "from-env"})
+
+	folder := &models.Folder{ProjectID: p.ID, Name: "auth"}
+	if err := db.CreateFolder(folder); err != nil {
+		t.Fatalf("CreateFolder: %v", err)
+	}
+	if err := db.UpdateFolderVariables(folder.ID, []models.Variable{
+		{Key: "shared", Value: "from-folder"},
+	}); err != nil {
+		t.Fatalf("UpdateFolderVariables: %v", err)
+	}
+
+	list, err := NewVariableResolver(db).ListVariables(p.ID, &folder.ID)
+	if err != nil {
+		t.Fatalf("ListVariables: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("ListVariables = %+v; want one entry per effective key", list)
+	}
+	// Sorted by key: host, shared
+	if list[0].Key != "host" || list[0].Source != models.VariableSourceEnvironment || list[0].SourceName != env.Name {
+		t.Errorf("env variable = %+v", list[0])
+	}
+	if list[1].Key != "shared" || list[1].Value != "from-folder" ||
+		list[1].Source != models.VariableSourceFolder || list[1].SourceName != "auth" {
+		t.Errorf("folder override = %+v", list[1])
+	}
+}

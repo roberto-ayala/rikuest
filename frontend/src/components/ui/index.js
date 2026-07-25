@@ -1,6 +1,7 @@
 // Barrel for shared UI primitives — import from '../components/ui'.
 export { Button, buttonVariants } from './Button';
 export { Input } from './Input';
+export { VariableInput } from './VariableInput';
 export { Textarea } from './Textarea';
 export { Select, SelectOption } from './Select';
 export { Label } from './Label';

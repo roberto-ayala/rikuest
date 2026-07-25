@@ -196,6 +196,10 @@ export class APIAdapter {
     return this.request(`/api/request/${requestId}/captures`);
   }
 
+  async getRequestVariables(requestId) {
+    return this.request(`/api/request/${requestId}/variables`);
+  }
+
   async updateResponseCaptures(requestId, captures) {
     return this.request(`/api/request/${requestId}/captures`, {
       method: 'PUT',

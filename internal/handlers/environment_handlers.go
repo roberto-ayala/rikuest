@@ -181,6 +181,27 @@ func (h *Handler) UpdateFolderVariables(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Folder variables updated successfully"})
 }
 
+// GetRequestVariables returns the variables visible to a request (active
+// environment plus its folder ancestry), used by the {{name}} autocomplete.
+func (h *Handler) GetRequestVariables(c *gin.Context) {
+	requestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request ID"})
+		return
+	}
+	request, err := h.services.Request.GetRequest(requestID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	vars, err := h.services.VariableResolver.ListVariables(request.ProjectID, request.FolderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, vars)
+}
+
 // ===== RESPONSE CAPTURE HANDLERS =====
 
 func (h *Handler) GetResponseCaptures(c *gin.Context) {

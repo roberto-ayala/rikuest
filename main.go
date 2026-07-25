@@ -312,6 +312,16 @@ func (a *App) UpdateFolderVariables(folderID int, variables []models.Variable) e
 	return a.services.Environment.UpdateFolderVariables(folderID, variables)
 }
 
+// GetRequestVariables returns the variables visible to a request (active
+// environment plus its folder ancestry), used by the {{name}} autocomplete.
+func (a *App) GetRequestVariables(requestID int) ([]models.VariableInfo, error) {
+	request, err := a.services.Request.GetRequest(requestID)
+	if err != nil {
+		return nil, err
+	}
+	return a.services.VariableResolver.ListVariables(request.ProjectID, request.FolderID)
+}
+
 func (a *App) GetResponseCaptures(requestID int) ([]models.ResponseCapture, error) {
 	return a.services.ResponseCapture.GetCaptures(requestID)
 }

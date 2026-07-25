@@ -4,6 +4,7 @@ import { Modal } from './ui';
 import { Input } from './ui/Input';
 import { X, Plus, Trash2, Check, Pencil } from 'lucide-react';
 import { Button } from './ui/Button';
+import VariableSyntaxHelp from './VariableSyntaxHelp';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
@@ -223,6 +224,7 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
                 </div>
 
                 <div className={`flex-1 overflow-y-auto space-y-2 ${spacing(4)}`}>
+                  <VariableSyntaxHelp variant="usage" />
                   <div className="flex items-center gap-2 mb-1 px-0.5">
                     <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.variable')}</span>
                     <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.value')}</span>
