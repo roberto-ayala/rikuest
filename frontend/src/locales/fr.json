@@ -296,10 +296,18 @@
   },
   "captures": {
     "tab": "Captures",
-    "description": "Extrayez des valeurs de la réponse JSON et stockez-les comme variables dans l'environnement actif. Utilisez la dot.notation pour les chemins imbriqués.",
+    "description": "Extrayez des valeurs de la réponse JSON et stockez-les comme variables dans l'environnement actif. Les règles ne s'exécutent que si la réponse est 2xx.",
     "variableName": "Nom de variable",
     "jsonPath": "Chemin JSON",
-    "addRule": "Ajouter une règle de capture"
+    "addRule": "Ajouter une règle de capture",
+    "noEnvironmentWarning": "Ce projet n'a pas d'environnement actif, les valeurs capturées ne peuvent donc pas être stockées. Créez-en un ou activez-le depuis Environnements.",
+    "lastRun": "Dernière exécution",
+    "statusApplied": "stockée",
+    "statusNoEnvironment": "aucun environnement actif",
+    "statusInvalidJson": "la réponse n'est pas du JSON",
+    "statusPathNotFound": "chemin introuvable",
+    "statusSkipped": "ignorée (réponse non 2xx)",
+    "statusFailed": "n'a pas pu être stockée"
   },
   "openapi": {
     "title": "Importer depuis OpenAPI",
@@ -404,5 +412,31 @@
     "clearAllConfirm": "Voulez-vous vraiment supprimer tous les cookies de ce projet ? Cette action est irréversible.",
     "deleted": "Cookie supprimé",
     "cleared": "Cookies effacés"
+  },
+  "variables": {
+    "helpTitle": "Comment utiliser les variables",
+    "helpIntro": "Écrivez le marqueur là où vous voulez la valeur ; il est remplacé juste avant l'envoi de la requête. Syntaxe :",
+    "helpWhereTitle": "Autorisé dans :",
+    "helpWhere": [
+      "L'URL (hôte et chemin inclus)",
+      "Les noms et valeurs des paramètres de requête",
+      "Les noms et valeurs des en-têtes",
+      "Le corps de la requête (JSON, texte et champs de formulaire)",
+      "L'authentification : jeton bearer, utilisateur/mot de passe basic, nom et valeur de clé d'API"
+    ],
+    "helpExamplesTitle": "Exemples :",
+    "helpRules": "Les noms acceptent lettres, chiffres et tirets bas. Un nom non défini est envoyé littéralement, tel quel.",
+    "helpPrecedence": "Priorité : les variables de dossier l'emportent sur l'environnement actif, et un dossier imbriqué l'emporte sur ses parents.",
+    "helpKnown": "Vert : résolue",
+    "helpUnknown": "Ambre : non définie",
+    "helpAutocomplete": "Tapez {{ ou appuyez sur Ctrl/Cmd+Espace pour compléter un nom.",
+    "captureHelpTitle": "Syntaxe du chemin de capture",
+    "captureHelpIntro": "Le chemin parcourt le corps JSON de la réponse : clés d'objet séparées par des points, positions de tableau en nombre (à partir de 0), seules ou entre crochets.",
+    "captureExampleTop": "champ de premier niveau",
+    "captureExampleNested": "champ imbriqué",
+    "captureExampleIndex": "premier élément d'un tableau",
+    "captureExampleBrackets": "notation à crochets, enchaînée",
+    "captureHelpStored": "La valeur est stockée comme variable dans l'environnement actif, pour être réutilisée par la suite via {{nom}}. Objets et tableaux sont stockés en JSON.",
+    "captureHelpRules": "Les captures ne s'exécutent que sur des réponses 2xx avec un corps JSON. Un chemin inexistant laisse la valeur précédente intacte."
   }
 }

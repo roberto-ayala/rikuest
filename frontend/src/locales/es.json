@@ -296,10 +296,18 @@
   },
   "captures": {
     "tab": "Capturas",
-    "description": "Extrae valores de la respuesta JSON y guárdalos como variables en el ambiente activo. Usa dot.notation para rutas anidadas.",
+    "description": "Extrae valores de la respuesta JSON y guárdalos como variables en el entorno activo. Las reglas solo se ejecutan si la respuesta es 2xx.",
     "variableName": "Nombre de variable",
     "jsonPath": "Ruta JSON",
-    "addRule": "Agregar regla de captura"
+    "addRule": "Agregar regla de captura",
+    "noEnvironmentWarning": "Este proyecto no tiene un entorno activo, así que los valores capturados no se pueden guardar. Crea o activa uno desde Entornos.",
+    "lastRun": "Última ejecución",
+    "statusApplied": "guardado",
+    "statusNoEnvironment": "sin entorno activo",
+    "statusInvalidJson": "la respuesta no es JSON",
+    "statusPathNotFound": "ruta no encontrada",
+    "statusSkipped": "omitido (respuesta no 2xx)",
+    "statusFailed": "no se pudo guardar"
   },
   "openapi": {
     "title": "Importar desde OpenAPI",
@@ -404,5 +412,31 @@
     "clearAllConfirm": "¿Seguro que quieres eliminar todas las cookies de este proyecto? Esta acción no se puede deshacer.",
     "deleted": "Cookie eliminada",
     "cleared": "Cookies borradas"
+  },
+  "variables": {
+    "helpTitle": "Cómo usar variables",
+    "helpIntro": "Escribe el marcador donde necesites el valor; se reemplaza justo antes de enviar la petición. Sintaxis:",
+    "helpWhereTitle": "Se permiten en:",
+    "helpWhere": [
+      "URL (incluyendo host y ruta)",
+      "Nombres y valores de parámetros de consulta",
+      "Nombres y valores de cabeceras",
+      "Cuerpo de la petición (JSON, texto y campos de formulario)",
+      "Autenticación: token bearer, usuario/contraseña basic, nombre y valor de API key"
+    ],
+    "helpExamplesTitle": "Ejemplos:",
+    "helpRules": "Los nombres admiten letras, dígitos y guiones bajos. Un nombre no definido se envía literalmente, tal como se escribió.",
+    "helpPrecedence": "Precedencia: las variables de carpeta ganan sobre el entorno activo, y una carpeta anidada gana sobre sus carpetas padre.",
+    "helpKnown": "Verde: se resuelve",
+    "helpUnknown": "Ámbar: no definida",
+    "helpAutocomplete": "Escribe {{ o pulsa Ctrl/Cmd+Espacio para autocompletar un nombre.",
+    "captureHelpTitle": "Sintaxis de la ruta de captura",
+    "captureHelpIntro": "La ruta recorre el cuerpo JSON de la respuesta: claves de objeto separadas por puntos y posiciones de array como número (empezando en 0), sueltas o entre corchetes.",
+    "captureExampleTop": "campo de primer nivel",
+    "captureExampleNested": "campo anidado",
+    "captureExampleIndex": "primer elemento de un array",
+    "captureExampleBrackets": "notación con corchetes, encadenada",
+    "captureHelpStored": "El valor se guarda como variable en el entorno activo, así otras peticiones pueden usarlo como {{nombre}}. Los objetos y arrays se guardan como JSON.",
+    "captureHelpRules": "Las capturas solo se ejecutan en respuestas 2xx con cuerpo JSON. Una ruta que no existe deja el valor anterior intacto."
   }
 }

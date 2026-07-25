@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import VariableSyntaxHelp from './VariableSyntaxHelp';
 import { useEnvironmentStore } from '../stores/environmentStore';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
@@ -77,6 +78,7 @@ export default function FolderVariablesModal({ folder, isOpen, onClose }) {
       </ModalHeader>
 
       <ModalBody className="space-y-2">
+        <VariableSyntaxHelp variant="usage" />
         <div className="flex items-center gap-2 mb-1 px-0.5">
           <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.variable')}</span>
           <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('environment.value')}</span>

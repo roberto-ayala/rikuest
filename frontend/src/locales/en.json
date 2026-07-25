@@ -296,10 +296,18 @@
   },
   "captures": {
     "tab": "Captures",
-    "description": "Extract values from the JSON response and store them as variables in the active environment. Use dot.notation for nested paths.",
+    "description": "Extract values from the JSON response and store them as variables in the active environment. Rules run only when the response is 2xx.",
     "variableName": "Variable name",
     "jsonPath": "JSON path",
-    "addRule": "Add capture rule"
+    "addRule": "Add capture rule",
+    "noEnvironmentWarning": "This project has no active environment, so captured values cannot be stored. Create or activate one from Environments.",
+    "lastRun": "Last execution",
+    "statusApplied": "stored",
+    "statusNoEnvironment": "no active environment",
+    "statusInvalidJson": "response is not JSON",
+    "statusPathNotFound": "path not found",
+    "statusSkipped": "skipped (response not 2xx)",
+    "statusFailed": "could not be stored"
   },
   "openapi": {
     "title": "Import from OpenAPI",
@@ -404,5 +412,31 @@
     "clearAllConfirm": "Are you sure you want to delete all cookies for this project? This action cannot be undone.",
     "deleted": "Cookie deleted",
     "cleared": "Cookies cleared"
+  },
+  "variables": {
+    "helpTitle": "How to use variables",
+    "helpIntro": "Write a placeholder wherever you need the value; it is replaced right before the request is sent. Syntax:",
+    "helpWhereTitle": "Allowed in:",
+    "helpWhere": [
+      "URL (including host and path)",
+      "Query parameter names and values",
+      "Header names and values",
+      "Request body (JSON, text and form fields)",
+      "Auth: bearer token, basic user/password, API key name and value"
+    ],
+    "helpExamplesTitle": "Examples:",
+    "helpRules": "Names accept letters, digits and underscores. An undefined name is sent literally, exactly as typed.",
+    "helpPrecedence": "Precedence: folder variables override the active environment, and a nested folder overrides its parents.",
+    "helpKnown": "Green: resolves",
+    "helpUnknown": "Amber: not defined",
+    "helpAutocomplete": "Type {{ or press Ctrl/Cmd+Space to autocomplete a name.",
+    "captureHelpTitle": "Capture path syntax",
+    "captureHelpIntro": "The path walks the JSON response body: object keys separated by dots, array positions as a number (zero-based), either bare or in brackets.",
+    "captureExampleTop": "top-level field",
+    "captureExampleNested": "nested field",
+    "captureExampleIndex": "first item of an array",
+    "captureExampleBrackets": "bracket notation, chained",
+    "captureHelpStored": "The value is stored as a variable in the active environment, so later requests can use it as {{name}}. Objects and arrays are stored as JSON.",
+    "captureHelpRules": "Captures only run on 2xx responses with a JSON body. A path that does not exist leaves the previous value untouched."
   }
 }
