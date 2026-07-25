@@ -63,7 +63,13 @@ func (db *DB) DeleteFolder(id int) error {
 	return err
 }
 
-// GetFolderVariables returns variables for a folder.
+// GetFolderName returns just the name of a folder, for labeling purposes.
+func (db *DB) GetFolderName(folderID int) (string, error) {
+	var name string
+	err := db.QueryRow(`SELECT name FROM folders WHERE id = ?`, folderID).Scan(&name)
+	return name, err
+}
+
 // GetFolderAncestry returns the folder IDs from the root ancestor down to
 // (and including) the given folder, in root-first order.
 func (db *DB) GetFolderAncestry(folderID int) ([]int, error) {

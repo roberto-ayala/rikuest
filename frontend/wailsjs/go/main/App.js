@@ -98,6 +98,10 @@ export function GetRequestHistory(arg1) {
   return window['go']['main']['App']['GetRequestHistory'](arg1);
 }
 
+export function GetRequestVariables(arg1) {
+  return window['go']['main']['App']['GetRequestVariables'](arg1);
+}
+
 export function GetRequests(arg1) {
   return window['go']['main']['App']['GetRequests'](arg1);
 }

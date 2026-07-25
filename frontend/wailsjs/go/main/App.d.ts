@@ -50,6 +50,8 @@ export function GetRequest(arg1:number):Promise<models.Request>;
 
 export function GetRequestHistory(arg1:number):Promise<Array<models.RequestHistory>>;
 
+export function GetRequestVariables(arg1:number):Promise<Array<models.VariableInfo>>;
+
 export function GetRequests(arg1:number):Promise<Array<models.Request>>;
 
 export function GetResponseCaptures(arg1:number):Promise<Array<models.ResponseCapture>>;

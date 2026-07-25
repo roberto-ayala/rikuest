@@ -79,6 +79,7 @@ func main() {
 		api.GET("/request/:id/copy-all", handler.CopyAllRequestFormats)
 		api.GET("/request/:id/captures", handler.GetResponseCaptures)
 		api.PUT("/request/:id/captures", handler.UpdateResponseCaptures)
+		api.GET("/request/:id/variables", handler.GetRequestVariables)
 
 		// Environments routes
 		api.GET("/project/:id/environments", handler.GetEnvironments)
