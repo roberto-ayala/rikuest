@@ -292,7 +292,7 @@
     "addVariable": "Ajouter une variable",
     "saving": "Enregistrement…",
     "folderVariables": "Variables du Dossier",
-    "folderVariablesDesc": "Remplacer les variables d'environnement pour"
+    "folderVariablesDesc": "Valeurs par défaut pour tous les environnements, utilisées par"
   },
   "captures": {
     "tab": "Captures",
@@ -426,7 +426,7 @@
     ],
     "helpExamplesTitle": "Exemples :",
     "helpRules": "Les noms acceptent lettres, chiffres et tirets bas. Un nom non défini est envoyé littéralement, tel quel.",
-    "helpPrecedence": "Priorité : les variables de dossier l'emportent sur l'environnement actif, et un dossier imbriqué l'emporte sur ses parents.",
+    "helpPrecedence": "Priorité : l'environnement actif l'emporte sur les variables de dossier, et un dossier imbriqué l'emporte sur ses parents. Les variables de dossier servent de valeur par défaut partagée par tous les environnements.",
     "helpKnown": "Vert : résolue",
     "helpUnknown": "Ambre : non définie",
     "helpAutocomplete": "Tapez {{ ou appuyez sur Ctrl/Cmd+Espace pour compléter un nom.",

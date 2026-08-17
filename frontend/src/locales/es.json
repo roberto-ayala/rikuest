@@ -292,7 +292,7 @@
     "addVariable": "Agregar variable",
     "saving": "Guardando…",
     "folderVariables": "Variables de Carpeta",
-    "folderVariablesDesc": "Sobreescribir variables del ambiente para"
+    "folderVariablesDesc": "Valores por defecto para todos los ambientes, usados por"
   },
   "captures": {
     "tab": "Capturas",
@@ -426,7 +426,7 @@
     ],
     "helpExamplesTitle": "Ejemplos:",
     "helpRules": "Los nombres admiten letras, dígitos y guiones bajos. Un nombre no definido se envía literalmente, tal como se escribió.",
-    "helpPrecedence": "Precedencia: las variables de carpeta ganan sobre el entorno activo, y una carpeta anidada gana sobre sus carpetas padre.",
+    "helpPrecedence": "Precedencia: el entorno activo gana sobre las variables de carpeta, y una carpeta anidada gana sobre sus carpetas padre. Las variables de carpeta son el valor por defecto compartido por todos los entornos.",
     "helpKnown": "Verde: se resuelve",
     "helpUnknown": "Ámbar: no definida",
     "helpAutocomplete": "Escribe {{ o pulsa Ctrl/Cmd+Espacio para autocompletar un nombre.",

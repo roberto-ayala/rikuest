@@ -91,13 +91,14 @@ func TestBuildVariableMapPrecedence(t *testing.T) {
 		t.Errorf("env-only map = %v", vars)
 	}
 
-	// With folder: folder vars override env vars
+	// With folder: the active environment wins over the folder default, so
+	// switching environments still changes the resolved value.
 	vars, err = r.BuildVariableMap(p.ID, &folder.ID)
 	if err != nil {
 		t.Fatalf("BuildVariableMap with folder: %v", err)
 	}
-	if vars["shared"] != "from-folder" {
-		t.Errorf("folder override failed: shared = %q; want from-folder", vars["shared"])
+	if vars["shared"] != "from-env" {
+		t.Errorf("environment must override folder: shared = %q; want from-env", vars["shared"])
 	}
 	if vars["host"] != "env-host" {
 		t.Errorf("env var lost when folder present: host = %q", vars["host"])
@@ -107,7 +108,9 @@ func TestBuildVariableMapPrecedence(t *testing.T) {
 func TestBuildVariableMapAncestorFolderChain(t *testing.T) {
 	db := newTestDB(t)
 	p := createProject(t, db, "p")
-	createActiveEnv(t, db, p.ID, map[string]string{"shared": "from-env"})
+	// No overlap with the folder keys: this test is about folder-vs-folder
+	// ordering, not the environment layer on top of it.
+	createActiveEnv(t, db, p.ID, map[string]string{"host": "env-host"})
 
 	root := &models.Folder{ProjectID: p.ID, Name: "root"}
 	if err := db.CreateFolder(root); err != nil {
@@ -154,6 +157,36 @@ func TestBuildVariableMapNoActiveEnvironment(t *testing.T) {
 	}
 }
 
+// A captured value is written into the active environment, so it must beat a
+// folder variable of the same name — otherwise the capture reports "applied"
+// while the request keeps using the stale folder value.
+func TestBuildVariableMapCapturedValueBeatsFolder(t *testing.T) {
+	db := newTestDB(t)
+	p := createProject(t, db, "p")
+	env := createActiveEnv(t, db, p.ID, nil)
+
+	folder := &models.Folder{ProjectID: p.ID, Name: "auth"}
+	if err := db.CreateFolder(folder); err != nil {
+		t.Fatalf("CreateFolder: %v", err)
+	}
+	if err := db.UpdateFolderVariables(folder.ID, []models.Variable{
+		{Key: "token", Value: "stale-folder-token"},
+	}); err != nil {
+		t.Fatalf("UpdateFolderVariables: %v", err)
+	}
+	if err := db.UpsertEnvironmentVariable(env.ID, "token", "captured-token"); err != nil {
+		t.Fatalf("UpsertEnvironmentVariable: %v", err)
+	}
+
+	vars, err := NewVariableResolver(db).BuildVariableMap(p.ID, &folder.ID)
+	if err != nil {
+		t.Fatalf("BuildVariableMap: %v", err)
+	}
+	if vars["token"] != "captured-token" {
+		t.Errorf("captured value shadowed by folder: token = %q", vars["token"])
+	}
+}
+
 func TestListVariablesReportsSource(t *testing.T) {
 	db := newTestDB(t)
 	p := createProject(t, db, "p")
@@ -165,6 +198,7 @@ func TestListVariablesReportsSource(t *testing.T) {
 	}
 	if err := db.UpdateFolderVariables(folder.ID, []models.Variable{
 		{Key: "shared", Value: "from-folder"},
+		{Key: "folder_only", Value: "only-here"},
 	}); err != nil {
 		t.Fatalf("UpdateFolderVariables: %v", err)
 	}
@@ -173,15 +207,19 @@ func TestListVariablesReportsSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListVariables: %v", err)
 	}
-	if len(list) != 2 {
+	if len(list) != 3 {
 		t.Fatalf("ListVariables = %+v; want one entry per effective key", list)
 	}
-	// Sorted by key: host, shared
-	if list[0].Key != "host" || list[0].Source != models.VariableSourceEnvironment || list[0].SourceName != env.Name {
-		t.Errorf("env variable = %+v", list[0])
+	// Sorted by key: folder_only, host, shared
+	if list[0].Key != "folder_only" || list[0].Value != "only-here" ||
+		list[0].Source != models.VariableSourceFolder || list[0].SourceName != "auth" {
+		t.Errorf("folder-only variable = %+v", list[0])
 	}
-	if list[1].Key != "shared" || list[1].Value != "from-folder" ||
-		list[1].Source != models.VariableSourceFolder || list[1].SourceName != "auth" {
-		t.Errorf("folder override = %+v", list[1])
+	if list[1].Key != "host" || list[1].Source != models.VariableSourceEnvironment || list[1].SourceName != env.Name {
+		t.Errorf("env variable = %+v", list[1])
+	}
+	if list[2].Key != "shared" || list[2].Value != "from-env" ||
+		list[2].Source != models.VariableSourceEnvironment || list[2].SourceName != env.Name {
+		t.Errorf("environment override = %+v", list[2])
 	}
 }

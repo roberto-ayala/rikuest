@@ -11,8 +11,10 @@ import (
 var variablePattern = regexp.MustCompile(`\{\{(\w+)\}\}`)
 
 // VariableResolver resolves {{varName}} placeholders in request fields.
-// Resolution order (highest priority last): active environment variables,
-// then folder variables from the root ancestor down to the request's folder.
+// Resolution order (highest priority last): folder variables from the root
+// ancestor down to the request's folder, then the active environment.
+// The environment is the most specific layer, so switching environments always
+// takes effect even when a folder defines the same key as a shared default.
 type VariableResolver struct {
 	db *database.DB
 }
@@ -25,24 +27,13 @@ func NewVariableResolver(db *database.DB) *VariableResolver {
 func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[string]string, error) {
 	vars := make(map[string]string)
 
-	// Layer 1: active environment variables (lowest priority)
-	activeEnv, err := r.db.GetActiveEnvironment(projectID)
-	if err != nil {
-		return vars, err
-	}
-	if activeEnv != nil {
-		for _, v := range activeEnv.Variables {
-			vars[v.Key] = v.Value
-		}
-	}
-
-	// Layer 2: folder variables. Folders form a tree, so the whole ancestor
-	// chain applies: root-first, so deeper folders override their ancestors
-	// (and all of them override env vars).
+	// Layer 1: folder variables (lowest priority). Folders form a tree, so the
+	// whole ancestor chain applies: root-first, so deeper folders override
+	// their ancestors.
 	if folderID != nil {
 		chain, err := r.db.GetFolderAncestry(*folderID)
 		if err != nil {
-			return vars, nil
+			return vars, err
 		}
 		for _, id := range chain {
 			folderVars, err := r.db.GetFolderVariables(id)
@@ -55,6 +46,19 @@ func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[s
 		}
 	}
 
+	// Layer 2: active environment variables (highest priority), so the folder
+	// value acts as a default the environment can specialize — and captured
+	// values, which land in the active environment, are never shadowed.
+	activeEnv, err := r.db.GetActiveEnvironment(projectID)
+	if err != nil {
+		return vars, err
+	}
+	if activeEnv != nil {
+		for _, v := range activeEnv.Variables {
+			vars[v.Key] = v.Value
+		}
+	}
+
 	return vars, nil
 }
 
@@ -63,21 +67,6 @@ func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[s
 // Same precedence as BuildVariableMap; sorted by key for a stable UI order.
 func (r *VariableResolver) ListVariables(projectID int, folderID *int) ([]models.VariableInfo, error) {
 	byKey := make(map[string]models.VariableInfo)
-
-	activeEnv, err := r.db.GetActiveEnvironment(projectID)
-	if err != nil {
-		return nil, err
-	}
-	if activeEnv != nil {
-		for _, v := range activeEnv.Variables {
-			byKey[v.Key] = models.VariableInfo{
-				Key:        v.Key,
-				Value:      v.Value,
-				Source:     models.VariableSourceEnvironment,
-				SourceName: activeEnv.Name,
-			}
-		}
-	}
 
 	if folderID != nil {
 		chain, err := r.db.GetFolderAncestry(*folderID)
@@ -96,6 +85,21 @@ func (r *VariableResolver) ListVariables(projectID int, folderID *int) ([]models
 						SourceName: folderName,
 					}
 				}
+			}
+		}
+	}
+
+	activeEnv, err := r.db.GetActiveEnvironment(projectID)
+	if err != nil {
+		return nil, err
+	}
+	if activeEnv != nil {
+		for _, v := range activeEnv.Variables {
+			byKey[v.Key] = models.VariableInfo{
+				Key:        v.Key,
+				Value:      v.Value,
+				Source:     models.VariableSourceEnvironment,
+				SourceName: activeEnv.Name,
 			}
 		}
 	}
