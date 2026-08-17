@@ -11,8 +11,16 @@ import (
 var variablePattern = regexp.MustCompile(`\{\{(\w+)\}\}`)
 
 // VariableResolver resolves {{varName}} placeholders in request fields.
-// Resolution order (highest priority last): active environment variables,
-// then folder variables from the root ancestor down to the request's folder.
+// Resolution order, lowest priority first:
+//
+//  1. folder variables, walking the ancestry root-first so a nested folder
+//     overrides its parents; within each folder the shared default is applied
+//     first and the active environment's overrides for that folder on top;
+//  2. the active environment's own variables.
+//
+// Folder depth is the primary axis (a child folder always beats its parent),
+// and the environment is the most specific layer, so switching environments
+// always takes effect even when a folder defines the same key as a default.
 type VariableResolver struct {
 	db *database.DB
 }
@@ -21,37 +29,56 @@ func NewVariableResolver(db *database.DB) *VariableResolver {
 	return &VariableResolver{db: db}
 }
 
+// folderScopes lists the folder-variable scopes that apply to a request, in
+// increasing priority: the shared default (nil) first, then the active
+// environment's overrides for that folder, when there is an active environment.
+func folderScopes(activeEnvID *int) []*int {
+	if activeEnvID == nil {
+		return []*int{nil}
+	}
+	return []*int{nil, activeEnvID}
+}
+
 // BuildVariableMap assembles the merged variable map for a given request context.
 func (r *VariableResolver) BuildVariableMap(projectID int, folderID *int) (map[string]string, error) {
 	vars := make(map[string]string)
 
-	// Layer 1: active environment variables (lowest priority)
 	activeEnv, err := r.db.GetActiveEnvironment(projectID)
 	if err != nil {
 		return vars, err
 	}
+	var activeEnvID *int
 	if activeEnv != nil {
-		for _, v := range activeEnv.Variables {
-			vars[v.Key] = v.Value
-		}
+		activeEnvID = &activeEnv.ID
 	}
 
-	// Layer 2: folder variables. Folders form a tree, so the whole ancestor
-	// chain applies: root-first, so deeper folders override their ancestors
-	// (and all of them override env vars).
+	// Layer 1: folder variables (lowest priority). Folders form a tree, so the
+	// whole ancestor chain applies: root-first, so deeper folders override
+	// their ancestors.
 	if folderID != nil {
 		chain, err := r.db.GetFolderAncestry(*folderID)
 		if err != nil {
-			return vars, nil
+			return vars, err
 		}
 		for _, id := range chain {
-			folderVars, err := r.db.GetFolderVariables(id)
-			if err != nil {
-				continue
+			for _, scope := range folderScopes(activeEnvID) {
+				folderVars, err := r.db.GetFolderVariables(id, scope)
+				if err != nil {
+					continue
+				}
+				for _, v := range folderVars {
+					vars[v.Key] = v.Value
+				}
 			}
-			for _, v := range folderVars {
-				vars[v.Key] = v.Value
-			}
+		}
+	}
+
+	// Layer 2: active environment variables (highest priority), so the folder
+	// value acts as a default the environment can specialize — and captured
+	// values, which land in the active environment, are never shadowed.
+	if activeEnv != nil {
+		for _, v := range activeEnv.Variables {
+			vars[v.Key] = v.Value
 		}
 	}
 
@@ -68,6 +95,34 @@ func (r *VariableResolver) ListVariables(projectID int, folderID *int) ([]models
 	if err != nil {
 		return nil, err
 	}
+	var activeEnvID *int
+	if activeEnv != nil {
+		activeEnvID = &activeEnv.ID
+	}
+
+	if folderID != nil {
+		chain, err := r.db.GetFolderAncestry(*folderID)
+		if err == nil {
+			for _, id := range chain {
+				folderName, _ := r.db.GetFolderName(id)
+				for _, scope := range folderScopes(activeEnvID) {
+					folderVars, err := r.db.GetFolderVariables(id, scope)
+					if err != nil {
+						continue
+					}
+					for _, v := range folderVars {
+						byKey[v.Key] = models.VariableInfo{
+							Key:        v.Key,
+							Value:      v.Value,
+							Source:     models.VariableSourceFolder,
+							SourceName: folderName,
+						}
+					}
+				}
+			}
+		}
+	}
+
 	if activeEnv != nil {
 		for _, v := range activeEnv.Variables {
 			byKey[v.Key] = models.VariableInfo{
@@ -75,27 +130,6 @@ func (r *VariableResolver) ListVariables(projectID int, folderID *int) ([]models
 				Value:      v.Value,
 				Source:     models.VariableSourceEnvironment,
 				SourceName: activeEnv.Name,
-			}
-		}
-	}
-
-	if folderID != nil {
-		chain, err := r.db.GetFolderAncestry(*folderID)
-		if err == nil {
-			for _, id := range chain {
-				folderVars, err := r.db.GetFolderVariables(id)
-				if err != nil {
-					continue
-				}
-				folderName, _ := r.db.GetFolderName(id)
-				for _, v := range folderVars {
-					byKey[v.Key] = models.VariableInfo{
-						Key:        v.Key,
-						Value:      v.Value,
-						Source:     models.VariableSourceFolder,
-						SourceName: folderName,
-					}
-				}
 			}
 		}
 	}

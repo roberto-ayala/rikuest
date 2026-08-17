@@ -1,10 +1,15 @@
 import { create } from 'zustand';
 import { asyncAction } from './createAsyncAction.js';
 
+// Folder variables are stored per scope: environmentId 0 is the default shared
+// by every environment, any other value is that environment's own overrides.
+// Both live in the same cache, keyed by folder + scope.
+export const folderScopeKey = (folderId, environmentId = 0) => `${folderId}:${environmentId || 0}`;
+
 export const useEnvironmentStore = create((set) => ({
   environments: [],
   activeEnvironment: null,
-  folderVariables: {}, // { [folderId]: Variable[] }
+  folderVariables: {}, // { [`${folderId}:${environmentId}`]: Variable[] }
   loading: false,
   error: null,
 
@@ -75,19 +80,25 @@ export const useEnvironmentStore = create((set) => ({
       });
     }, { loadingKey: null, rethrow: true, label: 'Failed to update environment variables' }),
 
-  fetchFolderVariables: (folderId) =>
+  fetchFolderVariables: (folderId, environmentId = 0) =>
     asyncAction(set, async (adapter) => {
-      const vars = await adapter.getFolderVariables(folderId);
+      const vars = await adapter.getFolderVariables(folderId, environmentId);
       set(state => ({
-        folderVariables: { ...state.folderVariables, [folderId]: vars || [] }
+        folderVariables: {
+          ...state.folderVariables,
+          [folderScopeKey(folderId, environmentId)]: vars || []
+        }
       }));
     }, { loadingKey: null, label: 'Failed to fetch folder variables' }),
 
-  updateFolderVariables: (folderId, variables) =>
+  updateFolderVariables: (folderId, environmentId, variables) =>
     asyncAction(set, async (adapter) => {
-      await adapter.updateFolderVariables(folderId, variables);
+      await adapter.updateFolderVariables(folderId, environmentId, variables);
       set(state => ({
-        folderVariables: { ...state.folderVariables, [folderId]: variables }
+        folderVariables: {
+          ...state.folderVariables,
+          [folderScopeKey(folderId, environmentId)]: variables
+        }
       }));
     }, { loadingKey: null, rethrow: true, label: 'Failed to update folder variables' }),
 }));

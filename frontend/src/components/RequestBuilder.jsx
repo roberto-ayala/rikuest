@@ -7,7 +7,6 @@ import { Select, SelectOption } from './ui/Select';
 import { useRequestStore } from '../stores/requestStore';
 import { useUISize } from '../hooks/useUISize';
 import { useTranslation } from '../hooks/useTranslation';
-import { useEnvironmentStore } from '../stores/environmentStore';
 import { useResizablePanel } from '../hooks/useResizablePanel';
 import { useAutosave, normalizeRequestData } from '../hooks/useAutosave';
 import { useRequestVariables } from '../hooks/useRequestVariables';
@@ -23,9 +22,10 @@ function RequestBuilder() {
   const { currentRequest, currentResponse, executing, saveRequestOptimistic, executeRequest, setCurrentResponse } = useRequestStore();
   const { text, spacing, button, input } = useUISize();
   const { t } = useTranslation();
-  const { fetchEnvironments } = useEnvironmentStore();
   // Variables visible to this request, for {{name}} highlighting/autocomplete.
-  const { variables, reload: reloadVariables } = useRequestVariables(currentRequest?.id ?? null);
+  // The hook follows the environment and folder stores, so captures and edits
+  // show up without anything here having to ask for a refresh.
+  const { variables } = useRequestVariables(currentRequest?.id ?? null);
 
   // Local state for the request data
   const [requestData, setRequestData] = useState({
@@ -140,12 +140,8 @@ function RequestBuilder() {
     try {
       await executeRequest(requestData.id);
       loadHistory();
-      // Refresh active environment to reflect any response captures, then the
-      // variable list that feeds autocomplete.
-      if (currentRequest?.project_id) {
-        await fetchEnvironments(currentRequest.project_id);
-      }
-      reloadVariables();
+      // Response captures are reloaded by executeRequest itself (it refreshes
+      // the active environment, which this hook follows); nothing to do here.
     } catch (error) {
       console.error('Failed to execute request:', error);
     }

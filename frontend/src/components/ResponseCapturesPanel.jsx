@@ -7,18 +7,28 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
 import { useEnvironmentStore } from '../stores/environmentStore';
 
-function CaptureRow({ capture, onChange, onDelete, iconClass, textXs }) {
+function CaptureRow({ capture, onChange, onDelete, iconClass, textXs, listId, existingKeys, t }) {
+  // A rule either refreshes a variable that already exists or brings a new one
+  // into the environment; saying which removes the guesswork of typing a name
+  // and not knowing whether it lands on top of something.
+  const name = capture.variable_name.trim();
+  const hint = !name ? null : existingKeys.has(name) ? t('captures.overwritesExisting') : t('captures.createsNew');
+
   return (
     <div className="flex items-center gap-2">
-      <Input
-        className="flex-1 font-mono"
-        placeholder="variableName"
-        value={capture.variable_name}
-        onChange={e => onChange({ ...capture, variable_name: e.target.value })}
-      />
+      <div className="flex-1 min-w-0">
+        <Input
+          className="w-full font-mono"
+          placeholder="variableName"
+          list={listId}
+          value={capture.variable_name}
+          onChange={e => onChange({ ...capture, variable_name: e.target.value })}
+        />
+        {hint && <span className={`${textXs} text-muted-foreground`}>{hint}</span>}
+      </div>
       <span className={`${textXs} text-muted-foreground flex-shrink-0`}>=</span>
       <Input
-        className="flex-1 font-mono"
+        className="flex-1 min-w-0 font-mono"
         placeholder="data.token"
         value={capture.json_path}
         onChange={e => onChange({ ...capture, json_path: e.target.value })}
@@ -74,7 +84,7 @@ function CaptureResults({ results, t, textXs, iconClass }) {
   );
 }
 
-export default function ResponseCapturesPanel({ requestId, results }) {
+export default function ResponseCapturesPanel({ requestId, results, variables = [] }) {
   const { t } = useTranslation();
   const { text, icon } = useUISize();
   const activeEnvironment = useEnvironmentStore(state => state.activeEnvironment);
@@ -126,6 +136,13 @@ export default function ResponseCapturesPanel({ requestId, results }) {
 
   const hasRules = captures.some(c => c.variable_name.trim() && c.json_path.trim());
 
+  // Names already visible to this request, offered as suggestions so a rule can
+  // target an existing variable without retyping (and misspelling) its name.
+  // The list follows the same live data as the {{name}} autocomplete, so a
+  // variable a capture just created shows up here too.
+  const existingKeys = new Set(variables.map(v => v.key));
+  const nameListId = `capture-names-${requestId}`;
+
   return (
     <div className="h-full overflow-y-auto p-4">
       <p className={`${text('xs')} text-muted-foreground mb-3`}>
@@ -150,6 +167,9 @@ export default function ResponseCapturesPanel({ requestId, results }) {
           <span className={`flex-1 ${text('xs')} text-muted-foreground`}>{t('captures.jsonPath')}</span>
           <span className="w-5" />
         </div>
+        <datalist id={nameListId}>
+          {[...existingKeys].map(key => <option key={key} value={key} />)}
+        </datalist>
         {captures.map((c, i) => (
           <CaptureRow
             key={i}
@@ -158,6 +178,9 @@ export default function ResponseCapturesPanel({ requestId, results }) {
             onDelete={() => removeCapture(i)}
             iconClass={icon}
             textXs={text('xs')}
+            listId={nameListId}
+            existingKeys={existingKeys}
+            t={t}
           />
         ))}
         <button

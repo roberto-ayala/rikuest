@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DialogTitle } from '@headlessui/react';
 import { Modal } from './ui';
 import { Input } from './ui/Input';
@@ -58,6 +58,8 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [saving, setSaving] = useState(false);
+  // Environment whose variable list has unsaved edits, if any.
+  const editedEnvId = useRef(null);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -75,8 +77,12 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
     }
   }, [environments]);
 
-  // Load variables when selected env changes
+  // Load variables when the selected env changes, and pick up background
+  // refreshes (a response capture creating or rewriting a value lands here) —
+  // except while this environment has unsaved edits, which such a refresh must
+  // never discard.
   useEffect(() => {
+    if (editedEnvId.current === selectedEnvId) return;
     const env = environments.find(e => e.id === selectedEnvId);
     setVariables(env?.variables ? env.variables.map(v => ({ ...v })) : []);
   }, [selectedEnvId, environments]);
@@ -108,12 +114,20 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
     setSaving(true);
     const filtered = variables.filter(v => v.key.trim());
     await updateEnvironmentVariables(selectedEnvId, filtered);
+    editedEnvId.current = null;
     setSaving(false);
   };
 
-  const addVariable = () => setVariables(v => [...v, { key: '', value: '' }]);
-  const updateVariable = (index, updated) => setVariables(v => v.map((item, i) => i === index ? updated : item));
-  const removeVariable = (index) => setVariables(v => v.filter((_, i) => i !== index));
+  // Editing marks this environment as holding unsaved work, which is what the
+  // sync effect above checks before accepting a background refresh.
+  const editVariables = (updater) => {
+    editedEnvId.current = selectedEnvId;
+    setVariables(updater);
+  };
+
+  const addVariable = () => editVariables(v => [...v, { key: '', value: '' }]);
+  const updateVariable = (index, updated) => editVariables(v => v.map((item, i) => i === index ? updated : item));
+  const removeVariable = (index) => editVariables(v => v.filter((_, i) => i !== index));
 
   if (!isOpen) return null;
 

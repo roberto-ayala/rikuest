@@ -185,6 +185,15 @@ func (db *DB) UpsertEnvironmentVariable(environmentID int, key, value string) er
 	return err
 }
 
-// GetFolderVariables returns variables for a folder.
-// GetFolderAncestry returns the folder IDs from the root ancestor down to
-// (and including) the given folder, in root-first order.
+// EnvironmentBelongsToFolderProject reports whether an environment and a folder
+// live in the same project, so folder variables can never be scoped to an
+// environment that will never be active for them.
+func (db *DB) EnvironmentBelongsToFolderProject(folderID, environmentID int) (bool, error) {
+	var count int
+	err := db.QueryRow(`
+		SELECT COUNT(*) FROM folders f
+		JOIN environments e ON e.project_id = f.project_id
+		WHERE f.id = ? AND e.id = ?
+	`, folderID, environmentID).Scan(&count)
+	return count > 0, err
+}

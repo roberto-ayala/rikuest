@@ -292,7 +292,12 @@
     "addVariable": "Add variable",
     "saving": "Saving…",
     "folderVariables": "Folder Variables",
-    "folderVariablesDesc": "Override environment variables for"
+    "folderVariablesDesc": "Variables for",
+    "folderScope": "Applies to",
+    "folderScopeShared": "All environments (default)",
+    "folderScopeSharedHint": "Used by every environment, unless that environment defines its own value below.",
+    "folderScopeEnvHint": "Only used while this environment is active; it replaces the shared default.",
+    "folderInherited": "Inherited defaults — click to override here:"
   },
   "captures": {
     "tab": "Captures",
@@ -301,6 +306,8 @@
     "jsonPath": "JSON path",
     "addRule": "Add capture rule",
     "noEnvironmentWarning": "This project has no active environment, so captured values cannot be stored. Create or activate one from Environments.",
+    "createsNew": "New variable in the active environment",
+    "overwritesExisting": "Overwrites an existing variable",
     "lastRun": "Last execution",
     "statusApplied": "stored",
     "statusNoEnvironment": "no active environment",
@@ -426,7 +433,7 @@
     ],
     "helpExamplesTitle": "Examples:",
     "helpRules": "Names accept letters, digits and underscores. An undefined name is sent literally, exactly as typed.",
-    "helpPrecedence": "Precedence: folder variables override the active environment, and a nested folder overrides its parents.",
+    "helpPrecedence": "Precedence: the active environment wins over folder variables, and a nested folder overrides its parents. A folder variable can hold one value per environment, plus a default shared by all of them.",
     "helpKnown": "Green: resolves",
     "helpUnknown": "Amber: not defined",
     "helpAutocomplete": "Type {{ or press Ctrl/Cmd+Space to autocomplete a name.",

@@ -138,12 +138,14 @@ export class WailsAdapter {
     await this.app.UpdateEnvironmentVariables(id, variables || []);
   }
 
-  async getFolderVariables(folderId) {
-    return await this.app.GetFolderVariables(folderId);
+  // environmentId 0 (or omitted) targets the defaults shared by every
+  // environment; any other value targets that environment's own overrides.
+  async getFolderVariables(folderId, environmentId = 0) {
+    return await this.app.GetFolderVariables(folderId, environmentId || 0);
   }
 
-  async updateFolderVariables(folderId, variables) {
-    await this.app.UpdateFolderVariables(folderId, variables || []);
+  async updateFolderVariables(folderId, environmentId, variables) {
+    await this.app.UpdateFolderVariables(folderId, environmentId || 0, variables || []);
   }
 
   async getResponseCaptures(requestId) {

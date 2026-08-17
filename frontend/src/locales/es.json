@@ -292,7 +292,12 @@
     "addVariable": "Agregar variable",
     "saving": "Guardando…",
     "folderVariables": "Variables de Carpeta",
-    "folderVariablesDesc": "Sobreescribir variables del ambiente para"
+    "folderVariablesDesc": "Variables para",
+    "folderScope": "Aplica a",
+    "folderScopeShared": "Todos los ambientes (por defecto)",
+    "folderScopeSharedHint": "Se usan en todos los ambientes, salvo que el ambiente defina su propio valor.",
+    "folderScopeEnvHint": "Solo se usan mientras este ambiente está activo; reemplazan al valor por defecto.",
+    "folderInherited": "Valores por defecto heredados — clic para sobrescribir aquí:"
   },
   "captures": {
     "tab": "Capturas",
@@ -301,6 +306,8 @@
     "jsonPath": "Ruta JSON",
     "addRule": "Agregar regla de captura",
     "noEnvironmentWarning": "Este proyecto no tiene un entorno activo, así que los valores capturados no se pueden guardar. Crea o activa uno desde Entornos.",
+    "createsNew": "Variable nueva en el entorno activo",
+    "overwritesExisting": "Sobrescribe una variable existente",
     "lastRun": "Última ejecución",
     "statusApplied": "guardado",
     "statusNoEnvironment": "sin entorno activo",
@@ -426,7 +433,7 @@
     ],
     "helpExamplesTitle": "Ejemplos:",
     "helpRules": "Los nombres admiten letras, dígitos y guiones bajos. Un nombre no definido se envía literalmente, tal como se escribió.",
-    "helpPrecedence": "Precedencia: las variables de carpeta ganan sobre el entorno activo, y una carpeta anidada gana sobre sus carpetas padre.",
+    "helpPrecedence": "Precedencia: el entorno activo gana sobre las variables de carpeta, y una carpeta anidada gana sobre sus carpetas padre. Una variable de carpeta puede tener un valor por entorno, más un valor por defecto compartido por todos.",
     "helpKnown": "Verde: se resuelve",
     "helpUnknown": "Ámbar: no definida",
     "helpAutocomplete": "Escribe {{ o pulsa Ctrl/Cmd+Espacio para autocompletar un nombre.",

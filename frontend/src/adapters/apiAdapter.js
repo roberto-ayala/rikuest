@@ -1,4 +1,11 @@
 // HTTP REST API Adapter for web mode
+
+// Folder variables live in one scope per environment; the backend reads the
+// scope from the query string and treats an absent one as the shared defaults.
+function folderScopeQuery(environmentId) {
+  return environmentId ? `?environment_id=${environmentId}` : '';
+}
+
 export class APIAdapter {
   constructor() {
     this.baseURL = '';
@@ -181,12 +188,14 @@ export class APIAdapter {
     });
   }
 
-  async getFolderVariables(folderId) {
-    return this.request(`/api/folder/${folderId}/variables`);
+  // environmentId 0 (or omitted) targets the defaults shared by every
+  // environment; any other value targets that environment's own overrides.
+  async getFolderVariables(folderId, environmentId = 0) {
+    return this.request(`/api/folder/${folderId}/variables${folderScopeQuery(environmentId)}`);
   }
 
-  async updateFolderVariables(folderId, variables) {
-    return this.request(`/api/folder/${folderId}/variables`, {
+  async updateFolderVariables(folderId, environmentId, variables) {
+    return this.request(`/api/folder/${folderId}/variables${folderScopeQuery(environmentId)}`, {
       method: 'PUT',
       body: JSON.stringify(variables)
     });

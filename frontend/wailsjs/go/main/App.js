@@ -70,8 +70,8 @@ export function GetEnvironments(arg1) {
   return window['go']['main']['App']['GetEnvironments'](arg1);
 }
 
-export function GetFolderVariables(arg1) {
-  return window['go']['main']['App']['GetFolderVariables'](arg1);
+export function GetFolderVariables(arg1, arg2) {
+  return window['go']['main']['App']['GetFolderVariables'](arg1, arg2);
 }
 
 export function GetFolders(arg1) {
@@ -150,8 +150,8 @@ export function UpdateFolder(arg1) {
   return window['go']['main']['App']['UpdateFolder'](arg1);
 }
 
-export function UpdateFolderVariables(arg1, arg2) {
-  return window['go']['main']['App']['UpdateFolderVariables'](arg1, arg2);
+export function UpdateFolderVariables(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateFolderVariables'](arg1, arg2, arg3);
 }
 
 export function UpdateProject(arg1) {

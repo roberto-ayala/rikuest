@@ -1,10 +1,17 @@
 import { create } from 'zustand';
 import { asyncAction } from './createAsyncAction.js';
+import { useEnvironmentStore } from './environmentStore.js';
 
 // --- Tab persistence (per project, localStorage) ------------------------
 // Keeps `openTabIds`/`activeTabId` around across reloads/project switches so
 // re-opening a project restores the tabs the user had open.
 const tabsStorageKey = (projectId) => `rikuest-tabs-${projectId}`;
+
+// True when the execution stored at least one value in the active environment.
+// Only `applied` counts: the other statuses report why a rule did nothing, so
+// nothing changed on the server and there is nothing to reload.
+const capturedIntoEnvironment = (response) =>
+  Array.isArray(response?.captures) && response.captures.some(c => c.status === 'applied');
 
 const persistTabs = (projectId, openTabIds, activeTabId) => {
   if (!projectId) return;
@@ -191,6 +198,19 @@ export const useRequestStore = create((set, get) => ({
         responses: { ...state.responses, [id]: responseWithTimestamp },
         currentResponse: state.activeTabId === id ? responseWithTimestamp : state.currentResponse
       }));
+
+      // A capture writes straight into the active environment's row in the
+      // database, so the store's copy is stale the moment one applies —
+      // including for variables the capture just created. Reloading here (and
+      // not in the component that happened to trigger the run) keeps the
+      // environment editor and every {{name}} autocomplete in sync no matter
+      // which tab or panel executed the request.
+      if (capturedIntoEnvironment(responseWithTimestamp)) {
+        const { currentProjectId } = get();
+        if (currentProjectId) {
+          await useEnvironmentStore.getState().fetchEnvironments(currentProjectId);
+        }
+      }
       return responseWithTimestamp;
     }, { loadingKey: null, rethrow: true, label: 'Failed to execute request' })
       .finally(clearExecuting);

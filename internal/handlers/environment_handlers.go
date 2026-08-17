@@ -146,13 +146,29 @@ func (h *Handler) UpdateEnvironmentVariables(c *gin.Context) {
 
 // ===== FOLDER VARIABLE HANDLERS =====
 
+// folderScopeQuery reads the environment scope a folder-variable request
+// targets from the query string. Absent or 0 means the defaults shared by every
+// environment.
+func folderScopeQuery(c *gin.Context) (int, error) {
+	raw := c.Query("environment_id")
+	if raw == "" {
+		return 0, nil
+	}
+	return strconv.Atoi(raw)
+}
+
 func (h *Handler) GetFolderVariables(c *gin.Context) {
 	folderID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid folder ID"})
 		return
 	}
-	vars, err := h.services.Environment.GetFolderVariables(folderID)
+	environmentID, err := folderScopeQuery(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid environment ID"})
+		return
+	}
+	vars, err := h.services.Environment.GetFolderVariables(folderID, environmentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -166,6 +182,11 @@ func (h *Handler) UpdateFolderVariables(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid folder ID"})
 		return
 	}
+	environmentID, err := folderScopeQuery(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid environment ID"})
+		return
+	}
 	var variables []models.Variable
 	if err := c.ShouldBindJSON(&variables); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -174,7 +195,7 @@ func (h *Handler) UpdateFolderVariables(c *gin.Context) {
 	if variables == nil {
 		variables = []models.Variable{}
 	}
-	if err := h.services.Environment.UpdateFolderVariables(folderID, variables); err != nil {
+	if err := h.services.Environment.UpdateFolderVariables(folderID, environmentID, variables); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
