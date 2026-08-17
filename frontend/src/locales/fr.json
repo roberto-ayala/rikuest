@@ -306,6 +306,8 @@
     "jsonPath": "Chemin JSON",
     "addRule": "Ajouter une règle de capture",
     "noEnvironmentWarning": "Ce projet n'a pas d'environnement actif, les valeurs capturées ne peuvent donc pas être stockées. Créez-en un ou activez-le depuis Environnements.",
+    "createsNew": "Nouvelle variable dans l'environnement actif",
+    "overwritesExisting": "Remplace une variable existante",
     "lastRun": "Dernière exécution",
     "statusApplied": "stockée",
     "statusNoEnvironment": "aucun environnement actif",

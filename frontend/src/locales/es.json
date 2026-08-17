@@ -306,6 +306,8 @@
     "jsonPath": "Ruta JSON",
     "addRule": "Agregar regla de captura",
     "noEnvironmentWarning": "Este proyecto no tiene un entorno activo, así que los valores capturados no se pueden guardar. Crea o activa uno desde Entornos.",
+    "createsNew": "Variable nueva en el entorno activo",
+    "overwritesExisting": "Sobrescribe una variable existente",
     "lastRun": "Última ejecución",
     "statusApplied": "guardado",
     "statusNoEnvironment": "sin entorno activo",

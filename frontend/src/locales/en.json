@@ -306,6 +306,8 @@
     "jsonPath": "JSON path",
     "addRule": "Add capture rule",
     "noEnvironmentWarning": "This project has no active environment, so captured values cannot be stored. Create or activate one from Environments.",
+    "createsNew": "New variable in the active environment",
+    "overwritesExisting": "Overwrites an existing variable",
     "lastRun": "Last execution",
     "statusApplied": "stored",
     "statusNoEnvironment": "no active environment",

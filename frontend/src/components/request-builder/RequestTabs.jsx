@@ -426,7 +426,7 @@ function RequestTabs({ requestData, updateRequestData, setRequestData, panelWidt
 
         {/* Captures Tab */}
         {activeRequestTab === 'captures' && (
-          <ResponseCapturesPanel requestId={requestData.id} results={captureResults} />
+          <ResponseCapturesPanel requestId={requestData.id} results={captureResults} variables={variables} />
         )}
 
         {/* Auth Tab */}

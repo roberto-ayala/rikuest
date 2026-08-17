@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { adapterFactory } from '../adapters/adapterFactory.js';
 import { useEnvironmentStore } from '../stores/environmentStore';
 
@@ -7,16 +7,18 @@ import { useEnvironmentStore } from '../stores/environmentStore';
  * ancestry, resolved with the same precedence the backend uses when executing).
  *
  * Feeds the {{name}} highlighting and autocomplete in the request builder.
- * Reloads whenever the active environment changes — including after a response
- * capture rewrites a value — so suggestions never show a stale value.
+ * Reloads whenever a layer it depends on changes — the active environment (a
+ * response capture creating or rewriting a value, an edit in the environment
+ * editor) or a folder's variables — so a variable becomes known everywhere the
+ * moment it exists, without a reload.
  *
  * @param {number|null} requestId
- * @returns {{ variables: Array<{key: string, value: string, source: string, source_name: string}>, reload: () => void }}
+ * @returns {{ variables: Array<{key: string, value: string, source: string, source_name: string}> }}
  */
 export function useRequestVariables(requestId) {
   const [variables, setVariables] = useState([]);
-  const [reloadToken, setReloadToken] = useState(0);
   const activeEnvironment = useEnvironmentStore(state => state.activeEnvironment);
+  const folderVariables = useEnvironmentStore(state => state.folderVariables);
 
   useEffect(() => {
     if (!requestId) {
@@ -29,9 +31,7 @@ export function useRequestVariables(requestId) {
       .then(list => { if (!cancelled) setVariables(list || []); })
       .catch(() => { if (!cancelled) setVariables([]); });
     return () => { cancelled = true; };
-  }, [requestId, reloadToken, activeEnvironment?.id, activeEnvironment?.variables]);
+  }, [requestId, activeEnvironment?.id, activeEnvironment?.variables, folderVariables]);
 
-  const reload = useCallback(() => setReloadToken(token => token + 1), []);
-
-  return { variables, reload };
+  return { variables };
 }
