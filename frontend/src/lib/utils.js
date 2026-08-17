@@ -19,6 +19,18 @@ export function getMethodColor(method) {
   return colors[method] || 'text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/50 border-gray-200 dark:border-gray-800';
 }
 
+// Short labels for the method badge. DELETE and OPTIONS are long enough to
+// force the badge out of proportion with every other method, so they get the
+// conventional abbreviation and the badge keeps one width for all of them.
+const METHOD_LABELS = {
+  DELETE: 'DEL',
+  OPTIONS: 'OPT',
+};
+
+export function getMethodLabel(method) {
+  return METHOD_LABELS[method] || method;
+}
+
 // Status color classes for history items
 export function getHistoryStatusColor(status) {
   if (status >= 200 && status < 300) return 'text-emerald-600 dark:text-emerald-400';

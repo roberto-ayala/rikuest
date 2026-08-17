@@ -116,6 +116,8 @@ export const SIZE_CONFIGS = {
       themeButton: 'h-6 px-1.5 py-0',
       headerButton: 'h-6 px-2 py-0',
       methodBadge: 'px-1.5 py-0.5',
+      methodBadgeText: 'text-[10px]',
+      methodBadgeWidth: 'w-12',
       itemSpacing: 'space-x-1.5',
       menuItem: 'px-2 py-1.5 text-xs'
     }
@@ -150,6 +152,8 @@ export const SIZE_CONFIGS = {
       themeButton: 'h-7 px-2 py-0',
       headerButton: 'h-7 px-2.5 py-0',
       methodBadge: 'px-2 py-1',
+      methodBadgeText: 'text-[10px]',
+      methodBadgeWidth: 'w-14',
       itemSpacing: 'space-x-2',
       menuItem: 'px-2.5 py-2 text-sm'
     }
@@ -184,6 +188,8 @@ export const SIZE_CONFIGS = {
       themeButton: 'h-8 px-2.5 py-0',
       headerButton: 'h-8 px-3 py-0',
       methodBadge: 'px-2.5 py-1',
+      methodBadgeText: 'text-[11px]',
+      methodBadgeWidth: 'w-16',
       itemSpacing: 'space-x-2',
       menuItem: 'px-3 py-2 text-sm'
     }
@@ -218,6 +224,8 @@ export const SIZE_CONFIGS = {
       themeButton: 'h-9 px-3 py-0',
       headerButton: 'h-9 px-4 py-0',
       methodBadge: 'px-3 py-1.5',
+      methodBadgeText: 'text-xs',
+      methodBadgeWidth: 'w-[4.5rem]',
       itemSpacing: 'space-x-3',
       menuItem: 'px-4 py-2.5 text-base'
     }

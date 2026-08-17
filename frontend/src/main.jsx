@@ -7,6 +7,9 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ThemeProvider from './components/ThemeProvider.jsx';
 import { setupErrorHandlers } from './utils/errorHandler.js';
+// Must run before any editor mounts: points Monaco at the bundled copy instead
+// of the CDN @monaco-editor/react would otherwise fetch at runtime.
+import './lib/monacoSetup.js';
 
 // Polyfill Buffer and global for browser environment (needed for swagger-parser)
 if (typeof window !== 'undefined') {

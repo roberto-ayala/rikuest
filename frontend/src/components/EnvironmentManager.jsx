@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DialogTitle } from '@headlessui/react';
 import { Modal } from './ui';
 import { Input } from './ui/Input';
@@ -6,28 +6,35 @@ import { X, Plus, Trash2, Check, Pencil } from 'lucide-react';
 import { Button } from './ui/Button';
 import VariableSyntaxHelp from './VariableSyntaxHelp';
 import { useEnvironmentStore } from '../stores/environmentStore';
+import { addToast } from '../stores/toastStore';
 import { useTranslation } from '../hooks/useTranslation';
 import { useUISize } from '../hooks/useUISize';
+
+// Name of the environment created for a project that has none, so variables
+// and response captures always have a home.
+const DEFAULT_ENVIRONMENT_NAME = 'Local';
 
 // Inline editable variable row
 function VariableRow({ variable, onChange, onDelete, iconClass, t }) {
   return (
     <div className="flex items-center gap-2">
       <Input
-        className="flex-1"
+        className="flex-1 min-w-0"
         placeholder={t('environment.variablePlaceholder')}
         value={variable.key}
         onChange={e => onChange({ ...variable, key: e.target.value })}
       />
       <Input
-        className="flex-1"
+        className="flex-1 min-w-0"
         placeholder={t('environment.valuePlaceholder')}
         value={variable.value}
         onChange={e => onChange({ ...variable, value: e.target.value })}
       />
+      {/* Fixed width, matching the header's reserved column: sized by padding
+          alone the button grew with the icon, drifting at larger UI sizes. */}
       <button
         onClick={onDelete}
-        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+        className="w-5 flex items-center justify-center flex-shrink-0 text-muted-foreground hover:text-destructive transition-colors"
       >
         <Trash2 className={iconClass} />
       </button>
@@ -59,12 +66,29 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
   const [editingName, setEditingName] = useState('');
   const [saving, setSaving] = useState(false);
   // Environment whose variable list has unsaved edits, if any.
-  const editedEnvId = useRef(null);
+  const [editedEnvId, setEditedEnvId] = useState(null);
 
+  // Load, then bootstrap: a project with no environments has nowhere to store
+  // variables — response captures in particular just report
+  // `no_active_environment` and look broken. Give it an active "Local" so there
+  // is always somewhere to write. Only when there are none at all; an explicit
+  // "deactivate all" over an existing set is a choice, not a gap to fill.
+  // The check reads the store directly because `environments` from this render
+  // is still the pre-fetch value at this point.
   useEffect(() => {
-    if (isOpen && projectId) {
-      fetchEnvironments(projectId);
-    }
+    if (!isOpen || !projectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetchEnvironments(projectId);
+        if (cancelled || useEnvironmentStore.getState().environments.length > 0) return;
+        const env = await createEnvironment(projectId, DEFAULT_ENVIRONMENT_NAME);
+        if (!cancelled && env?.id) await setActiveEnvironment(projectId, env.id);
+      } catch {
+        // Reported through the store's error state; retried on the next open.
+      }
+    })();
+    return () => { cancelled = true; };
   }, [isOpen, projectId]);
 
   // Sync selected env with active
@@ -80,14 +104,16 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
   // Load variables when the selected env changes, and pick up background
   // refreshes (a response capture creating or rewriting a value lands here) —
   // except while this environment has unsaved edits, which such a refresh must
-  // never discard.
+  // never discard. editedEnvId is read but deliberately not a dependency:
+  // re-running on every keystroke is exactly what the guard exists to prevent.
   useEffect(() => {
-    if (editedEnvId.current === selectedEnvId) return;
+    if (editedEnvId === selectedEnvId) return;
     const env = environments.find(e => e.id === selectedEnvId);
     setVariables(env?.variables ? env.variables.map(v => ({ ...v })) : []);
   }, [selectedEnvId, environments]);
 
   const selectedEnv = environments.find(e => e.id === selectedEnvId);
+  const hasUnsavedChanges = editedEnvId !== null && editedEnvId === selectedEnvId;
 
   const handleCreateEnv = async () => {
     if (!newEnvName.trim()) return;
@@ -113,15 +139,25 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
     if (!selectedEnvId) return;
     setSaving(true);
     const filtered = variables.filter(v => v.key.trim());
-    await updateEnvironmentVariables(selectedEnvId, filtered);
-    editedEnvId.current = null;
-    setSaving(false);
+    try {
+      await updateEnvironmentVariables(selectedEnvId, filtered);
+      // The modal stays open after saving, so without this the write left no
+      // trace at all and read as a dead button.
+      setVariables(filtered);
+      setEditedEnvId(null);
+      addToast('success', t('environment.variablesSaved'));
+    } catch {
+      addToast('error', t('environment.variablesSaveFailed'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Editing marks this environment as holding unsaved work, which is what the
-  // sync effect above checks before accepting a background refresh.
+  // sync effect above checks before accepting a background refresh — and what
+  // the Save button uses to show there is something to save.
   const editVariables = (updater) => {
-    editedEnvId.current = selectedEnvId;
+    setEditedEnvId(selectedEnvId);
     setVariables(updater);
   };
 
@@ -262,9 +298,14 @@ export default function EnvironmentManager({ projectId, isOpen, onClose }) {
                   </button>
                 </div>
 
-                <div className={`flex justify-end gap-2 border-t border-border ${spacing(4)}`}>
+                <div className={`flex items-center justify-end gap-2 border-t border-border ${spacing(4)}`}>
+                  {/* Says whether there is anything to save, so the button is
+                      never a no-op the user has to guess about. */}
+                  <span className={`mr-auto ${text('xs')} text-muted-foreground`}>
+                    {hasUnsavedChanges ? t('environment.unsavedChanges') : ''}
+                  </span>
                   <Button variant="outline" className={buttonClass} onClick={onClose}>{t('common.cancel')}</Button>
-                  <Button className={buttonClass} onClick={handleSaveVariables} disabled={saving}>
+                  <Button className={buttonClass} onClick={handleSaveVariables} disabled={saving || !hasUnsavedChanges}>
                     {saving ? t('environment.saving') : t('common.save')}
                   </Button>
                 </div>

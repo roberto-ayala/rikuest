@@ -15,30 +15,37 @@ function CaptureRow({ capture, onChange, onDelete, iconClass, textXs, listId, ex
   const hint = !name ? null : existingKeys.has(name) ? t('captures.overwritesExisting') : t('captures.createsNew');
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 min-w-0">
+    <div>
+      {/* The hint sits under the whole row, not inside the name column: nested
+          in the flex row it made that column taller and items-center pushed the
+          path field and the delete button out of line with the name field. */}
+      <div className="flex items-center gap-2">
         <Input
-          className="w-full font-mono"
+          className="flex-1 min-w-0 font-mono"
           placeholder="variableName"
           list={listId}
           value={capture.variable_name}
           onChange={e => onChange({ ...capture, variable_name: e.target.value })}
         />
-        {hint && <span className={`${textXs} text-muted-foreground`}>{hint}</span>}
+        {/* Fixed width so the header above reserves exactly this much and the
+            "JSON path" label lands over its own field. */}
+        <span className={`w-3 text-center ${textXs} text-muted-foreground flex-shrink-0`}>=</span>
+        <Input
+          className="flex-1 min-w-0 font-mono"
+          placeholder="data.token"
+          value={capture.json_path}
+          onChange={e => onChange({ ...capture, json_path: e.target.value })}
+        />
+        {/* Fixed width too: with only padding around it the button grew with
+            the icon size, drifting away from the header's reserved column. */}
+        <button
+          onClick={onDelete}
+          className="w-5 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+        >
+          <Trash2 className={iconClass} />
+        </button>
       </div>
-      <span className={`${textXs} text-muted-foreground flex-shrink-0`}>=</span>
-      <Input
-        className="flex-1 min-w-0 font-mono"
-        placeholder="data.token"
-        value={capture.json_path}
-        onChange={e => onChange({ ...capture, json_path: e.target.value })}
-      />
-      <button
-        onClick={onDelete}
-        className="p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-      >
-        <Trash2 className={iconClass} />
-      </button>
+      {hint && <p className={`${textXs} text-muted-foreground mt-0.5`}>{hint}</p>}
     </div>
   );
 }
