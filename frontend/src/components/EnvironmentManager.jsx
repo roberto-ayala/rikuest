@@ -19,20 +19,22 @@ function VariableRow({ variable, onChange, onDelete, iconClass, t }) {
   return (
     <div className="flex items-center gap-2">
       <Input
-        className="flex-1"
+        className="flex-1 min-w-0"
         placeholder={t('environment.variablePlaceholder')}
         value={variable.key}
         onChange={e => onChange({ ...variable, key: e.target.value })}
       />
       <Input
-        className="flex-1"
+        className="flex-1 min-w-0"
         placeholder={t('environment.valuePlaceholder')}
         value={variable.value}
         onChange={e => onChange({ ...variable, value: e.target.value })}
       />
+      {/* Fixed width, matching the header's reserved column: sized by padding
+          alone the button grew with the icon, drifting at larger UI sizes. */}
       <button
         onClick={onDelete}
-        className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+        className="w-5 flex items-center justify-center flex-shrink-0 text-muted-foreground hover:text-destructive transition-colors"
       >
         <Trash2 className={iconClass} />
       </button>
