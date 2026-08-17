@@ -51,7 +51,9 @@
 
 /* JSON syntax highlighting through text coloring */
 .json-editor textarea::selection {
-  background: hsl(var(--primary), 0.2);
+  /* --primary holds space-separated HSL channels, so the alpha needs the
+     slash form: the comma form parses as invalid and the rule was dropped. */
+  background: hsl(var(--primary) / 0.3);
 }
 
 .json-editor .tooltip {

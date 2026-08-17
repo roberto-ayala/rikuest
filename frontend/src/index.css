@@ -64,6 +64,17 @@
   select {
     font-family: "Helvetica Neue", sans;
   }
+  /* Text selection is defined explicitly instead of left to the engine: the
+     variable-aware inputs declare ::selection to keep their transparent text
+     from reappearing when selected, and declaring ::selection with only a
+     color makes WebKit drop its default background — which is why selecting
+     inside those fields looked like nothing had been selected. */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+  }
+  html.dark ::selection {
+    background-color: hsl(var(--primary) / 0.4);
+  }
 }
 
 @layer utilities {
