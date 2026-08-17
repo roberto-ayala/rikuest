@@ -30,6 +30,12 @@ export function useUISize() {
     headerButton: config.components.headerButton,
     sidebarMinWidth: config.components.sidebarMinWidth,
     methodBadge: config.components.methodBadge,
+    // One step below the row's own text: the badge is bold and uppercase, so at
+    // the same size it reads larger than the request name next to it.
+    methodBadgeText: config.components.methodBadgeText,
+    // Fixed badge width, so request names line up in a column no matter which
+    // method each row carries.
+    methodBadgeWidth: config.components.methodBadgeWidth,
     itemSpacing: config.components.itemSpacing,
     menuItem: config.components.menuItem
   };

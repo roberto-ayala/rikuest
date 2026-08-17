@@ -41,7 +41,6 @@ import { getMethodColor, collectRunnableRequests, collectFolderAndDescendantIds,
 import { addToast } from '../stores/toastStore';
 import { DialogTitle } from '@headlessui/react';
 import { ContextMenu, ContextMenuItem, Modal, ModalHeader, ModalBody, ModalFooter } from './ui';
-import FolderTreeItem from './FolderTreeItem';
 import RequestTreeItem from './RequestTreeItem';
 import DroppableFolder from './DroppableFolder';
 import FolderVariablesModal from './FolderVariablesModal';
@@ -566,7 +565,9 @@ function FolderTree({ projectId, currentRequest, onSelectRequest, onRequestMoved
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
-          <div className="space-y-1">
+          {/* Same row gap as the nested levels, so the rhythm does not change
+              depending on how deep a row sits. */}
+          <div className="space-y-0.5">
             {/* Root Drop Zone - invisible but functional */}
             <RootDropZone />
             

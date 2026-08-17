@@ -1,12 +1,11 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { MoreVertical } from 'lucide-react';
-import { Button } from './ui/Button';
+import { getMethodLabel } from '../lib/utils';
 import { useUISize } from '../hooks/useUISize';
 
 function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBeingDragged, onShowMenu }) {
-  const { text, button, icon } = useUISize();
+  const { text, spacing, itemSpacing, methodBadge, methodBadgeText, methodBadgeWidth } = useUISize();
 
   const {
     attributes,
@@ -26,32 +25,30 @@ function RequestTreeItem({ request, isSelected, onSelect, getMethodColor, isBein
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted cursor-pointer transition-all ${
+      className={`group flex items-center ${itemSpacing} ${spacing(1)} rounded hover:bg-muted cursor-pointer transition-all ${
         isSelected ? 'bg-muted' : ''
       } ${isDragging || isBeingDragged ? 'opacity-50 scale-105 shadow-lg bg-primary/5 border border-primary/20' : ''}`}
       onClick={() => onSelect(request)}
+      onContextMenu={(e) => {
+        if (!onShowMenu) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onShowMenu(request, e);
+      }}
       {...attributes}
       {...listeners}
     >
-      <span className={`${text('xs')} font-bold flex-shrink-0 w-10 ${getMethodColor(request.method)}`}>
-        {request.method}
+      {/* Starts flush with a sibling folder's icon: with no expander column on
+          either row, the left edge alone carries the nesting level. */}
+      <span
+        className={`${methodBadgeText} ${methodBadge} ${methodBadgeWidth} font-bold leading-none text-center rounded border flex-shrink-0 ${getMethodColor(request.method)}`}
+        title={request.method}
+      >
+        {getMethodLabel(request.method)}
       </span>
       <span className={`${text('xs')} text-muted-foreground truncate flex-1 min-w-0`}>
         {request.name}
       </span>
-
-      {onShowMenu && (
-        <Button
-          variant="ghost"
-          className={`opacity-0 group-hover:opacity-100 ${button} h-5 w-5 p-0 flex-shrink-0`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onShowMenu(request, e);
-          }}
-        >
-          <MoreVertical className={icon} />
-        </Button>
-      )}
     </div>
   );
 }
