@@ -292,7 +292,12 @@
     "addVariable": "Ajouter une variable",
     "saving": "Enregistrement…",
     "folderVariables": "Variables du Dossier",
-    "folderVariablesDesc": "Valeurs par défaut pour tous les environnements, utilisées par"
+    "folderVariablesDesc": "Variables pour",
+    "folderScope": "S'applique à",
+    "folderScopeShared": "Tous les environnements (par défaut)",
+    "folderScopeSharedHint": "Utilisées par tous les environnements, sauf si l'environnement définit sa propre valeur.",
+    "folderScopeEnvHint": "Utilisées uniquement lorsque cet environnement est actif ; elles remplacent la valeur par défaut.",
+    "folderInherited": "Valeurs par défaut héritées — cliquez pour les remplacer ici :"
   },
   "captures": {
     "tab": "Captures",
@@ -426,7 +431,7 @@
     ],
     "helpExamplesTitle": "Exemples :",
     "helpRules": "Les noms acceptent lettres, chiffres et tirets bas. Un nom non défini est envoyé littéralement, tel quel.",
-    "helpPrecedence": "Priorité : l'environnement actif l'emporte sur les variables de dossier, et un dossier imbriqué l'emporte sur ses parents. Les variables de dossier servent de valeur par défaut partagée par tous les environnements.",
+    "helpPrecedence": "Priorité : l'environnement actif l'emporte sur les variables de dossier, et un dossier imbriqué l'emporte sur ses parents. Une variable de dossier peut avoir une valeur par environnement, plus une valeur par défaut partagée par tous.",
     "helpKnown": "Vert : résolue",
     "helpUnknown": "Ambre : non définie",
     "helpAutocomplete": "Tapez {{ ou appuyez sur Ctrl/Cmd+Espace pour compléter un nom.",

@@ -36,7 +36,7 @@ export function GetCookies(arg1:number):Promise<Array<models.Cookie>>;
 
 export function GetEnvironments(arg1:number):Promise<Array<models.Environment>>;
 
-export function GetFolderVariables(arg1:number):Promise<Array<models.Variable>>;
+export function GetFolderVariables(arg1:number,arg2:number):Promise<Array<models.Variable>>;
 
 export function GetFolders(arg1:number):Promise<Array<models.Folder>>;
 
@@ -76,7 +76,7 @@ export function UpdateEnvironmentVariables(arg1:number,arg2:Array<models.Variabl
 
 export function UpdateFolder(arg1:models.Folder):Promise<models.Folder>;
 
-export function UpdateFolderVariables(arg1:number,arg2:Array<models.Variable>):Promise<void>;
+export function UpdateFolderVariables(arg1:number,arg2:number,arg3:Array<models.Variable>):Promise<void>;
 
 export function UpdateProject(arg1:models.Project):Promise<models.Project>;
 

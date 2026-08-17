@@ -75,7 +75,7 @@ func TestBuildVariableMapPrecedence(t *testing.T) {
 	if err := db.CreateFolder(folder); err != nil {
 		t.Fatalf("CreateFolder: %v", err)
 	}
-	err := db.UpdateFolderVariables(folder.ID, []models.Variable{{Key: "shared", Value: "from-folder"}})
+	err := db.UpdateFolderVariables(folder.ID, nil, []models.Variable{{Key: "shared", Value: "from-folder"}})
 	if err != nil {
 		t.Fatalf("UpdateFolderVariables: %v", err)
 	}
@@ -120,13 +120,13 @@ func TestBuildVariableMapAncestorFolderChain(t *testing.T) {
 	if err := db.CreateFolder(child); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.UpdateFolderVariables(root.ID, []models.Variable{
+	if err := db.UpdateFolderVariables(root.ID, nil, []models.Variable{
 		{Key: "from_root", Value: "root-val"},
 		{Key: "shared", Value: "from-root"},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.UpdateFolderVariables(child.ID, []models.Variable{
+	if err := db.UpdateFolderVariables(child.ID, nil, []models.Variable{
 		{Key: "shared", Value: "from-child"},
 	}); err != nil {
 		t.Fatal(err)
@@ -169,10 +169,17 @@ func TestBuildVariableMapCapturedValueBeatsFolder(t *testing.T) {
 	if err := db.CreateFolder(folder); err != nil {
 		t.Fatalf("CreateFolder: %v", err)
 	}
-	if err := db.UpdateFolderVariables(folder.ID, []models.Variable{
+	if err := db.UpdateFolderVariables(folder.ID, nil, []models.Variable{
 		{Key: "token", Value: "stale-folder-token"},
 	}); err != nil {
 		t.Fatalf("UpdateFolderVariables: %v", err)
+	}
+	// Not even a folder variable scoped to the very environment the capture
+	// writes into may shadow it: the environment is always the top layer.
+	if err := db.UpdateFolderVariables(folder.ID, &env.ID, []models.Variable{
+		{Key: "token", Value: "stale-env-scoped-token"},
+	}); err != nil {
+		t.Fatalf("UpdateFolderVariables (env scope): %v", err)
 	}
 	if err := db.UpsertEnvironmentVariable(env.ID, "token", "captured-token"); err != nil {
 		t.Fatalf("UpsertEnvironmentVariable: %v", err)
@@ -187,6 +194,94 @@ func TestBuildVariableMapCapturedValueBeatsFolder(t *testing.T) {
 	}
 }
 
+// A folder can hold a per-environment value for a key: the shared default
+// applies to every environment, and the environment-scoped row replaces it
+// while that environment is active.
+func TestBuildVariableMapFolderEnvironmentScope(t *testing.T) {
+	db := newTestDB(t)
+	p := createProject(t, db, "p")
+	staging := createNamedActiveEnv(t, db, p.ID, "staging", nil)
+	prod := createNamedActiveEnv(t, db, p.ID, "prod", nil) // created last, so active
+
+	folder := &models.Folder{ProjectID: p.ID, Name: "logistics"}
+	if err := db.CreateFolder(folder); err != nil {
+		t.Fatalf("CreateFolder: %v", err)
+	}
+	if err := db.UpdateFolderVariables(folder.ID, nil, []models.Variable{
+		{Key: "api_url", Value: "default-url"},
+		{Key: "api_user", Value: "shared-user"},
+	}); err != nil {
+		t.Fatalf("UpdateFolderVariables (default): %v", err)
+	}
+	if err := db.UpdateFolderVariables(folder.ID, &prod.ID, []models.Variable{
+		{Key: "api_url", Value: "prod-url"},
+	}); err != nil {
+		t.Fatalf("UpdateFolderVariables (prod): %v", err)
+	}
+
+	r := NewVariableResolver(db)
+
+	vars, err := r.BuildVariableMap(p.ID, &folder.ID)
+	if err != nil {
+		t.Fatalf("BuildVariableMap: %v", err)
+	}
+	if vars["api_url"] != "prod-url" {
+		t.Errorf("prod scope must win while prod is active: api_url = %q", vars["api_url"])
+	}
+	if vars["api_user"] != "shared-user" {
+		t.Errorf("shared default lost: api_user = %q", vars["api_user"])
+	}
+
+	// Switching environments falls back to the shared default, since staging
+	// has no override of its own.
+	if err := db.SetActiveEnvironment(p.ID, staging.ID); err != nil {
+		t.Fatalf("SetActiveEnvironment: %v", err)
+	}
+	vars, err = r.BuildVariableMap(p.ID, &folder.ID)
+	if err != nil {
+		t.Fatalf("BuildVariableMap: %v", err)
+	}
+	if vars["api_url"] != "default-url" {
+		t.Errorf("staging must fall back to the default: api_url = %q", vars["api_url"])
+	}
+}
+
+// Folder depth stays the primary axis: a child folder's shared default beats an
+// ancestor's environment-scoped value, the same way it beats any other
+// ancestor value.
+func TestBuildVariableMapChildFolderBeatsAncestorEnvironmentScope(t *testing.T) {
+	db := newTestDB(t)
+	p := createProject(t, db, "p")
+	env := createActiveEnv(t, db, p.ID, nil)
+
+	root := &models.Folder{ProjectID: p.ID, Name: "root"}
+	if err := db.CreateFolder(root); err != nil {
+		t.Fatal(err)
+	}
+	child := &models.Folder{ProjectID: p.ID, Name: "child", ParentID: &root.ID}
+	if err := db.CreateFolder(child); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpdateFolderVariables(root.ID, &env.ID, []models.Variable{
+		{Key: "shared", Value: "root-env-scoped"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpdateFolderVariables(child.ID, nil, []models.Variable{
+		{Key: "shared", Value: "child-default"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	vars, err := NewVariableResolver(db).BuildVariableMap(p.ID, &child.ID)
+	if err != nil {
+		t.Fatalf("BuildVariableMap: %v", err)
+	}
+	if vars["shared"] != "child-default" {
+		t.Errorf("deeper folder must win over an ancestor scope: shared = %q", vars["shared"])
+	}
+}
+
 func TestListVariablesReportsSource(t *testing.T) {
 	db := newTestDB(t)
 	p := createProject(t, db, "p")
@@ -196,7 +291,7 @@ func TestListVariablesReportsSource(t *testing.T) {
 	if err := db.CreateFolder(folder); err != nil {
 		t.Fatalf("CreateFolder: %v", err)
 	}
-	if err := db.UpdateFolderVariables(folder.ID, []models.Variable{
+	if err := db.UpdateFolderVariables(folder.ID, nil, []models.Variable{
 		{Key: "shared", Value: "from-folder"},
 		{Key: "folder_only", Value: "only-here"},
 	}); err != nil {

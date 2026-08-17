@@ -30,7 +30,14 @@ func createProject(t *testing.T, db *database.DB, name string) *models.Project {
 // createActiveEnv creates an environment with the given variables and marks it active.
 func createActiveEnv(t *testing.T, db *database.DB, projectID int, vars map[string]string) *models.Environment {
 	t.Helper()
-	env := &models.Environment{ProjectID: projectID, Name: "test-env"}
+	return createNamedActiveEnv(t, db, projectID, "test-env", vars)
+}
+
+// createNamedActiveEnv is createActiveEnv for tests that need more than one
+// environment and therefore care about telling them apart by name.
+func createNamedActiveEnv(t *testing.T, db *database.DB, projectID int, name string, vars map[string]string) *models.Environment {
+	t.Helper()
+	env := &models.Environment{ProjectID: projectID, Name: name}
 	if err := db.CreateEnvironment(env); err != nil {
 		t.Fatalf("CreateEnvironment: %v", err)
 	}

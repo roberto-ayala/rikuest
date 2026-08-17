@@ -167,6 +167,66 @@ func TestMigrationV2ColumnsAndDefaults(t *testing.T) {
 	}
 }
 
+// Folder variables are stored per scope, and an environment-scoped row must
+// disappear with its environment instead of lingering as an orphan.
+func TestMigrationV4FolderVariableScopes(t *testing.T) {
+	db := newTestDB(t)
+
+	p := &models.Project{Name: "p4"}
+	if err := db.CreateProject(p); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+	folder := &models.Folder{ProjectID: p.ID, Name: "f"}
+	if err := db.CreateFolder(folder); err != nil {
+		t.Fatalf("CreateFolder: %v", err)
+	}
+	env := &models.Environment{ProjectID: p.ID, Name: "prod"}
+	if err := db.CreateEnvironment(env); err != nil {
+		t.Fatalf("CreateEnvironment: %v", err)
+	}
+
+	if err := db.UpdateFolderVariables(folder.ID, nil, []models.Variable{{Key: "api_url", Value: "default"}}); err != nil {
+		t.Fatalf("UpdateFolderVariables (default): %v", err)
+	}
+	if err := db.UpdateFolderVariables(folder.ID, &env.ID, []models.Variable{{Key: "api_url", Value: "prod"}}); err != nil {
+		t.Fatalf("UpdateFolderVariables (env): %v", err)
+	}
+
+	// Writing one scope leaves the other alone.
+	defaults, err := db.GetFolderVariables(folder.ID, nil)
+	if err != nil {
+		t.Fatalf("GetFolderVariables (default): %v", err)
+	}
+	if len(defaults) != 1 || defaults[0].Value != "default" {
+		t.Errorf("default scope = %+v; want the untouched default value", defaults)
+	}
+	scoped, err := db.GetFolderVariables(folder.ID, &env.ID)
+	if err != nil {
+		t.Fatalf("GetFolderVariables (env): %v", err)
+	}
+	if len(scoped) != 1 || scoped[0].Value != "prod" {
+		t.Errorf("env scope = %+v; want the prod override", scoped)
+	}
+
+	if err := db.DeleteEnvironment(env.ID); err != nil {
+		t.Fatalf("DeleteEnvironment: %v", err)
+	}
+	var orphans int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM folder_variables WHERE environment_id IS NOT NULL`).Scan(&orphans); err != nil {
+		t.Fatalf("count orphans: %v", err)
+	}
+	if orphans != 0 {
+		t.Errorf("environment-scoped rows after delete = %d; want 0 (cascade)", orphans)
+	}
+	defaults, err = db.GetFolderVariables(folder.ID, nil)
+	if err != nil {
+		t.Fatalf("GetFolderVariables after delete: %v", err)
+	}
+	if len(defaults) != 1 {
+		t.Errorf("shared defaults lost when an environment was deleted: %+v", defaults)
+	}
+}
+
 func TestTelemetryDisabledByDefault(t *testing.T) {
 	db := newTestDB(t)
 

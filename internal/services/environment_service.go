@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	"rikuest/internal/database"
 	"rikuest/internal/models"
 )
@@ -41,10 +43,33 @@ func (s *EnvironmentService) UpdateEnvironmentVariables(environmentID int, varia
 	return s.db.UpdateEnvironmentVariables(environmentID, variables)
 }
 
-func (s *EnvironmentService) GetFolderVariables(folderID int) ([]models.Variable, error) {
-	return s.db.GetFolderVariables(folderID)
+// GetFolderVariables returns one scope of a folder's variables: environmentID
+// 0 is the default shared by every environment, any other value is that
+// environment's own overrides.
+func (s *EnvironmentService) GetFolderVariables(folderID int, environmentID int) ([]models.Variable, error) {
+	return s.db.GetFolderVariables(folderID, folderScope(environmentID))
 }
 
-func (s *EnvironmentService) UpdateFolderVariables(folderID int, variables []models.Variable) error {
-	return s.db.UpdateFolderVariables(folderID, variables)
+// UpdateFolderVariables replaces one scope of a folder's variables, leaving the
+// other scopes (the shared defaults and every other environment) untouched.
+func (s *EnvironmentService) UpdateFolderVariables(folderID int, environmentID int, variables []models.Variable) error {
+	if environmentID != 0 {
+		ok, err := s.db.EnvironmentBelongsToFolderProject(folderID, environmentID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("environment %d does not belong to the folder's project", environmentID)
+		}
+	}
+	return s.db.UpdateFolderVariables(folderID, folderScope(environmentID), variables)
+}
+
+// folderScope maps the API's 0-means-shared-default convention onto the
+// nullable environment_id the repository expects.
+func folderScope(environmentID int) *int {
+	if environmentID == 0 {
+		return nil
+	}
+	return &environmentID
 }

@@ -97,10 +97,16 @@ func (db *DB) GetFolderAncestry(folderID int) ([]int, error) {
 	return ids, rows.Err()
 }
 
-func (db *DB) GetFolderVariables(folderID int) ([]models.Variable, error) {
+// GetFolderVariables returns the variables stored in a single scope of a
+// folder: environmentID nil is the default shared by every environment, a
+// non-nil one is the set of overrides for that environment only. The two are
+// never mixed here — merging them is the resolver's job.
+func (db *DB) GetFolderVariables(folderID int, environmentID *int) ([]models.Variable, error) {
+	// `IS` rather than `=` so a nil argument matches the NULL (default) scope.
 	rows, err := db.Query(
-		`SELECT id, key, value, created_at, updated_at FROM folder_variables WHERE folder_id = ? ORDER BY key ASC`,
-		folderID,
+		`SELECT id, key, value, created_at, updated_at FROM folder_variables
+		 WHERE folder_id = ? AND environment_id IS ? ORDER BY key ASC`,
+		folderID, environmentID,
 	)
 	if err != nil {
 		return nil, err
@@ -121,23 +127,26 @@ func (db *DB) GetFolderVariables(folderID int) ([]models.Variable, error) {
 	return vars, nil
 }
 
-// UpdateFolderVariables replaces all variables for a folder (batch replace).
-
-// UpdateFolderVariables replaces all variables for a folder (batch replace).
-func (db *DB) UpdateFolderVariables(folderID int, variables []models.Variable) error {
+// UpdateFolderVariables replaces the variables of one folder scope (batch
+// replace). Only the given scope is touched: saving an environment's overrides
+// leaves the shared defaults — and every other environment — untouched.
+func (db *DB) UpdateFolderVariables(folderID int, environmentID *int, variables []models.Variable) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(`DELETE FROM folder_variables WHERE folder_id = ?`, folderID); err != nil {
+	if _, err := tx.Exec(
+		`DELETE FROM folder_variables WHERE folder_id = ? AND environment_id IS ?`,
+		folderID, environmentID,
+	); err != nil {
 		return err
 	}
 	for _, v := range variables {
 		if _, err := tx.Exec(
-			`INSERT INTO folder_variables (folder_id, key, value) VALUES (?, ?, ?)`,
-			folderID, v.Key, v.Value,
+			`INSERT INTO folder_variables (folder_id, environment_id, key, value) VALUES (?, ?, ?, ?)`,
+			folderID, environmentID, v.Key, v.Value,
 		); err != nil {
 			return err
 		}

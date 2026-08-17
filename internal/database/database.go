@@ -241,6 +241,27 @@ var migrations = []migration{
 			`CREATE INDEX IF NOT EXISTS idx_project_cookies_project_id ON project_cookies(project_id)`,
 		},
 	},
+	{
+		// v4: folder variables become environment-aware. A NULL environment_id
+		// is the default shared by every environment (what every existing row
+		// becomes); a row carrying an environment_id overrides that default
+		// for that environment only.
+		version: 4,
+		statements: []string{
+			// The batch-replace writer never enforced uniqueness, so collapse
+			// any duplicate (folder, key) rows — keeping the newest — before
+			// the unique indexes below can be created.
+			`DELETE FROM folder_variables WHERE id NOT IN (
+				SELECT MAX(id) FROM folder_variables GROUP BY folder_id, key
+			)`,
+			`ALTER TABLE folder_variables ADD COLUMN environment_id INTEGER
+				REFERENCES environments(id) ON DELETE CASCADE`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_folder_variables_default_key
+				ON folder_variables(folder_id, key) WHERE environment_id IS NULL`,
+			`CREATE UNIQUE INDEX IF NOT EXISTS idx_folder_variables_env_key
+				ON folder_variables(folder_id, environment_id, key) WHERE environment_id IS NOT NULL`,
+		},
+	},
 }
 
 func (db *DB) migrate() error {

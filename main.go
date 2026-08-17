@@ -301,15 +301,18 @@ func (a *App) UpdateEnvironmentVariables(environmentID int, variables []models.V
 	return a.services.Environment.UpdateEnvironmentVariables(environmentID, variables)
 }
 
-func (a *App) GetFolderVariables(folderID int) ([]models.Variable, error) {
-	return a.services.Environment.GetFolderVariables(folderID)
+// GetFolderVariables returns one scope of a folder's variables: environmentID 0
+// is the default shared by every environment, any other value that
+// environment's own overrides.
+func (a *App) GetFolderVariables(folderID int, environmentID int) ([]models.Variable, error) {
+	return a.services.Environment.GetFolderVariables(folderID, environmentID)
 }
 
-func (a *App) UpdateFolderVariables(folderID int, variables []models.Variable) error {
+func (a *App) UpdateFolderVariables(folderID int, environmentID int, variables []models.Variable) error {
 	if variables == nil {
 		variables = []models.Variable{}
 	}
-	return a.services.Environment.UpdateFolderVariables(folderID, variables)
+	return a.services.Environment.UpdateFolderVariables(folderID, environmentID, variables)
 }
 
 // GetRequestVariables returns the variables visible to a request (active
