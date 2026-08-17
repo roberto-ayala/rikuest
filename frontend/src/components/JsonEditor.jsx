@@ -102,7 +102,12 @@ const JsonEditor = ({ value, onChange, placeholder, className, variables = [] })
       folding: true,
       renderWhitespace: 'selection',
       cursorBlinking: 'smooth',
-      smoothScrolling: true
+      // Matches the response viewer: the platform supplies trackpad momentum,
+      // so Monaco's own animation only adds drift.
+      smoothScrolling: false,
+      overviewRulerLanes: 0,
+      overviewRulerBorder: false,
+      hideCursorInOverviewRuler: true
     });
 
     // Add custom keybindings
@@ -188,8 +193,9 @@ const JsonEditor = ({ value, onChange, placeholder, className, variables = [] })
           scrollbar: {
             vertical: 'auto',
             horizontal: 'auto',
-            verticalScrollbarSize: 8,
-            horizontalScrollbarSize: 8
+            useShadows: false,
+            verticalScrollbarSize: 10,
+            horizontalScrollbarSize: 10
           }
         }}
       />

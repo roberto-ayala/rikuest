@@ -108,7 +108,23 @@ export function useMonacoAppTheme({ editorRef } = {}) {
         base: isDark ? 'vs-dark' : 'vs',
         inherit: true,
         rules: [], // Keep all default syntax highlighting
-        colors: { 'editor.background': readAppBackgroundColor(isDark) },
+        colors: {
+          'editor.background': readAppBackgroundColor(isDark),
+          // Translucent slider that darkens on hover, the way the platform's
+          // overlay scrollbars behave, instead of Monaco's opaque grey block.
+          ...(isDark
+            ? {
+                'scrollbarSlider.background': '#ffffff20',
+                'scrollbarSlider.hoverBackground': '#ffffff33',
+                'scrollbarSlider.activeBackground': '#ffffff4d',
+              }
+            : {
+                'scrollbarSlider.background': '#00000020',
+                'scrollbarSlider.hoverBackground': '#00000033',
+                'scrollbarSlider.activeBackground': '#0000004d',
+              }),
+          'editorOverviewRuler.border': '#00000000',
+        },
       });
     } catch {
       // Already defined with the same name — redefining is what we wanted anyway.

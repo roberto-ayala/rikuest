@@ -43,8 +43,23 @@ const ResponseViewer = React.memo(({ content, language, wrap, editorRef }) => {
     fontFamily: MONACO_FONT_FAMILY,
     fontSize,
     lineHeight,
-    smoothScrolling: true,
-    scrollbar: { alwaysConsumeMouseWheel: false },
+    // Off on purpose: the platform already applies its own trackpad momentum,
+    // and Monaco's animation on top of it reads as drift rather than scrolling.
+    smoothScrolling: false,
+    // The overview ruler is the strip of markers Monaco paints in the scrollbar
+    // track. Nothing here produces markers, and it is the main thing that makes
+    // the scrollbar look like a web editor's rather than the system's.
+    overviewRulerLanes: 0,
+    overviewRulerBorder: false,
+    hideCursorInOverviewRuler: true,
+    scrollbar: {
+      // Lets the surrounding page take over once the editor hits its end.
+      alwaysConsumeMouseWheel: false,
+      // Monaco's inner shadow on scroll has no platform equivalent.
+      useShadows: false,
+      verticalScrollbarSize: 10,
+      horizontalScrollbarSize: 10,
+    },
     contextmenu: true,
   }), [wrap, isLarge, fontSize, lineHeight]);
 

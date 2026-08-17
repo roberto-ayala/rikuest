@@ -155,6 +155,13 @@ html.dark .shiki-wrapper .shiki {
    Monaco, which owns both. Shiki still highlights the short snippets in
    CopyFormatModal, which is what the rules above are for. */
 
+/* Monaco's scrollbar slider is a square block. Its colors come from the theme
+   (see hooks/useMonacoAppTheme.js), but the shape is only reachable from CSS,
+   and rounded is what makes it read as an overlay scrollbar. */
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider {
+  border-radius: 999px;
+}
+
 /* Toast enter animation (see components/Toaster.jsx) */
 @keyframes toast-in {
   from {
