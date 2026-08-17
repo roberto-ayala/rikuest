@@ -381,12 +381,6 @@
     "switchToPretty": "Passer à la vue formatée",
     "toggleWrap": "Activer/désactiver le retour à la ligne",
     "search": "Rechercher dans le corps",
-    "searchPlaceholder": "Rechercher...",
-    "noMatches": "Aucune correspondance",
-    "matchCounter": "{current} sur {total}",
-    "prevMatch": "Correspondance précédente",
-    "nextMatch": "Correspondance suivante",
-    "closeSearch": "Fermer la recherche",
     "binaryPreviewTitle": "Réponse binaire",
     "binaryPreviewDesc": "{type} — {size} — aperçu non disponible"
   },

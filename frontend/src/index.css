@@ -150,28 +150,11 @@ html.dark .shiki-wrapper .shiki {
   background-color: transparent !important;
 }
 
-/* Word-wrap toggle (ResponsePanel body view): wrapping is the default via
-   the rule above, ".no-wrap" opts back into a single scrollable line. */
-.shiki-wrapper.no-wrap .shiki {
-  white-space: pre;
-  overflow-wrap: normal;
-}
+/* The word-wrap toggle and the line-number gutter that used to live here were
+   dropped with the Shiki-based response viewer: the response now renders in
+   Monaco, which owns both. Shiki still highlights the short snippets in
+   CopyFormatModal, which is what the rules above are for. */
 
-/* Line numbers via data-line attribute injected by the Shiki transformer */
-.shiki-wrapper.line-numbers .shiki .line[data-line]::before {
-  content: attr(data-line);
-  display: inline-block;
-  width: 2ch;
-  margin-right: 1.5rem;
-  text-align: right;
-  color: #8b949e;
-  user-select: none;
-  font-feature-settings: "tnum";
-}
-
-html.dark .shiki-wrapper.line-numbers .shiki .line[data-line]::before {
-  color: #6e7681;
-}
 /* Toast enter animation (see components/Toaster.jsx) */
 @keyframes toast-in {
   from {

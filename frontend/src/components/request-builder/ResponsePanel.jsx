@@ -1,126 +1,69 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Editor from '@monaco-editor/react';
 import {
   Send, Loader2, BarChart3, Timer, HardDrive, Calendar,
-  Copy, Braces, AlignLeft, WrapText, Search, ChevronUp, ChevronDown, X, ImageOff
+  Copy, Braces, AlignLeft, WrapText, Search, ImageOff
 } from 'lucide-react';
-import { Input } from '../ui';
 import { useUISize } from '../../hooks/useUISize';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useShikiHighlighter } from '../../hooks/useShikiHighlighter';
+import { useMonacoAppTheme, MONACO_FONT_FAMILY } from '../../hooks/useMonacoAppTheme';
 import { formatSize } from '../../lib/utils';
 import { addToast } from '../../stores/toastStore';
 
 const VIEW_MODE_STORAGE_KEY = 'rikuest-response-view';
 const WRAP_STORAGE_KEY = 'rikuest-response-wrap';
 
-const HighlightedCode = React.memo(({ content, language, formatJson, textSize, config, showLineNumbers, wrap = true }) => {
-  const { highlight, ready } = useShikiHighlighter();
+// Monaco renders only the lines in view and tokenizes as it scrolls, so body
+// size stops driving DOM size. Above this the extras that do scale with the
+// document (folding ranges, bracket pairs, occurrence highlighting) are dropped
+// too, which is the same "large file optimizations" trade editors make.
+const LARGE_BODY_BYTES = 512 * 1024;
 
-  const fontSize = config.text.sm.includes('text-xs') ? '0.75rem' :
-                   config.text.sm.includes('text-sm') ? '0.875rem' :
-                   config.text.sm.includes('text-base') ? '1rem' : '1.125rem';
+// Languages the response viewer can ask Monaco for; anything else is plain text.
+const MONACO_LANGUAGES = { json: 'json', html: 'html', xml: 'xml', css: 'css', javascript: 'javascript' };
 
-  const processedContent = language === 'json' ? formatJson(content) : (content || '');
-  const wrapClass = wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre';
+const ResponseViewer = React.memo(({ content, language, wrap, editorRef }) => {
+  const { themeName, fontSize, lineHeight, handleEditorWillMount } = useMonacoAppTheme({ editorRef });
+  const isLarge = content.length > LARGE_BODY_BYTES;
 
-  if (language === 'text' || !language) {
-    return (
-      <div className="h-full overflow-y-auto">
-        <pre
-          className={`${textSize} p-4 overflow-x-auto font-mono ${wrapClass}`}
-          style={{ fontSize }}
-        >
-          {content}
-        </pre>
-      </div>
-    );
-  }
-
-  const html = ready ? highlight(processedContent, language, { lineNumbers: showLineNumbers }) : null;
+  const options = useMemo(() => ({
+    readOnly: true,
+    // Read-only still shows a caret and allows selection; this only hides the
+    // "cannot edit in read-only editor" tooltip on keypress.
+    domReadOnly: true,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    wordWrap: wrap ? 'on' : 'off',
+    lineNumbers: 'on',
+    folding: !isLarge,
+    bracketPairColorization: { enabled: !isLarge },
+    occurrencesHighlight: isLarge ? 'off' : 'singleFile',
+    renderLineHighlight: 'none',
+    fontFamily: MONACO_FONT_FAMILY,
+    fontSize,
+    lineHeight,
+    smoothScrolling: true,
+    scrollbar: { alwaysConsumeMouseWheel: false },
+    contextmenu: true,
+  }), [wrap, isLarge, fontSize, lineHeight]);
 
   return (
-    <div className="h-full overflow-y-auto">
-      {html ? (
-        <div
-          className={`shiki-wrapper${showLineNumbers ? ' line-numbers' : ''}${wrap === false ? ' no-wrap' : ''}`}
-          style={{ fontSize }}
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <pre
-          className={`${textSize} p-4 overflow-x-auto font-mono ${wrapClass}`}
-          style={{ fontSize }}
-        >
-          {processedContent}
-        </pre>
-      )}
-    </div>
+    <Editor
+      height="100%"
+      language={MONACO_LANGUAGES[language] || 'plaintext'}
+      value={content}
+      theme={themeName}
+      beforeMount={handleEditorWillMount}
+      onMount={(editor) => { editorRef.current = editor; }}
+      options={options}
+      loading=""
+    />
   );
 });
 
-HighlightedCode.displayName = 'HighlightedCode';
+ResponseViewer.displayName = 'ResponseViewer';
 
-// Plain-text body view used for the "raw" body mode and for search - renders
-// the untouched body and (optionally) wraps individual matches in <mark>
-// elements so the caller can scroll to and highlight the active match.
-const RawBody = React.memo(({ content, textSize, wrap, searchQuery, currentMatchIndex, matchRefs }) => {
-  const wrapClass = wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre';
-
-  const segments = useMemo(() => {
-    if (!searchQuery || !searchQuery.trim()) return null;
-
-    const query = searchQuery.toLowerCase();
-    const lowerContent = (content || '').toLowerCase();
-    const parts = [];
-    let lastIndex = 0;
-    let matchIndex = 0;
-    let searchIndex = lowerContent.indexOf(query, 0);
-
-    while (searchIndex !== -1) {
-      if (searchIndex > lastIndex) {
-        parts.push({ type: 'text', value: content.slice(lastIndex, searchIndex) });
-      }
-      parts.push({ type: 'match', value: content.slice(searchIndex, searchIndex + query.length), index: matchIndex });
-      lastIndex = searchIndex + query.length;
-      matchIndex += 1;
-      searchIndex = lowerContent.indexOf(query, lastIndex);
-    }
-
-    if (lastIndex < content.length) {
-      parts.push({ type: 'text', value: content.slice(lastIndex) });
-    }
-
-    return parts;
-  }, [content, searchQuery]);
-
-  return (
-    <div className="h-full overflow-y-auto">
-      <pre className={`${textSize} p-4 overflow-x-auto font-mono ${wrapClass}`}>
-        {segments ? (
-          segments.map((part, i) =>
-            part.type === 'match' ? (
-              <mark
-                key={i}
-                ref={(el) => { if (matchRefs?.current) matchRefs.current[part.index] = el; }}
-                className={part.index === currentMatchIndex
-                  ? 'bg-orange-400/70 text-foreground rounded-sm'
-                  : 'bg-yellow-300/50 dark:bg-yellow-500/30 text-foreground rounded-sm'}
-              >
-                {part.value}
-              </mark>
-            ) : (
-              <React.Fragment key={i}>{part.value}</React.Fragment>
-            )
-          )
-        ) : (
-          content
-        )}
-      </pre>
-    </div>
-  );
-});
-
-RawBody.displayName = 'RawBody';
 
 const getStatusColor = (status) => {
   if (status >= 200 && status < 300) return 'text-green-600 bg-green-50';
@@ -171,7 +114,6 @@ const getResponseLanguage = (currentResponse) => {
   if (!currentResponse || !currentResponse.body) return 'text';
 
   const contentType = currentResponse.headers?.['content-type'] || '';
-  const body = currentResponse.body.trim();
 
   // Check content type first
   if (contentType.includes('application/json') || contentType.includes('text/json')) {
@@ -190,7 +132,10 @@ const getResponseLanguage = (currentResponse) => {
     return 'javascript';
   }
 
-  // Fallback: detect by content structure
+  // Fallback: detect by content structure. The trim and the parse only happen
+  // here, so a body whose content-type already answered the question is never
+  // copied or parsed just to pick a language.
+  const body = currentResponse.body.trim();
   try {
     JSON.parse(body);
     return 'json';
@@ -207,15 +152,12 @@ const getResponseLanguage = (currentResponse) => {
 };
 
 function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeResponseTab, setActiveResponseTab }) {
-  const { text, tab: tabStyle, config } = useUISize();
+  const { text, tab: tabStyle } = useUISize();
   const { t } = useTranslation();
 
   const [viewMode, setViewMode] = useState(() => localStorage.getItem(VIEW_MODE_STORAGE_KEY) || 'pretty');
   const [wordWrap, setWordWrap] = useState(() => localStorage.getItem(WRAP_STORAGE_KEY) === 'true');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const matchRefs = useRef([]);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
@@ -235,57 +177,25 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
   const isBinaryBody = isBinaryContentType(contentType);
   const isImageBody = contentType.toLowerCase().startsWith('image/');
 
-  const matchCount = useMemo(() => {
-    if (!searchQuery || !searchQuery.trim() || !currentResponse?.body) return 0;
-    const query = searchQuery.toLowerCase();
-    const lowerBody = currentResponse.body.toLowerCase();
-    let count = 0;
-    let index = lowerBody.indexOf(query);
-    while (index !== -1) {
-      count += 1;
-      index = lowerBody.indexOf(query, index + query.length);
-    }
-    return count;
-  }, [searchQuery, currentResponse?.body]);
+  // Detection can fall back to parsing the whole body, so it is tied to the
+  // response rather than re-run on every render.
+  const bodyLanguage = useMemo(() => getResponseLanguage(currentResponse), [currentResponse]);
 
-  // Keep the active match index in range as the query/matches change.
-  useEffect(() => {
-    matchRefs.current = [];
-    setCurrentMatchIndex(0);
-  }, [searchQuery]);
+  // Pretty-printing is a parse plus a serialize of the whole body: memoized so
+  // it is not redone by unrelated renders, such as toggling word wrap.
+  const bodyContent = useMemo(() => {
+    const body = currentResponse?.body || '';
+    if (viewMode === 'raw' || bodyLanguage !== 'json') return body;
+    return formatJson(body);
+  }, [currentResponse?.body, viewMode, bodyLanguage]);
 
-  const scrollToMatch = useCallback((index) => {
-    // Deferred so the DOM has re-rendered the <mark> refs first.
-    requestAnimationFrame(() => {
-      const el = matchRefs.current[index];
-      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    });
-  }, []);
-
-  const goToNextMatch = () => {
-    if (matchCount === 0) return;
-    const next = (currentMatchIndex + 1) % matchCount;
-    setCurrentMatchIndex(next);
-    scrollToMatch(next);
-  };
-
-  const goToPrevMatch = () => {
-    if (matchCount === 0) return;
-    const prev = (currentMatchIndex - 1 + matchCount) % matchCount;
-    setCurrentMatchIndex(prev);
-    scrollToMatch(prev);
-  };
-
+  // Search is the editor's own find widget: it works off the text model rather
+  // than the rendered DOM, so it finds matches in lines that were never drawn.
   const openSearch = () => {
-    // Highlighting matches inside Shiki's generated HTML is fragile, so
-    // search only operates against the raw body view - switch to it.
-    setViewMode('raw');
-    setSearchOpen(true);
-  };
-
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setSearchQuery('');
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    editor.getAction('actions.find')?.run();
   };
 
   const getCurrentTabContent = () => {
@@ -429,8 +339,8 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
                   <WrapText className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  className={toolbarButtonClass(searchOpen)}
-                  onClick={() => (searchOpen ? closeSearch() : openSearch())}
+                  className={toolbarButtonClass(false)}
+                  onClick={openSearch}
                   title={t('response.search')}
                 >
                   <Search className="h-3.5 w-3.5" />
@@ -447,39 +357,6 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
           </div>
         </div>
 
-        {searchOpen && activeResponseTab === 'body' && (
-          <div className="flex items-center gap-2 px-2 py-1.5 border-t border-border bg-muted/30">
-            <Input
-              variant="borderless"
-              autoFocus
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.shiftKey ? goToPrevMatch() : goToNextMatch();
-                } else if (e.key === 'Escape') {
-                  closeSearch();
-                }
-              }}
-              placeholder={t('response.searchPlaceholder')}
-              className={`flex-1 ${text('sm')}`}
-            />
-            <span className={`${text('xs')} text-muted-foreground whitespace-nowrap`}>
-              {matchCount === 0
-                ? t('response.noMatches')
-                : t('response.matchCounter').replace('{current}', currentMatchIndex + 1).replace('{total}', matchCount)}
-            </span>
-            <button className={toolbarButtonClass(false)} onClick={goToPrevMatch} title={t('response.prevMatch')}>
-              <ChevronUp className="h-3.5 w-3.5" />
-            </button>
-            <button className={toolbarButtonClass(false)} onClick={goToNextMatch} title={t('response.nextMatch')}>
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            <button className={toolbarButtonClass(false)} onClick={closeSearch} title={t('response.closeSearch')}>
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Response Content */}
@@ -501,24 +378,12 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
                 </p>
               </div>
             </div>
-          ) : viewMode === 'raw' ? (
-            <RawBody
-              content={currentResponse.body || ''}
-              textSize={text('sm')}
-              wrap={wordWrap}
-              searchQuery={searchOpen ? searchQuery : ''}
-              currentMatchIndex={currentMatchIndex}
-              matchRefs={matchRefs}
-            />
           ) : (
-            <HighlightedCode
-              content={currentResponse.body}
-              language={getResponseLanguage(currentResponse)}
-              formatJson={formatJson}
-              textSize={text('sm')}
-              config={config}
-              showLineNumbers
+            <ResponseViewer
+              content={bodyContent}
+              language={viewMode === 'raw' ? 'text' : bodyLanguage}
               wrap={wordWrap}
+              editorRef={editorRef}
             />
           )
         )}
@@ -537,14 +402,13 @@ function ResponsePanel({ currentResponse, executing, loadingHistoryItem, activeR
         )}
 
         {activeResponseTab === 'raw' && (
-          <div className="h-full overflow-y-auto">
+          <div className="h-full">
             {currentResponse.raw_request ? (
-              <HighlightedCode
+              <ResponseViewer
                 content={currentResponse.raw_request}
-                language="http"
-                formatJson={formatJson}
-                textSize={text('sm')}
-                config={config}
+                language="text"
+                wrap={wordWrap}
+                editorRef={editorRef}
               />
             ) : (
               <div className="text-center py-8">

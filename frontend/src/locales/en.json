@@ -381,12 +381,6 @@
     "switchToPretty": "Switch to pretty view",
     "toggleWrap": "Toggle word wrap",
     "search": "Search in body",
-    "searchPlaceholder": "Search...",
-    "noMatches": "No matches",
-    "matchCounter": "{current} of {total}",
-    "prevMatch": "Previous match",
-    "nextMatch": "Next match",
-    "closeSearch": "Close search",
     "binaryPreviewTitle": "Binary response",
     "binaryPreviewDesc": "{type} — {size} — preview not supported"
   },
